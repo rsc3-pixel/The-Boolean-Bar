@@ -100,7 +100,7 @@ The-Boolean-Bar/
 | Dev 3         | 🐍 Lógica (Logic Master) | Gerador aleatório de strings lógicas estáveis.               |
 | Cauã Rêgo         | 🗄️ Backend (C Expert) | Gestão de memória (`malloc`/`free`) e TADs principais.       |
 | Dev 5         | 🗄️ Backend (C Expert) | Controle de fluxo imperativo e motor de turnos.              |
-| Dev 6         | 🎨 UI/UX (ASCII Designer) | Interface visual no terminal e sistema de cores ANSI.        |
+| Luís Nunes    | 🎨 UI/UX (ASCII Designer) | Interface visual no terminal e sistema de cores ANSI.        |
 | Dev 7         | 📄 QA & Docs        | Testes de estresse (inputs errados) e documentação lógica.   |
 
 ## 🚀 Como Rodar
