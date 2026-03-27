@@ -78,7 +78,10 @@ The-Boolean-Bar/
 ├── docs/                 # Documentação do projeto
 │   ├── LOGIC_SYNTAX.md
 │   ├── GAME_RULES.md
-│   └── ARCHITECTURE_OVERVIEW.md
+│   ├── ARCHITECTURE_OVERVIEW.md
+│   ├── DATA_STRUCTURES.md
+│   ├── API_REFERENCE.md
+│   └── DEVELOPMENT_STATUS.md
 ```
 
 ## 🛠️ Tech Stack & Conceitos Aplicados
@@ -90,6 +93,130 @@ The-Boolean-Bar/
 | Funcional      | Ponteiros de Função           | Implementação de comportamentos genéricos e filtros. |
 | Lógica         | Cálculo Proposicional         | Validação automática de fórmulas via Tabelas-Verdade. |
 | Interface      | CLI (ASCII Art)               | Estética sombria e imersiva via terminal.            |
+
+## 📊 Diagramas Técnicos
+
+### Arquitetura em Camadas
+
+```mermaid
+graph TB
+    subgraph "Camada de Apresentação"
+        UI["🎨 ui/terminal_art<br/>ASCII Art + Cores ANSI"]
+    end
+
+    subgraph "Camada de Lógica de Negócio"
+        GF["🎮 modules/game_flow<br/>Motor de Turnos"]
+        LE["🧠 modules/logic_engine<br/>Tabela-Verdade"]
+        DM["🃏 modules/deck_manager<br/>Gerador de Fórmulas"]
+    end
+
+    subgraph "Camada Funcional"
+        PRED["λ functional/predicates<br/>Ponteiros de Função"]
+    end
+
+    subgraph "Camada de Infraestrutura"
+        MEM["💾 core/memory<br/>malloc / free"]
+        IH["⌨️ core/input_handler<br/>Validação de Input"]
+        TYPES["📦 core/types<br/>TADs: Carta, Jogador, Mesa"]
+    end
+
+    UI --> GF
+    GF --> LE
+    GF --> DM
+    GF --> PRED
+    GF --> MEM
+    GF --> IH
+    LE --> TYPES
+    DM --> TYPES
+    MEM --> TYPES
+```
+
+### Modelo de Dados (Entidade-Relacionamento)
+
+```mermaid
+erDiagram
+    Mesa ||--o{ Jogador : "players[7]"
+    Mesa ||--o| Carta : "current_card"
+    Carta }o--|| FormulaType : "type"
+    Jogador }o--|| PlayerStatus : "status"
+
+    Mesa {
+        int num_players_alive
+        int current_player_index
+        bool game_over
+    }
+
+    Jogador {
+        int id
+        string name
+        int score
+    }
+
+    Carta {
+        string formula_str
+    }
+```
+
+### Fluxo do Jogo (Máquina de Estados)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Inicializacao: game_start()
+    Inicializacao --> CriarMesa: mem_new_mesa()
+    CriarMesa --> CriarJogadores: Loop x7
+
+    CriarJogadores --> TurnoAtivo: Jogo Iniciado
+
+    state TurnoAtivo {
+        [*] --> GerarCarta: deck_generate_random_formula_string()
+        GerarCarta --> JogadorAfirma: Exibir carta
+        JogadorAfirma --> Duvida: Oponente duvida?
+        Duvida --> Verificar: logic_evaluate_formula()
+        Verificar --> AcertoJogador: Afirmação correta
+        Verificar --> ErroJogador: Afirmação incorreta
+        AcertoJogador --> ProximoTurno: Oponentes perdem vida
+        ErroJogador --> RoletaRussa: Punição
+        RoletaRussa --> ProximoTurno: Sobreviveu
+        RoletaRussa --> Eliminacao: Perdeu vida
+        Eliminacao --> ProximoTurno: Vidas > 0
+        Eliminacao --> JogadorEliminado: Vidas = 0
+        JogadorEliminado --> ProximoTurno
+        Duvida --> ProximoTurno: Ninguém duvidou
+    }
+
+    TurnoAtivo --> FimDeJogo: 1 jogador restante
+    FimDeJogo --> Limpeza: mem_free_mesa()
+    Limpeza --> [*]
+```
+
+### Dependência entre Módulos
+
+```mermaid
+graph LR
+    A["main.c"] -->|"chama"| B["game_flow"]
+    B -->|"aloca/libera"| C["core/memory"]
+    B -->|"gera carta"| D["deck_manager"]
+    B -->|"verifica"| E["logic_engine"]
+    B -->|"filtra"| F["predicates"]
+    B -->|"renderiza"| G["terminal_art"]
+    B -->|"lê input"| H["input_handler"]
+    C -->|"usa"| I["core/types"]
+    D -->|"usa"| I
+    E -->|"usa"| I
+```
+
+## 📚 Documentação Completa
+
+| Documento | Descrição |
+| :-------- | :-------- |
+| [ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) | Visão geral da arquitetura modular |
+| [DATA_STRUCTURES.md](docs/DATA_STRUCTURES.md) | Referência de TADs com diagrama ER |
+| [API_REFERENCE.md](docs/API_REFERENCE.md) | Referência completa de funções com diagramas de fluxo |
+| [GAME_RULES.md](docs/GAME_RULES.md) | Regras detalhadas do jogo |
+| [LOGIC_SYNTAX.md](docs/LOGIC_SYNTAX.md) | Sintaxe das fórmulas lógicas |
+| [DEVELOPMENT_STATUS.md](docs/DEVELOPMENT_STATUS.md) | Status de implementação por módulo |
+
+
 
 ## 👥 A Equipe (Squad 7)
 
