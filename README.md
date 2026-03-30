@@ -223,7 +223,7 @@ graph LR
 | Membro        | Papel               | Responsabilidade Principal                                   |
 | :------------ | :------------------ | :----------------------------------------------------------- |
 | Renato Chong  | 🚀 Tech Lead        | Arquitetura, Integração de módulos e Code Review.            |
-| Dev 2         | 🐍 Lógica (Logic Master) | Construir o avaliador de fórmulas proposicionais.            |
+| João Pedro         | 🐍 Lógica (Logic Master) | Construir o avaliador de fórmulas proposicionais.            |
 | Fernando Andrade  | 🐍 Lógica (Logic Master) | Gerador aleatório de strings lógicas estáveis.               |
 | Cauã Rêgo         | 🗄️ Backend (C Expert) | Gestão de memória (`malloc`/`free`) e TADs principais.       |
 | Matheus Larré | 🗄️ Backend (C Expert) | Controle de fluxo imperativo e motor de turnos.              |
