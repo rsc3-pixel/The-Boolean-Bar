@@ -226,7 +226,7 @@ graph LR
 | Dev 2         | 🐍 Lógica (Logic Master) | Construir o avaliador de fórmulas proposicionais.            |
 | Fernando Andrade  | 🐍 Lógica (Logic Master) | Gerador aleatório de strings lógicas estáveis.               |
 | Cauã Rêgo         | 🗄️ Backend (C Expert) | Gestão de memória (`malloc`/`free`) e TADs principais.       |
-|  | 🗄️ Backend (C Expert) | Controle de fluxo imperativo e motor de turnos.              |
+| Matheus Larré | 🗄️ Backend (C Expert) | Controle de fluxo imperativo e motor de turnos.              |
 | Luís Nunes    | 🎨 UI/UX (ASCII Designer) | Interface visual no terminal e sistema de cores ANSI.        |
 | Gabriel Brito | 📄 QA & Docs        | Testes de estresse (inputs errados) e documentação lógica.   |
 
