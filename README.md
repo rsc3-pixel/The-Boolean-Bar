@@ -210,7 +210,7 @@ graph LR
 | Documento | Descrição |
 | :-------- | :-------- |
 | [ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) | Visão geral da arquitetura modular |
-| [DATA_STRUCTURES.md](docs/DATA_STRUCTURES.md) | Referência de TADs com diagrama ER |
+| [DATA_STRUCTURES.md](docs/DATA_STRUCTURES.md) | Referência de TAD's com diagrama ER |
 | [API_REFERENCE.md](docs/API_REFERENCE.md) | Referência completa de funções com diagramas de fluxo |
 | [GAME_RULES.md](docs/GAME_RULES.md) | Regras detalhadas do jogo |
 | [LOGIC_SYNTAX.md](docs/LOGIC_SYNTAX.md) | Sintaxe das fórmulas lógicas |
