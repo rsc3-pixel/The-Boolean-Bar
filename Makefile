@@ -1,53 +1,80 @@
-# Makefile para o projeto The Boolean Bar
+# Makefile Profissional - The Boolean Bar
+# Arquiteto: Senior AI Auditor
 
-# Compilador C
+# Diretorios
+SRC_DIR = engine
+BUILD_DIR = build
+WEB_DIR = web
+
+# Compilador e Flags
 CC = gcc
-
-# Flags do compilador
-# -Wall: Habilita todos os avisos
-# -Wextra: Habilita avisos adicionais
-# -std=c11: Usa o padrão C11
-# -g: Inclui informações de debug
-# -I.: Adiciona o diretório atual para busca de includes
-# -Icore: Adiciona o diretório core para busca de includes
-# -Imodules: Adiciona o diretório modules para busca de includes
-# -Iui: Adiciona o diretório ui para busca de includes
-# -Ifunctional: Adiciona o diretório functional para busca de includes
-CFLAGS = -Wall -Wextra -std=c11 -g -I. -Icore -Imodules -Iui -Ifunctional
+CFLAGS = -Wall -Wextra -std=c11 -g \
+         -I$(SRC_DIR) \
+         -I$(SRC_DIR)/core \
+         -I$(SRC_DIR)/modules \
+         -I$(SRC_DIR)/ui \
+         -I$(SRC_DIR)/functional
 
 # Nome do executável final
-TARGET = boolean_bar
+TARGET = $(BUILD_DIR)/boolean_bar.exe
 
-# Arquivos fonte (todos os .c do projeto)
+# Arquivos fonte
 SRCS = \
-	main.c \
-	core/memory.c \
-	core/input_handler.c \
-	modules/logic_engine.c \
-	modules/deck_manager.c \
-	modules/game_flow.c \
-	functional/predicates.c \
-	ui/terminal_art.c
+	$(SRC_DIR)/main.c \
+	$(SRC_DIR)/core/memory.c \
+	$(SRC_DIR)/core/input_handler.c \
+	$(SRC_DIR)/modules/logic_engine.c \
+	$(SRC_DIR)/modules/deck_manager.c \
+	$(SRC_DIR)/modules/game_flow.c \
+	$(SRC_DIR)/functional/predicates.c \
+	$(SRC_DIR)/ui/terminal_art.c
 
-# Arquivos objeto (gerados a partir dos fontes)
-OBJS = $(SRCS:.c=.o)
+# Mapeia arquivos .c para .o dentro da pasta build
+OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
 
-# Regra padrão: compila o executável
-all: $(TARGET)
+# Regra padrão
+all: prepare $(TARGET)
 
+# Cria a estrutura de pastas no build se não existir
+prepare:
+	@powershell -Command "if (!(Test-Path $(BUILD_DIR))) { New-Item -ItemType Directory -Path $(BUILD_DIR) | Out-Null }"
+	@powershell -Command "if (!(Test-Path $(BUILD_DIR)/core)) { New-Item -ItemType Directory -Path $(BUILD_DIR)/core | Out-Null }"
+	@powershell -Command "if (!(Test-Path $(BUILD_DIR)/modules)) { New-Item -ItemType Directory -Path $(BUILD_DIR)/modules | Out-Null }"
+	@powershell -Command "if (!(Test-Path $(BUILD_DIR)/ui)) { New-Item -ItemType Directory -Path $(BUILD_DIR)/ui | Out-Null }"
+	@powershell -Command "if (!(Test-Path $(BUILD_DIR)/functional)) { New-Item -ItemType Directory -Path $(BUILD_DIR)/functional | Out-Null }"
+
+# Linkagem final
 $(TARGET): $(OBJS)
+	@echo "[Build] Linkando $(TARGET)..."
+	-@taskkill /F /IM boolean_bar.exe >NUL 2>&1 || exit 0
 	$(CC) $(OBJS) -o $(TARGET)
+	@powershell -Command "\
+		$$cert = Get-ChildItem Cert:\\CurrentUser\\My | Where-Object { $$_.Subject -like '*BooleanBarDev*' } | Select-Object -First 1; \
+		if ($$cert) { Set-AuthenticodeSignature -FilePath '$(TARGET)' -Certificate $$cert | Out-Null; Write-Host '[Sign] Assinatura OK' } \
+		else { Unblock-File -Path '$(TARGET)'; Write-Host '[Sign] Unblocked' }"
 
-# Regra genérica para compilar arquivos .c em .o
-%.o: %.c
+# Compilação de objetos
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	@echo "[Compile] $<"
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Regra para limpar arquivos gerados
+# Regra de Desenvolvimento Web
+dev: all
+	@echo "[Launcher] Iniciando Interface e Servidor..."
+	@powershell -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c cd $(WEB_DIR) && node web_server.js' -WindowStyle Hidden"
+	@powershell -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c cd $(WEB_DIR) && npm run dev' -WindowStyle Hidden"
+	@powershell -Command "Start-Sleep -Seconds 4; Start-Process 'http://localhost:5173'"
+
+# Limpeza total
 clean:
-	rm -f $(OBJS) $(TARGET)
+	@echo "[Clean] Removendo artefatos de build..."
+	@powershell -Command "Remove-Item -Path $(BUILD_DIR) -Recurse -Force -ErrorAction SilentlyContinue"
 
-# Regra para compilar e rodar o programa
-run: all
-	./$(TARGET)
+kill:
+	@echo "[System] Matando processos..."
+	-@taskkill /F /IM node.exe 2>NUL || exit 0
+	-@taskkill /F /IM boolean_bar.exe 2>NUL || exit 0
 
-.PHONY: all clean run
+restart: kill dev
+
+.PHONY: all clean run dev kill restart prepare

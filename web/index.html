@@ -1,0 +1,33 @@
+
+  <!DOCTYPE html>
+  <html lang="pt-br">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>The Boolean Bar</title>
+      <style>
+        html, body { 
+          height: 100%; 
+          margin: 0; 
+          background-color: black; 
+          overflow: hidden; 
+        } 
+        #root { 
+          height: 100%; 
+          width: 100%;
+        }
+        /* Responsividade Extrema: Encolhendo o design de desktop do Figma para notebooks via Motor CSS */
+        @media (max-height: 900px) { #root { zoom: 0.90; } }
+        @media (max-height: 800px) { #root { zoom: 0.80; } }
+        @media (max-height: 700px) { #root { zoom: 0.70; } }
+        @media (max-height: 600px) { #root { zoom: 0.60; } }
+        @media (max-height: 500px) { #root { zoom: 0.50; } }
+      </style>
+    </head>
+
+    <body>
+      <div id="root"></div>
+      <script type="module" src="/src/main.tsx"></script>
+    </body>
+  </html>
+  

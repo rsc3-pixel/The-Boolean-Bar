@@ -210,40 +210,30 @@ graph LR
 | Documento | Descrição |
 | :-------- | :-------- |
 | [ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) | Visão geral da arquitetura modular |
-| [DATA_STRUCTURES.md](docs/DATA_STRUCTURES.md) | Referência de TAD's com diagrama ER |
 | [API_REFERENCE.md](docs/API_REFERENCE.md) | Referência completa de funções com diagramas de fluxo |
 | [GAME_RULES.md](docs/GAME_RULES.md) | Regras detalhadas do jogo |
 | [LOGIC_SYNTAX.md](docs/LOGIC_SYNTAX.md) | Sintaxe das fórmulas lógicas |
-| [DEVELOPMENT_STATUS.md](docs/DEVELOPMENT_STATUS.md) | Status de implementação por módulo |
-
-
 
 ## 👥 A Equipe (Squad 7)
 
-| Membro        | Papel               | Responsabilidade Principal                                   |
-| :------------ | :------------------ | :----------------------------------------------------------- |
-| Renato Chong  | 🚀 Tech Lead        | Arquitetura, Integração de módulos e Code Review.            |
-| João Pedro         | 🐍 Lógica (Logic Master) | Construir o avaliador de fórmulas proposicionais.            |
-| Fernando Andrade  | 🐍 Lógica (Logic Master) | Gerador aleatório de strings lógicas estáveis.               |
-| Cauã Rêgo         | 🗄️ Backend (C Expert) | Gestão de memória (`malloc`/`free`) e TADs principais.       |
-| Matheus Larré | 🗄️ Backend (C Expert) | Controle de fluxo imperativo e motor de turnos.              |
-| Luís Nunes    | 🎨 UI/UX (ASCII Designer) | Interface visual no terminal e sistema de cores ANSI.        |
-| Gabriel Brito | 📄 QA & Docs        | Testes de estresse (inputs errados) e documentação lógica.   |
+| Membro           | Papel                     | Responsabilidade Principal                                   |
+| :--------------- | :------------------------ | :----------------------------------------------------------- |
+| Renato Chong     | 🚀 Tech Lead              | Arquitetura, Integração de módulos e Code Review.            |
+| João Pedro       | 🐍 Lógica (Logic Master)  | Construir o avaliador de fórmulas proposicionais.            |
+| Fernando Andrade | 🐍 Lógica (Logic Master)  | Gerador aleatório de strings lógicas estáveis.               |
+| Cauã Rêgo        | 🗄️ Backend (C Expert)    | Gestão de memória (`malloc`/`free`) e TADs principais.       |
+| Matheus Larré    | 🗄️ Backend (C Expert)    | Controle de fluxo imperativo e motor de turnos.              |
+| Luís Nunes       | 🎨 UI/UX (ASCII Designer) | Interface visual no terminal e sistema de cores ANSI.        |
+| Gabriel Brito    | 📄 QA & Docs              | Testes de estresse (inputs errados) e documentação lógica.   |
 
 ## 🚀 Como Rodar
 
 ```bash
-# Clone o repositório
-git clone https://github.com/seu-usuario/the-boolean-bar.git
+# Compilar projeto com GCC (Gera boolean_bar.exe)
+make
 
-# Navegue até o diretório do projeto
-cd the-boolean-bar
-
-# Compile via Makefile
-make build
-
-# Inicie o jogo
-make run
+# Subir servidor WebSocket + Frontend React
+make dev
 ```
 
 <p align="center">Desenvolvido com <strong>C</strong> e <strong>Lógica Pura</strong> por estudantes de ADS.</p>
