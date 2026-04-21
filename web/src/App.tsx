@@ -3,10 +3,11 @@ import { MainMenu } from "./pages/MainMenu";
 import { Lobby } from "./pages/Lobby";
 import { MatchLobby } from "./pages/MatchLobby";
 import { GamePage } from "./pages/GamePage";
+import { DiceGamePage } from "./pages/DiceGamePage";
 import { SettingsInstructionsPanel } from "./components/modals/SettingsInstructionsPanel";
 import { useGameEngine } from "./hooks/useGameEngine";
 
-type GameScreen = "menu" | "lobby" | "matchLobby" | "game";
+type GameScreen = "menu" | "lobby" | "matchLobby" | "game" | "diceGame";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<GameScreen>("menu");
@@ -21,6 +22,7 @@ export default function App() {
       <>
         <MainMenu
           onEnter={() => setCurrentScreen("lobby")}
+          onEnterDice={() => setCurrentScreen("diceGame")}
           onOpenRules={() => setShowSettings(true)}
           onFlee={() => gameEngine.sendShutdown()}
         />
@@ -61,6 +63,15 @@ export default function App() {
          playerNames={playerNames} 
          onExit={() => setCurrentScreen("menu")} 
          engine={gameEngine}
+      />
+    );
+  }
+
+  if (currentScreen === "diceGame") {
+    return (
+      <DiceGamePage 
+         playerNames={playerNames} 
+         onExit={() => setCurrentScreen("menu")} 
       />
     );
   }
