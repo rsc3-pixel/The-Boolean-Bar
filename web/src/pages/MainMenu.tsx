@@ -3,11 +3,12 @@ import { BookOpen, DoorOpen } from "lucide-react";
 
 interface MainMenuProps {
   onEnter: () => void;
+  onEnterDice?: () => void;
   onOpenRules: () => void;
   onFlee: () => void;
 }
 
-export function MainMenu({ onEnter, onOpenRules, onFlee }: MainMenuProps) {
+export function MainMenu({ onEnter, onEnterDice, onOpenRules, onFlee }: MainMenuProps) {
   return (
     <div className="size-full bg-black overflow-hidden relative flex items-center justify-center">
       {/* Deep black background */}
@@ -161,6 +162,55 @@ export function MainMenu({ onEnter, onOpenRules, onFlee }: MainMenuProps) {
               className="absolute inset-0 pointer-events-none"
               style={{
                 boxShadow: '0 0 100px rgba(6, 182, 212, 1), 0 0 150px rgba(6, 182, 212, 0.8)'
+              }}
+            />
+          </motion.button>
+
+          {/* 1.5 GLASSMORPHISM OUTLINED BUTTON - "LIAR'S DICE MODE" */}
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onEnterDice}
+            className="group relative w-[600px] h-[85px] bg-transparent backdrop-blur-sm border-2 border-emerald-400/40 rounded-xl overflow-hidden transition-all duration-300 hover:border-emerald-300/60"
+            style={{
+              background: 'rgba(52, 211, 153, 0.03)',
+              boxShadow: '0 0 30px rgba(52, 211, 153, 0.15), inset 0 0 30px rgba(52, 211, 153, 0.05)'
+            }}
+          >
+            {/* Glassmorphic overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/5" />
+
+            {/* Hover glow */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileHover={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-emerald-400/20 to-emerald-500/10"
+            />
+
+            {/* Button content */}
+            <div className="relative h-full flex items-center justify-center gap-4 px-8">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M12 12h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path></svg>
+              <div className="flex flex-col items-start gap-0.5">
+                <span
+                  className="text-3xl tracking-[0.2em] text-emerald-300 font-sans"
+                  style={{ fontWeight: 700 }}
+                >
+                  LIAR'S DICE MODE
+                </span>
+                <span className="text-xs tracking-[0.25em] text-emerald-500/60 font-mono uppercase">
+                  Protótipo Visual
+                </span>
+              </div>
+            </div>
+
+            {/* Border glow on hover */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileHover={{ opacity: 1 }}
+              className="absolute inset-0 rounded-xl pointer-events-none"
+              style={{
+                boxShadow: '0 0 40px rgba(52, 211, 153, 0.4)'
               }}
             />
           </motion.button>
