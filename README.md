@@ -1,5 +1,5 @@
 # 🥃 The Boolean Bar
-
+<p align="center"><em>Enterprise-Grade Logic Game Engine & Web Platform</em></p>
 <p align="center"><em>Onde a única verdade absoluta é a sua sobrevivência.</em></p>
 
 <p align="center">
@@ -7,7 +7,9 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Architecture-Enterprise_Monorepo-blue?style=for-the-badge" alt="Architecture"/>
   <img src="https://img.shields.io/badge/Language-C11-00599C?style=for-the-badge&logo=c&logoColor=white" alt="C Language"/>
+  <img src="https://img.shields.io/badge/Build-Orchestrated_Makefile-orange?style=for-the-badge" alt="Build System"/>
   <img src="https://img.shields.io/badge/Paradigm-Imperative_%26_Functional-green?style=for-the-badge" alt="Paradigms"/>
   <img src="https://img.shields.io/badge/Logic-Propositional_Calculus-orange?style=for-the-badge" alt="Logic"/>
   <img src="https://img.shields.io/badge/Status-In_Development-blueviolet?style=for-the-badge" alt="Status"/>
@@ -27,9 +29,11 @@
 
 ## 🎯 Sobre o Projeto
 
-The Boolean Bar é um simulador de mesa de apostas clandestina desenvolvido em C. O jogo desafia 7 jogadores em um ambiente de alta tensão, onde o "baralho" é composto por fórmulas de lógica proposicional. Para vencer, o jogador deve dominar a arte do blefe e a velocidade do raciocínio lógico, pois cada falha de verificação leva o personagem à Roleta Russa.
+**The Boolean Bar** é um simulador de mesa de apostas clandestina onde a moeda de troca é o raciocínio lógico. Desenvolvido com padrões de arquitetura de alto nível, o jogo desafia 7 jogadores a validarem fórmulas de lógica proposicional sob pressão, onde um erro técnico leva diretamente à Roleta Russa.
 
-O projeto foi concebido para as cadeiras de Programação Imperativa e Funcional (PIF) e Lógica para Computação no CESAR School.
+Concebido como um projeto de excelência para as cadeiras de **Programação Imperativa e Funcional (PIF)** e **Lógica para Computação** no CESAR School.
+
+---
 
 ## 🔥 O Desafio Lógico
 
@@ -47,6 +51,8 @@ No bar, as cartas não têm números, mas proposições. O jogador deve afirmar 
 └─────────────────────────────────────────────────────────────┘
 ```
 
+---
+
 ## ✨ Funcionalidades do Épico (The Boolean Bar v1.0)
 
 As funcionalidades seguem rigorosamente os requisitos de funções de ação (ar, er, ir):
@@ -58,41 +64,39 @@ As funcionalidades seguem rigorosamente os requisitos de funções de ação (ar
 5.  **Operar Roleta**: Sortear a bala e verificar se o disparo ocorre conforme a probabilidade.
 6.  **Filtrar Sobreviventes**: Percorrer a lista de jogadores usando Ponteiros de Função (Paradigma Funcional).
 
-## 🏗️ Arquitetura Modular (C Enterprise)
+---
 
-O projeto é dividido em camadas desacopladas para garantir manutenibilidade e nota máxima em organização:
+## 🏗️ Arquitetura Enterprise (Monorepo)
+
+O projeto adota uma estrutura de **Monorepo**, segregando responsabilidades em workspaces independentes, mas orquestrados centralizadamente. Esta abordagem garante que o núcleo lógico (C) seja agnóstico em relação à interface (Web/CLI).
+
+### Estrutura de Diretórios
 
 ```text
 The-Boolean-Bar/
-├── main.c
-├── Makefile
-├── core/
-│   ├── types.h
-│   ├── memory.c
-│   ├── memory.h
-│   ├── input_handler.c
-│   └── input_handler.h
-├── modules/
-│   ├── logic_engine.c
-│   ├── logic_engine.h
-│   ├── deck_manager.c
-│   ├── deck_manager.h
-│   ├── game_flow.c
-│   └── game_flow.h
-├── functional/
-│   ├── predicates.c
-│   └── predicates.h
-└── ui/
-    ├── terminal_art.c
-    └── terminal_art.h
-├── docs/                 # Documentação do projeto
-│   ├── LOGIC_SYNTAX.md
-│   ├── GAME_RULES.md
-│   ├── ARCHITECTURE_OVERVIEW.md
-│   ├── DATA_STRUCTURES.md
-│   ├── API_REFERENCE.md
-│   └── DEVELOPMENT_STATUS.md
+├── apps/                        # Aplicações e Workspaces
+│   ├── engine/                  # 🧠 Game Engine Core (C11)
+│   │   ├── src/                 # Implementação (.c)
+│   │   ├── include/             # Interface Pública (.h)
+│   │   │   └── core/            # Namespaced Headers
+│   │   └── Makefile             # Build System Isolado
+│   └── web/                     # 🌐 Web Platform Scaffold
+│       └── src/                 # Domain-Driven Web UI
+├── docs/                        # 📄 Documentação Centralizada
+│   └── architecture/            # ADRs (Architectural Decision Records)
+├── scripts/                     # 🛠️ Utilitários e Automação
+├── Makefile                     # 🚀 Orquestrador Master (Root)
+└── README.md                    # Manifesto do Sistema
 ```
+
+### Decisões Arquiteturais (Senior Level)
+
+-   **Physical Separation of Concerns**: O motor de jogo (`engine`) é totalmente isolado do frontend, permitindo builds independentes.
+-   **Header Namespacing**: No motor C, as inclusões seguem o padrão profissional `#include "core/memory.h"`, garantindo clareza e organização.
+-   **Out-of-Source Build**: Artefatos de compilação da engine são gerados em diretórios `build/` e `bin/` específicos, mantendo o código-fonte limpo.
+-   **Master Orchestration**: O Makefile na raiz gerencia as dependências entre os workspaces.
+
+---
 
 ## 🛠️ Tech Stack & Conceitos Aplicados
 
@@ -103,6 +107,8 @@ The-Boolean-Bar/
 | Funcional      | Ponteiros de Função           | Implementação de comportamentos genéricos e filtros. |
 | Lógica         | Cálculo Proposicional         | Validação automática de fórmulas via Tabelas-Verdade. |
 | Interface      | CLI (ASCII Art)               | Estética sombria e imersiva via terminal.            |
+
+---
 
 ## 📊 Diagramas Técnicos
 
@@ -215,20 +221,55 @@ graph LR
     E -->|"usa"| I
 ```
 
-## 📚 Documentação Completa
+---
 
+## 🛠️ Build System & Execução
+
+O sistema utiliza um orquestrador centralizado para facilitar o fluxo de desenvolvimento.
+
+| Comando         | Descrição                                                                 |
+| :-------------- | :------------------------------------------------------------------------ |
+| `make engine`   | Compila o motor em C (Engine) gerando o binário em `apps/engine/bin`.     |
+| `make clean`    | Remove todos os artefatos de build de todos os workspaces.                |
+| `make kill`     | (Windows) Encerra processos (Node/Esbuild) que possam bloquear exclusões. |
+| `make help`     | Exibe os comandos e documentação do build system.                         |
+
+### Como Rodar (Engine):
+```bash
+make engine
+./apps/engine/bin/boolean_bar_engine
+```
+
+---
+
+## 📚 Documentação e Guias do Squad
+
+Como um projeto de alta colaboração, mantemos uma base de conhecimento detalhada para cada módulo e membro do time.
+
+### Documentação Técnica Principal
 | Documento | Descrição |
 | :-------- | :-------- |
-| [ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) | Visão geral da arquitetura modular |
-| [API_REFERENCE.md](docs/API_REFERENCE.md) | Referência completa de funções com diagramas de fluxo |
-| [GAME_RULES.md](docs/GAME_RULES.md) | Regras detalhadas do jogo |
-| [LOGIC_SYNTAX.md](docs/LOGIC_SYNTAX.md) | Sintaxe das fórmulas lógicas |
+| [ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) | Visão detalhada da arquitetura modular e monorepo. |
+| [API_REFERENCE.md](docs/API_REFERENCE.md) | Referência completa das funções, TADs e fluxos. |
+| [GAME_RULES.md](docs/GAME_RULES.md) | Regras oficiais da mesa de apostas e lógica. |
+| [LOGIC_SYNTAX.md](docs/LOGIC_SYNTAX.md) | Manual de sintaxe para as fórmulas lógicas. |
+
+### 👥 Guias de Estudo Individual (Squad 7)
+Cada membro do squad mantém um guia de referência rápida sobre suas responsabilidades e aprendizados:
+
+- [x] **Tech Lead:** [Renato Chong](docs/guia-renato.md)
+- [ ] **Logic Masters:** [João Pedro](docs/guia-joaopedro.md) & [Fernando Andrade](docs/guia-fernando.md)
+- [ ] **C Experts:** [Cauã Rêgo](docs/guia-caua.md) & [Matheus Larré](docs/guia-matheus.md)
+- [ ] **UI/UX Designer:** [Luís Nunes](docs/guia-luis.md)
+- [ ] **QA & Docs:** [Gabriel Brito](docs/guia-gabriel.md)
+
+---
 
 ## 👥 A Equipe (Squad 7)
 
 | Membro           | Papel                     | Responsabilidade Principal                                   |
 | :--------------- | :------------------------ | :----------------------------------------------------------- |
-| Renato Chong     | 🚀 Tech Lead              | Arquitetura, Integração de módulos e Code Review.            |
+| Renato Chong     | 🚀 Tech Lead              | Arquitetura Enterprise, Integração de módulos e Code Review. |
 | João Pedro       | 🐍 Lógica (Logic Master)  | Construir o avaliador de fórmulas proposicionais.            |
 | Fernando Andrade | 🐍 Lógica (Logic Master)  | Gerador aleatório de strings lógicas estáveis.               |
 | Cauã Rêgo        | 🗄️ Backend (C Expert)    | Gestão de memória (`malloc`/`free`) e TADs principais.       |
@@ -236,14 +277,6 @@ graph LR
 | Luís Nunes       | 🎨 UI/UX (ASCII Designer) | Interface visual no terminal e sistema de cores ANSI.        |
 | Gabriel Brito    | 📄 QA & Docs              | Testes de estresse (inputs errados) e documentação lógica.   |
 
-## 🚀 Como Rodar
-
-```bash
-# Compilar projeto com GCC (Gera boolean_bar.exe)
-make
-
-# Subir servidor WebSocket + Frontend React
-make dev
-```
-
-<p align="center">Desenvolvido com <strong>C</strong> e <strong>Lógica Pura</strong> por estudantes de ADS.</p>
+<p align="center">
+  Desenvolvido com <strong>C11</strong> e <strong>Paixão pela Arquitetura Clean</strong> por estudantes de ADS.
+</p>
