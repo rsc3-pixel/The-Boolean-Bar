@@ -15,6 +15,16 @@
 
 ---
 
+## 🎮 Gameplay (Screencast)
+
+<p align="center">
+  <video src="./assets/Screencast.mp4" controls width="800"></video>
+</p>
+
+> **Nota:** Para ver a demonstração, certifique-se de que o arquivo `Screencast.mp4` está na pasta `assets/`.
+
+---
+
 ## 🎯 Sobre o Projeto
 
 The Boolean Bar é um simulador de mesa de apostas clandestina desenvolvido em C. O jogo desafia 7 jogadores em um ambiente de alta tensão, onde o "baralho" é composto por fórmulas de lógica proposicional. Para vencer, o jogador deve dominar a arte do blefe e a velocidade do raciocínio lógico, pois cada falha de verificação leva o personagem à Roleta Russa.
