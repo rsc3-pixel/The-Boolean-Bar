@@ -48,10 +48,7 @@ $(TARGET): $(OBJS)
 	@echo "[Build] Linkando $(TARGET)..."
 	-@taskkill /F /IM boolean_bar.exe >NUL 2>&1 || exit 0
 	$(CC) $(OBJS) -o $(TARGET)
-	@powershell -Command "\
-		$$cert = Get-ChildItem Cert:\\CurrentUser\\My | Where-Object { $$_.Subject -like '*BooleanBarDev*' } | Select-Object -First 1; \
-		if ($$cert) { Set-AuthenticodeSignature -FilePath '$(TARGET)' -Certificate $$cert | Out-Null; Write-Host '[Sign] Assinatura OK' } \
-		else { Unblock-File -Path '$(TARGET)'; Write-Host '[Sign] Unblocked' }"
+	@powershell -NoProfile -ExecutionPolicy Bypass -File scripts/post_build.ps1 -Target "$(TARGET)"
 
 # Compilação de objetos
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
