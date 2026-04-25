@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Zap, AlertTriangle } from "lucide-react";
 
@@ -16,6 +17,26 @@ export function DoubtCalledOverlay({
   claimedBluff,
   onAnimationComplete
 }: DoubtCalledOverlayProps) {
+  const [countdown, setCountdown] = useState(3);
+
+  // Countdown timer (3 seconds)
+  useEffect(() => {
+    if (!isVisible) {
+      setCountdown(3);
+      return;
+    }
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isVisible]);
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -23,21 +44,55 @@ export function DoubtCalledOverlay({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.3 }}
           className="fixed inset-0 z-[100] flex items-center justify-center"
         >
-          {/* Red warning background with pulse */}
+          {/* CSS for effects */}
+          <style>{`
+            @keyframes doubt-shake {
+              0%, 100% { transform: translate(0, 0); }
+              10% { transform: translate(-6px, 3px); }
+              20% { transform: translate(5px, -4px); }
+              30% { transform: translate(-3px, -6px); }
+              40% { transform: translate(6px, 2px); }
+              50% { transform: translate(-4px, 5px); }
+              60% { transform: translate(3px, -3px); }
+              70% { transform: translate(-5px, -2px); }
+              80% { transform: translate(4px, 4px); }
+              90% { transform: translate(-2px, -5px); }
+            }
+            .doubt-entry-shake {
+              animation: doubt-shake 0.4s ease-in-out;
+            }
+            @keyframes doubt-heartbeat {
+              0%, 100% { transform: scale(1); }
+              14% { transform: scale(1.06); }
+              28% { transform: scale(1); }
+              42% { transform: scale(1.08); }
+              56% { transform: scale(1); }
+            }
+            .doubt-heartbeat {
+              animation: doubt-heartbeat 1.2s ease-in-out infinite;
+            }
+          `}</style>
+
+          {/* Red warning background with aggressive pulse */}
           <motion.div
             animate={{
-              opacity: [0.6, 0.8, 0.6]
+              opacity: [0.5, 0.85, 0.5]
             }}
             transition={{
-              duration: 1.5,
+              duration: 1.2,
               repeat: Infinity,
               ease: "easeInOut"
             }}
             className="absolute inset-0 bg-gradient-to-br from-red-950 via-red-900 to-black"
           />
+
+          {/* Aggressive vignette — darker edges for tunnel vision */}
+          <div className="absolute inset-0" style={{
+            background: 'radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0.95) 100%)'
+          }} />
 
           {/* Scanline effect */}
           <motion.div
@@ -53,10 +108,37 @@ export function DoubtCalledOverlay({
           {/* Static noise overlay */}
           <div className="absolute inset-0 opacity-5 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')]" />
 
+          {/* Radial pulse from center */}
+          <motion.div
+            animate={{
+              scale: [0.8, 2.5, 0.8],
+              opacity: [0.3, 0, 0.3]
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeOut"
+            }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full border-2 border-red-500/60"
+          />
+          <motion.div
+            animate={{
+              scale: [0.8, 3, 0.8],
+              opacity: [0.2, 0, 0.2]
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeOut",
+              delay: 0.3
+            }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full border border-red-400/40"
+          />
+
           {/* Warning indicators - top corners */}
           <motion.div
             animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 1, repeat: Infinity }}
+            transition={{ duration: 0.8, repeat: Infinity }}
             className="absolute top-8 left-8 flex items-center gap-2"
           >
             <AlertTriangle className="w-6 h-6 text-red-400 fill-red-400" />
@@ -65,15 +147,15 @@ export function DoubtCalledOverlay({
 
           <motion.div
             animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 1, repeat: Infinity, delay: 0.5 }}
+            transition={{ duration: 0.8, repeat: Infinity, delay: 0.4 }}
             className="absolute top-8 right-8 flex items-center gap-2"
           >
             <span className="text-xs tracking-widest text-red-400 font-mono">CONFRONTO</span>
             <AlertTriangle className="w-6 h-6 text-red-400 fill-red-400" />
           </motion.div>
 
-          {/* Main content */}
-          <div className="relative z-10 flex flex-col items-center gap-12">
+          {/* Main content with heartbeat */}
+          <div className="relative z-10 flex flex-col items-center gap-12 doubt-entry-shake doubt-heartbeat">
             {/* Dramatic title */}
             <motion.div
               initial={{ scale: 0, rotate: -10 }}
@@ -285,21 +367,41 @@ export function DoubtCalledOverlay({
               </motion.div>
             </motion.div>
 
-            {/* Processing text */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{ delay: 1, duration: 1.5, repeat: Infinity }}
-              className="text-sm tracking-[0.4em] text-red-400/80 font-mono"
-            >
-              /// VERIFICANDO VERACIDADE ///
-            </motion.div>
+            {/* Countdown + Processing text */}
+            <div className="flex flex-col items-center gap-4">
+              {/* Countdown dots */}
+              <div className="flex items-center gap-4">
+                {[3, 2, 1].map((n) => (
+                  <motion.div
+                    key={n}
+                    animate={{
+                      scale: countdown === n ? [1, 1.4, 1] : 1,
+                      opacity: countdown >= n ? 1 : 0.2
+                    }}
+                    transition={{ duration: 0.5 }}
+                    className={`w-5 h-5 rounded-full border-2 ${
+                      countdown >= n
+                        ? 'border-red-400 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]'
+                        : 'border-zinc-700 bg-zinc-800'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <motion.div
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="text-sm tracking-[0.4em] text-red-400/80 font-mono"
+              >
+                /// VERIFICANDO VERACIDADE ///
+              </motion.div>
+            </div>
           </div>
 
-          {/* Border flash effect */}
+          {/* Border flash effect — faster */}
           <motion.div
             animate={{ opacity: [0, 0.6, 0] }}
-            transition={{ duration: 1, repeat: Infinity }}
+            transition={{ duration: 0.8, repeat: Infinity }}
             className="absolute inset-0 border-8 border-red-500 pointer-events-none"
           />
 

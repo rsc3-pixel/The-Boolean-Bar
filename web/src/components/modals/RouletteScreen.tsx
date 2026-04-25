@@ -7,6 +7,8 @@ interface RouletteScreenProps {
   playerName: string;
   bulletsInCylinder: number;
   totalChambers: number;
+  /** Real result from C engine — determines the outcome deterministically */
+  actualResult?: { survived: boolean } | null;
   onTriggerPull: () => void;
   onComplete?: (survived: boolean) => void;
 }
@@ -16,6 +18,7 @@ export function RouletteScreen({
   playerName,
   bulletsInCylinder,
   totalChambers,
+  actualResult,
   onTriggerPull,
   onComplete
 }: RouletteScreenProps) {
@@ -23,6 +26,8 @@ export function RouletteScreen({
   const [selectedChamber, setSelectedChamber] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [survived, setSurvived] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+  const [flashOpacity, setFlashOpacity] = useState(0);
 
   const survivalChance = Math.round(((totalChambers - bulletsInCylinder) / totalChambers) * 100);
 
@@ -33,6 +38,8 @@ export function RouletteScreen({
       setSelectedChamber(null);
       setShowResult(false);
       setSurvived(false);
+      setIsShaking(false);
+      setFlashOpacity(0);
     }
   }, [isVisible]);
 
@@ -40,23 +47,38 @@ export function RouletteScreen({
     setIsSpinning(true);
     onTriggerPull();
 
+    // White flash on trigger pull
+    setFlashOpacity(0.6);
+    setTimeout(() => setFlashOpacity(0), 150);
+
     // Spin animation duration
     setTimeout(() => {
-      // Randomly select a chamber
-      const chamber = Math.floor(Math.random() * totalChambers);
-      setSelectedChamber(chamber);
+      // Use actual result from C engine if available, otherwise simulate
+      const didSurvive = actualResult != null ? actualResult.survived : Math.random() > (bulletsInCylinder / totalChambers);
 
-      // Check if it's a bullet chamber (first N chambers are bullets)
-      const hitBullet = chamber < bulletsInCylinder;
-      setSurvived(!hitBullet);
+      // Select chamber visually — if died, land on a bullet chamber; if survived, land on empty
+      let chamber: number;
+      if (!didSurvive) {
+        chamber = Math.floor(Math.random() * bulletsInCylinder); // Lands on bullet
+      } else {
+        chamber = bulletsInCylinder + Math.floor(Math.random() * (totalChambers - bulletsInCylinder)); // Lands on empty
+      }
+      setSelectedChamber(chamber);
+      setSurvived(didSurvive);
 
       setTimeout(() => {
         setIsSpinning(false);
         setShowResult(true);
 
+        // Screen shake on death
+        if (!didSurvive) {
+          setIsShaking(true);
+          setTimeout(() => setIsShaking(false), 600);
+        }
+
         // Call completion callback
         setTimeout(() => {
-          onComplete?.(!hitBullet);
+          onComplete?.(didSurvive);
         }, 3000);
       }, 1500);
     }, 2000);
@@ -70,7 +92,27 @@ export function RouletteScreen({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[120] flex items-center justify-center bg-black"
+          style={{
+            animation: isShaking ? 'roulette-shake 0.1s ease-in-out 6' : 'none'
+          }}
         >
+          {/* CSS for shake animation */}
+          <style>{`
+            @keyframes roulette-shake {
+              0%, 100% { transform: translate(0, 0); }
+              25% { transform: translate(-8px, 4px); }
+              50% { transform: translate(8px, -4px); }
+              75% { transform: translate(-4px, -8px); }
+            }
+          `}</style>
+
+          {/* White flash on trigger pull */}
+          <motion.div
+            animate={{ opacity: flashOpacity }}
+            transition={{ duration: 0.1 }}
+            className="absolute inset-0 bg-white z-50 pointer-events-none"
+          />
+
           {/* Red tinted background with animated gradient */}
           <motion.div
             animate={{
@@ -85,7 +127,9 @@ export function RouletteScreen({
           />
 
           {/* Vignette effect */}
-          <div className="absolute inset-0 bg-gradient-radial from-transparent via-black/50 to-black" />
+          <div className="absolute inset-0" style={{
+            background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.95) 100%)'
+          }} />
 
           {/* Scanlines */}
           <motion.div
@@ -344,7 +388,12 @@ export function RouletteScreen({
                     {survived ? (
                       <Heart className="w-20 h-20 text-emerald-400 fill-emerald-400" strokeWidth={2.5} />
                     ) : (
-                      <Skull className="w-20 h-20 text-red-400" strokeWidth={2.5} />
+                      <motion.div
+                        animate={{ rotate: [0, -10, 10, -5, 5, 0] }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <Skull className="w-20 h-20 text-red-400" strokeWidth={2.5} />
+                      </motion.div>
                     )}
                     <span
                       className={`text-5xl tracking-[0.2em] font-sans ${survived ? 'text-emerald-300' : 'text-red-300'}`}
