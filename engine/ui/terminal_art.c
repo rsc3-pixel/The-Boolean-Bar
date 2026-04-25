@@ -345,3 +345,167 @@ void ui_print_survival_art(const char *player_name) {
 
     fflush(stdout);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ *  DICE MODE RENDERERS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+// Utilitário para o layout do copo isolado (Imagem 1)
+void ui_print_dice_hand(const int *dice, int count) {
+    if (count == 0) {
+        printf("  %s(Sem dados restantes)%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+        return;
+    }
+
+    printf("  %sSEU COPO:%s\n\n  ", ANSI_BRIGHT_WHITE, ANSI_COLOR_RESET);
+    for (int i = 0; i < 5; i++) {
+        if (i < count) printf("%s┌─────┐%s ", ANSI_BRIGHT_CYAN, ANSI_COLOR_RESET);
+        else           printf("%s┌─────┐%s ", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    }
+    printf("\n  ");
+
+    const char* d_top[7] = {"     ", "     ", "  •  ", "  •  ", " • • ", " • • ", " ••• "};
+    const char* d_mid[7] = {"     ", "  •  ", "     ", "  •  ", "     ", "  •  ", "     "};
+    const char* d_bot[7] = {"     ", "     ", "  •  ", "  •  ", " • • ", " • • ", " ••• "};
+
+    // Top
+    for (int i = 0; i < 5; i++) {
+        int v = (i < count) ? dice[i] : 0;
+        if (v < 0 || v > 6) v = 0;
+        if (i < count) printf("%s│%s%s%s%s│%s ", ANSI_BRIGHT_CYAN, ANSI_BRIGHT_WHITE, d_top[v], ANSI_COLOR_RESET, ANSI_BRIGHT_CYAN, ANSI_COLOR_RESET);
+        else           printf("%s│     │%s ", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    }
+    printf("\n  ");
+    // Mid
+    for (int i = 0; i < 5; i++) {
+        int v = (i < count) ? dice[i] : 0;
+        if (v < 0 || v > 6) v = 0;
+        if (i < count) printf("%s│%s%s%s%s│%s ", ANSI_BRIGHT_CYAN, ANSI_BRIGHT_WHITE, d_mid[v], ANSI_COLOR_RESET, ANSI_BRIGHT_CYAN, ANSI_COLOR_RESET);
+        else           printf("%s│     │%s ", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    }
+    printf("\n  ");
+    // Bot
+    for (int i = 0; i < 5; i++) {
+        int v = (i < count) ? dice[i] : 0;
+        if (v < 0 || v > 6) v = 0;
+        if (i < count) printf("%s│%s%s%s%s│%s ", ANSI_BRIGHT_CYAN, ANSI_BRIGHT_WHITE, d_bot[v], ANSI_COLOR_RESET, ANSI_BRIGHT_CYAN, ANSI_COLOR_RESET);
+        else           printf("%s│     │%s ", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    }
+    printf("\n  ");
+
+    for (int i = 0; i < 5; i++) {
+        if (i < count) printf("%s└─────┘%s ", ANSI_BRIGHT_CYAN, ANSI_COLOR_RESET);
+        else           printf("%s└─────┘%s ", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    }
+    printf("\n  ");
+    
+    for (int i = 0; i < 5; i++) {
+        if (i < count) printf("%s  (%d)  %s ", ANSI_ASH_GRAY, i+1, ANSI_COLOR_RESET);
+        else           printf("%s(Vazio)%s ", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    }
+    printf("\n\n");
+}
+
+// O Painel Master (Imagem 3)
+void ui_render_dice_board(Mesa *table) {
+    if (!table) return;
+    ui_clear_screen();
+    
+    int total_dice = 0;
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        if (table->players[i] && table->players[i]->estaVivo) {
+            total_dice += table->players[i]->dice_count;
+        }
+    }
+    
+    printf("\n  %s┌─────────────────────────────────────────────────────────┐%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    
+    char buf[128];
+    snprintf(buf, sizeof(buf), "THE BOOLEAN BAR - MODO DADOS (LIAR'S DICE)    TOTAL: %02d", total_dice);
+    printf("  %s│%s %-55s %s│%s\n", ANSI_STEEL_GRAY, ANSI_BRIGHT_CYAN, buf, ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    
+    printf("  %s├─────────────────────────────────────────────────────────┤%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    
+    if (table->current_bet_quantity > 0) {
+        int len = snprintf(NULL, 0, "APOSTA ATUAL: [ %d ] Dados de Face [ %d ]", table->current_bet_quantity, table->current_bet_face);
+        printf("  %s│%s APOSTA ATUAL: %s[ %d ] Dados de Face [ %d ]%s", ANSI_STEEL_GRAY, ANSI_BRIGHT_WHITE, ANSI_BRIGHT_YELLOW, table->current_bet_quantity, table->current_bet_face, ANSI_BRIGHT_WHITE);
+        for(int i = 0; i < 55 - len; i++) printf(" ");
+        printf(" %s│%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+        
+        Jogador *last = NULL;
+        if (table->last_bet_player_id >= 0 && table->last_bet_player_id < MAX_PLAYERS) last = table->players[table->last_bet_player_id];
+        const char *pname = last ? last->name : "Sistema";
+        len = snprintf(NULL, 0, "POR: %s", pname);
+        printf("  %s│%s POR: %s%s", ANSI_STEEL_GRAY, ANSI_ASH_GRAY, pname, ANSI_ASH_GRAY);
+        for(int i = 0; i < 55 - len; i++) printf(" ");
+        printf(" %s│%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    } else {
+        printf("  %s│%s %-55s %s│%s\n", ANSI_STEEL_GRAY, ANSI_BRIGHT_GREEN, "A MESA ESTA ABERTA PARA A PRIMEIRA APOSTA", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+        printf("  %s│%s %-55s %s│%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET, "", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    }
+    
+    printf("  %s├─────────────────────────────────────────────────────────┤%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    printf("  %s│%s %-55s %s│%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET, "", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    
+    Jogador *host = table->players[table->current_player_index]; 
+    if (!host) host = table->players[0]; // Fallback if no specific viewer
+    
+    if (host && host->estaVivo) {
+        // Build array string for "[ 2 ] [ 5 ]... "
+        char dice_str[64] = "";
+        for (int i = 0; i < 5; i++) {
+            if (i < host->dice_count) {
+                char temp[10];
+                snprintf(temp, sizeof(temp), "[ %d ] ", host->dice[i] ? host->dice[i] : 0);
+                strcat(dice_str, temp);
+            }
+        }
+        int len = snprintf(NULL, 0, "SEUS DADOS:    %s", dice_str);
+        printf("  %s│%s SEUS DADOS:    %s%s%s", ANSI_STEEL_GRAY, ANSI_ASH_GRAY, ANSI_BRIGHT_CYAN, dice_str, ANSI_ASH_GRAY);
+        for(int i = 0; i < 55 - len; i++) printf(" ");
+        printf(" %s│%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    } else {
+        const char *m = "[ ELIMINADO DA MESA ]";
+        printf("  %s│%s %-55s %s│%s\n", ANSI_STEEL_GRAY, ANSI_DARK_RED, m, ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    }
+    
+    printf("  %s│%s %-55s %s│%s\n", ANSI_STEEL_GRAY, ANSI_STEEL_GRAY, "               (Dica: O '1' e curinga na casa!)", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    printf("  %s│%s %-55s %s│%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET, "", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    printf("  %s├─────────────────────────────────────────────────────────┤%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    
+    // Header das Colunas (Esquerda 24 chars, Direita 31 chars)
+    printf("  %s│%s JOGADORES NA MESA       HISTORICO DE APOSTAS            %s│%s\n", ANSI_STEEL_GRAY, ANSI_BRIGHT_WHITE, ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        Jogador *p = table->players[i];
+        if (!p) continue;
+        
+        char col_left[64];
+        if (p->estaVivo) {
+            snprintf(col_left, sizeof(col_left), "%d. %-6s [%d/5] %s", i+1, p->name, p->dice_count, i == table->current_player_index ? "< Vez" : "     ");
+        } else {
+            snprintf(col_left, sizeof(col_left), "%d. %-6s [ELIM ]      ", i+1, p->name);
+        }
+        
+        const char *hist = " ";
+        if (i == 0) hist = "> Joao: 4 faces [3]";
+        if (i == 1) hist = "> Luiz: 5 faces [3]";
+        if (i == 2) hist = "> Duda: 6 faces [5] !!";
+        
+        int lenL = strlen(col_left);
+        int lenR = strlen(hist);
+        
+        // Print Left Column (cor dependente de status)
+        printf("  %s│%s %s", ANSI_STEEL_GRAY, p->estaVivo ? ANSI_ASH_GRAY : ANSI_DARK_RED, col_left);
+        for(int s = 0; s < 24 - lenL; s++) printf(" "); // Pad until pos 24
+        
+        // Print Right Column (Histórico)
+        printf("%s%s", ANSI_ASH_GRAY, hist);
+        for(int s = 0; s < 30 - lenR; s++) printf(" "); // Pad until end of inner 55
+        
+        printf(" %s│%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    }
+    
+    printf("  %s└─────────────────────────────────────────────────────────┘%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
+    printf("\n    %s(A)umentar Aposta     (D)uvidar     (P)edir as Contas%s\n\n", ANSI_BRIGHT_YELLOW, ANSI_COLOR_RESET);
+}

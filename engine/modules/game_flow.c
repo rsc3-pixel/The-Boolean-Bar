@@ -102,18 +102,22 @@ int game_start() {
     Mesa *game_table = mem_new_mesa();
     if (game_table == NULL) return 1;
 
-    // Lê o número de jogadores na primeira linha
+    // Lê o número de jogadores
     char count_buf[16];
     int num_players = MAX_PLAYERS; // fallback
+    printf("Quantos jogadores na mesa? (min 2, max %d): ", MAX_PLAYERS);
+    fflush(stdout);
     if (fgets(count_buf, sizeof(count_buf), stdin) != NULL) {
         num_players = atoi(count_buf);
         if (num_players < 2)  num_players = 2;
         if (num_players > MAX_PLAYERS) num_players = MAX_PLAYERS;
     }
 
-    // Lê os N nomes enviados pelo servidor Node via stdin
+    // Lê os N nomes
     char player_names[MAX_PLAYERS][64];
     for (int i = 0; i < num_players; i++) {
+        printf("Digite o nome do jogador %d: ", i + 1);
+        fflush(stdout);
         if (fgets(player_names[i], sizeof(player_names[i]), stdin) != NULL) {
             int len = strlen(player_names[i]);
             while (len > 0 && (player_names[i][len-1] == '\n' || player_names[i][len-1] == '\r')) {
