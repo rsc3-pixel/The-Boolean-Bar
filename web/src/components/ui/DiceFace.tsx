@@ -9,17 +9,17 @@ interface DiceFaceProps {
 export function DiceFace({ value, size = 'md', glowColor = 'cyan' }: DiceFaceProps) {
   // Configurações de tamanho
   const sizeMap = {
-    sm: "w-8 h-8 p-1 gap-0.5",
-    md: "w-12 h-12 p-1.5 gap-1",
-    lg: "w-16 h-16 p-2 gap-1.5",
-    xl: "w-24 h-24 p-3 gap-2"
+    sm: "w-8 h-8 p-1.5 gap-0.5",
+    md: "w-12 h-12 p-2 gap-1",
+    lg: "w-16 h-16 p-3 gap-1px",
+    xl: "w-24 h-24 p-5 gap-1.5"
   };
 
   const pipSizeMap = {
     sm: "w-1.5 h-1.5",
-    md: "w-2.5 h-2.5",
-    lg: "w-3 h-3",
-    xl: "w-4 h-4"
+    md: "w-2 h-2",
+    lg: "w-2.5 h-2.5",
+    xl: "w-3.5 h-3.5"
   };
 
   // Configurações de cor (Borda/Fundo e Pip)
