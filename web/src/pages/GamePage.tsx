@@ -369,6 +369,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         playerName={roulettePlayerName}
         bulletsInCylinder={bulletsInCylinder}
         totalChambers={cylinderCapacity}
+        actualResult={pendingRouletteResult ? { survived: pendingRouletteResult.survived } : null}
         onTriggerPull={() => {}}
         onComplete={handleRouletteComplete}
       />

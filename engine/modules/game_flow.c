@@ -57,19 +57,19 @@ static void print_json_state(Mesa *m, int num_players) {
 }
 
 static void roleta_russa(Mesa *m, Jogador *perdedor) {
-    ui_print_colored("\n===== ROLETA RUSSA =====\n", ANSI_COLOR_RED);
-    printf("O jogador %s pega o revolver! Probabilidade: %d/6\n", perdedor->name, m->balas_no_tambor);
-    
+    // ─── Animated roulette spin ───
+    ui_print_roulette_spin(perdedor->name, m->balas_no_tambor);
+
     int tambor = (rand() % 6) + 1;
     if (tambor <= m->balas_no_tambor) { // Falhou (BANG!)
-        ui_print_colored("\n   💥 BANG! 💥\n\n", ANSI_STYLE_BOLD ANSI_COLOR_RED);
+        ui_print_bang_art(perdedor->name);
         perdedor->estaVivo = false;
         perdedor->status = ELIMINATED;
         perdedor->score = 0;
         m->num_players_alive--;
         m->balas_no_tambor = 1; // Reseta risco na morte
     } else {
-        ui_print_colored("\n   💨 CLIQUE... O tambor estava vazio!\n\n", ANSI_STYLE_BOLD ANSI_COLOR_YELLOW);
+        ui_print_survival_art(perdedor->name);
         perdedor->score--;
         m->balas_no_tambor++; // Incrementa risco
         if (perdedor->score <= 0) {
@@ -77,7 +77,12 @@ static void roleta_russa(Mesa *m, Jogador *perdedor) {
             perdedor->status = ELIMINATED;
             m->num_players_alive--;
             m->balas_no_tambor = 1; // Reseta se morreu pelas vidas
-            printf("%s sucumbiu por falta de vidas.\n", perdedor->name);
+
+            printf("\n");
+            char msg[128];
+            snprintf(msg, sizeof(msg), "%s sucumbiu por falta de vidas.", perdedor->name);
+            ui_print_box(msg, ANSI_BRIGHT_RED);
+            printf("\n");
         }
     }
 
@@ -191,9 +196,16 @@ int game_start() {
         int duvida = get_safe_int("1 para DUVIDAR, 0 para ACREDITAR: ", 0, 1);
 
         if (duvida == 1) {
-            ui_print_colored("\n-- CONFRONTO LÓGICO! --\n", ANSI_STYLE_BOLD ANSI_COLOR_CYAN);
+            printf("\n");
+            ui_print_box("CONFRONTO LOGICO", ANSI_BRIGHT_CYAN);
+            printf("\n");
             FormulaType real_type = logic_evaluate_formula(jogada->formula_str);
-            printf("Tipo Real da Expressão: %d\n", (int)real_type);
+            const char *type_names[] = {"TAUTOLOGIA", "CONTRADICAO", "CONTINGENCIA"};
+            printf("  %sTipo Real:%s  %s%s%s\n",
+                   ANSI_STEEL_GRAY, ANSI_COLOR_RESET,
+                   ANSI_STYLE_BOLD ANSI_BRIGHT_CYAN,
+                   type_names[(int)real_type],
+                   ANSI_COLOR_RESET);
             bool mentiu = (real_type != afirmacao);
 
             Jogador *perdedor_confronto = mentiu ? atual : oponente;
@@ -206,12 +218,14 @@ int game_start() {
             fflush(stdout);
 
             if (mentiu) {
-               ui_print_colored("O BLEFE FOI DESMASCARADO! ", ANSI_COLOR_YELLOW);
-               printf("[%s] perde a aposta.\n", atual->name);
+               printf("\n  %s🚨 BLEFE DESMASCARADO!%s ", STYLE_BANG, ANSI_COLOR_RESET);
+               printf("%s[%s] perde a aposta.%s\n", ANSI_BRIGHT_YELLOW, atual->name, ANSI_COLOR_RESET);
+               ui_sleep_ms(800);
                roleta_russa(game_table, atual);
             } else {
-               ui_print_colored("ERA VERDADE! ", ANSI_COLOR_GREEN);
-               printf("[%s] duvidou injustamente.\n", oponente->name);
+               printf("\n  %s✓ ERA VERDADE!%s ", STYLE_SURVIVAL, ANSI_COLOR_RESET);
+               printf("%s[%s] duvidou injustamente.%s\n", ANSI_BRIGHT_YELLOW, oponente->name, ANSI_COLOR_RESET);
+               ui_sleep_ms(800);
                roleta_russa(game_table, oponente);
             }
             
@@ -232,8 +246,12 @@ int game_start() {
     ui_draw_header("CONTA FECHADA");
     int win_idx = get_next_valid_player_index(game_table, 0, is_alive);
     if(win_idx != -1) {
-       ui_print_colored(game_table->players[win_idx]->name, ANSI_COLOR_GREEN);
-       printf(" é o único sobrevivente do Boolean Bar. A casa agradece!\n\n");
+       printf("\n");
+       char win_msg[128];
+       snprintf(win_msg, sizeof(win_msg), "🏆  %s  🏆", game_table->players[win_idx]->name);
+       ui_print_box(win_msg, ANSI_TOXIC_GREEN);
+       printf("\n  %sÚnico sobrevivente do Boolean Bar. A casa agradece!%s\n\n",
+              STYLE_SURVIVAL, ANSI_COLOR_RESET);
 
        printf("\nJSON_VICTORY: {\"winner\": \"%s\", \"totalPlayers\": %d}\n",
               game_table->players[win_idx]->name, num_players);
