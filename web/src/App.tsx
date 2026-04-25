@@ -4,14 +4,16 @@ import { Lobby } from "./pages/Lobby";
 import { MatchLobby } from "./pages/MatchLobby";
 import { GamePage } from "./pages/GamePage";
 import { DiceGamePage } from "./pages/DiceGamePage";
+import { DiceLobby } from "./pages/DiceLobby";
 import { SettingsInstructionsPanel } from "./components/modals/SettingsInstructionsPanel";
 import { useGameEngine } from "./hooks/useGameEngine";
 
-type GameScreen = "menu" | "lobby" | "matchLobby" | "game" | "diceGame";
+type GameScreen = "menu" | "lobby" | "matchLobby" | "game" | "diceLobby" | "diceGame";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<GameScreen>("menu");
   const [playerNames, setPlayerNames] = useState<string[]>([]);
+  const [dicePlayers, setDicePlayers] = useState<{name: string, isBot: boolean}[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   
   // Instância unificada do Motor de Jogo (Mantém conexão persistente)
@@ -22,7 +24,7 @@ export default function App() {
       <>
         <MainMenu
           onEnter={() => setCurrentScreen("lobby")}
-          onEnterDice={() => setCurrentScreen("diceGame")}
+          onEnterDice={() => setCurrentScreen("diceLobby")}
           onOpenRules={() => setShowSettings(true)}
           onFlee={() => gameEngine.sendShutdown()}
         />
@@ -67,10 +69,22 @@ export default function App() {
     );
   }
 
+  if (currentScreen === "diceLobby") {
+    return (
+      <DiceLobby 
+        onStartMatch={(players) => {
+          setDicePlayers(players);
+          setCurrentScreen("diceGame");
+        }}
+        onBack={() => setCurrentScreen("menu")}
+      />
+    );
+  }
+
   if (currentScreen === "diceGame") {
     return (
       <DiceGamePage 
-         playerNames={playerNames} 
+         playerConfigs={dicePlayers} 
          onExit={() => setCurrentScreen("menu")} 
       />
     );
