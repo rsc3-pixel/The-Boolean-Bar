@@ -59,6 +59,11 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     : null;
   const expectedIsConnected = expectedPlayerEntry?.connected ?? true;
 
+  // ─── Phase 5: end-game screens só pra quem é o protagonista ──────────────
+  // Em multiplayer, só o jogador que perdeu a roleta vê PlayerEliminatedScreen,
+  // e só o vencedor vê VictoryScreen. Solo mode mantém comportamento atual
+  // (todas as telas pro único cliente).
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCardFormula, setSelectedCardFormula] = useState("");
   const [showTruthTable, setShowTruthTable] = useState(false);
@@ -117,12 +122,15 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
   // Usa o pendingRouletteResult real do C (não decide sozinho)
   const handleRouletteComplete = () => {
     setShowRoulette(false);
-    if (pendingRouletteResult) {
-      if (pendingRouletteResult.survived) {
-        setShowSurvivalRelief(true);
-      } else {
-        setShowEliminated(true);
-      }
+    if (!pendingRouletteResult) return;
+    // Phase 5: em multiplayer, só o jogador que GIROU a roleta vê o resultado
+    // dela (sobrevivência ou eliminação). Outros players só veem o gameState
+    // atualizado e o jogo continuar.
+    if (isMultiplayer && pendingRouletteResult.player !== myName) return;
+    if (pendingRouletteResult.survived) {
+      setShowSurvivalRelief(true);
+    } else {
+      setShowEliminated(true);
     }
   };
 
@@ -433,9 +441,9 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         onComplete={handleRouletteComplete}
       />
 
-      {/* Sobreviveu: dados reais do roulette_result */}
+      {/* Sobreviveu: dados reais — em multiplayer só pro próprio sobrevivente */}
       <SurvivalReliefOverlay
-        isVisible={showSurvivalRelief}
+        isVisible={showSurvivalRelief && (!isMultiplayer || pendingRouletteResult?.player === myName)}
         playerName={pendingRouletteResult?.player ?? roulettePlayerName}
         livesRemaining={pendingRouletteResult?.lives ?? 2}
         newBulletCount={pendingRouletteResult?.bullets ?? bulletsInCylinder}
@@ -443,18 +451,18 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         onContinue={() => setShowSurvivalRelief(false)}
       />
 
-      {/* Eliminado: posição e cards do roulette_result */}
+      {/* Eliminado: posição e cards do roulette_result — em multiplayer só pro próprio eliminado */}
       <PlayerEliminatedScreen
-        isVisible={showEliminated}
+        isVisible={showEliminated && (!isMultiplayer || pendingRouletteResult?.player === myName)}
         playerName={pendingRouletteResult?.player ?? roulettePlayerName}
         cardsBurned={eliminatedPlayerCards}
         finalPosition={finalPosition}
         onDismiss={() => setShowEliminated(false)}
       />
 
-      {/* Vitória: vencedor real do C */}
+      {/* Vitória: vencedor real do C — em multiplayer só aparece pro vencedor */}
       <VictoryScreen
-        isVisible={showVictory}
+        isVisible={showVictory && (!isMultiplayer || victoryState?.winner === myName)}
         playerName={victoryState?.winner ?? playerNames[playerNames.length - 1] ?? "JOGADOR"}
         opponentsDefeated={victoryState ? victoryState.totalPlayers - 1 : totalPlayers - 1}
         triggersPulled={gameState?.bullets ?? 0}
