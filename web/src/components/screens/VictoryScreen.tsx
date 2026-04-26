@@ -8,6 +8,7 @@ interface VictoryScreenProps {
   triggersPulled: number;
   bluffsSuccessful: number;
   doubtsWon: number;
+  ranking?: string[];   // Phase 5: 1º vencedor + ordem reversa de eliminação
   onLeaveBar: () => void;
 }
 
@@ -18,6 +19,7 @@ export function VictoryScreen({
   triggersPulled,
   bluffsSuccessful,
   doubtsWon,
+  ranking,
   onLeaveBar
 }: VictoryScreenProps) {
   return (
@@ -371,6 +373,37 @@ export function VictoryScreen({
                     </motion.span>
                   </motion.div>
                 </motion.div>
+
+                {/* Phase 5: ranking final */}
+                {ranking && ranking.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.9 }}
+                    className="w-full mt-2"
+                  >
+                    <div className="text-xs uppercase tracking-[0.3em] text-cyan-300/70 font-mono mb-3 text-center">Ranking Final</div>
+                    <ol className="space-y-1.5">
+                      {ranking.map((name, idx) => {
+                        const pos = idx + 1;
+                        const isWinner = pos === 1;
+                        return (
+                          <li
+                            key={name}
+                            className={`flex items-center gap-3 px-4 py-2 rounded-md font-mono ${
+                              isWinner ? "bg-cyan-500/15 border border-cyan-400/40" : "bg-zinc-900/40 border border-zinc-800"
+                            }`}
+                          >
+                            <span className={`w-6 text-right ${isWinner ? "text-yellow-400" : "text-zinc-500"}`} style={{ fontWeight: 700 }}>
+                              {isWinner ? "🏆" : `${pos}º`}
+                            </span>
+                            <span className={isWinner ? "text-cyan-200" : "text-zinc-400"}>{name}</span>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </motion.div>
+                )}
               </div>
 
               {/* Pulsing border glow */}
