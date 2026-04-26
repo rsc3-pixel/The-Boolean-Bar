@@ -140,11 +140,96 @@ async function testLegacySolo() {
   c.close();
 }
 
+async function testReconnect() {
+  console.log('\n=== TESTE 4: reconnect (Phase 4) ===');
+  const host = client('HOST');
+  const p2 = client('P2');
+  await host.open();
+  await p2.open();
+  await host.waitFor('server_hello', 1000);
+  await p2.waitFor('server_hello', 1000);
+
+  host.send({ action: 'create_room', playerName: 'Alice' });
+  const created = await host.waitFor('room_created');
+  const roomId = created.roomId;
+  const hostPlayerId = created.playerId;
+
+  p2.send({ action: 'join_room', roomId, playerName: 'Bob' });
+  await p2.waitFor('room_joined');
+  await host.waitFor('room_state');
+  console.log(`  ✓ sala ${roomId} montada com 2 players`);
+
+  // Host fecha (simula refresh ou queda)
+  host.close();
+  await new Promise(r => setTimeout(r, 200));
+
+  // P2 deve receber room_state com Alice marcada como desconectada
+  const stateAfterDisconnect = await p2.waitFor((m) => m.type === 'room_state' && m.room.players.some(p => !p.connected), 2000);
+  const aliceEntry = stateAfterDisconnect.room.players.find(p => p.playerId === hostPlayerId);
+  if (aliceEntry?.connected !== false) throw new Error('Alice deveria estar desconectada');
+  console.log(`  ✓ P2 viu Alice como desconectada (grace window)`);
+
+  // Reconnect: Alice volta com nova conexão usando playerId+roomId
+  const hostReconnect = client('HOST_RC');
+  await hostReconnect.open();
+  await hostReconnect.waitFor('server_hello', 1000);
+  hostReconnect.send({ action: 'reconnect', playerId: hostPlayerId, roomId });
+  const rec = await hostReconnect.waitFor('reconnect_success', 2000);
+  if (rec.playerId !== hostPlayerId) throw new Error('reconnect_success retornou playerId diferente');
+  console.log(`  ✓ reconnect_success: voltou como ${rec.room.players.find(p => p.playerId === hostPlayerId)?.name}`);
+
+  // P2 deve receber room_state mostrando Alice de volta
+  const stateAfterReconnect = await p2.waitFor((m) => m.type === 'room_state' && m.room.players.every(p => p.connected), 2000);
+  const aliceBack = stateAfterReconnect.room.players.find(p => p.playerId === hostPlayerId);
+  if (aliceBack?.connected !== true) throw new Error('Alice deveria estar conectada de novo');
+  console.log(`  ✓ P2 viu Alice voltando online`);
+
+  // Cleanup
+  hostReconnect.send({ action: 'leave_room' });
+  await new Promise(r => setTimeout(r, 200));
+  hostReconnect.close(); p2.close();
+}
+
+async function testHostTransfer() {
+  console.log('\n=== TESTE 5: host transfer ao deixar sala (Phase 4) ===');
+  const host = client('HOST');
+  const p2 = client('P2');
+  await host.open(); await p2.open();
+  await host.waitFor('server_hello'); await p2.waitFor('server_hello');
+
+  host.send({ action: 'create_room', playerName: 'Alice' });
+  const created = await host.waitFor('room_created');
+  const roomId = created.roomId;
+  const hostPlayerId = created.playerId;
+
+  p2.send({ action: 'join_room', roomId, playerName: 'Bob' });
+  const joined = await p2.waitFor('room_joined');
+  const p2PlayerId = joined.playerId;
+  await host.waitFor('room_state');
+
+  // Host sai intencionalmente → host transfer pro Bob (não fecha a sala)
+  host.send({ action: 'leave_room' });
+  // Matcher específico: room_state em que p2 já é o host (evita matchar broadcast antigo do join)
+  const transferState = await p2.waitFor(
+    (m) => m.type === 'room_state' && m.room.hostId === p2PlayerId && m.room.players.length === 1,
+    2000
+  );
+  if (!transferState) throw new Error('host_transfer não aconteceu');
+  console.log(`  ✓ Bob virou host após Alice sair (não fechou a sala)`);
+
+  // Cleanup
+  p2.send({ action: 'leave_room' });
+  await new Promise(r => setTimeout(r, 200));
+  host.close(); p2.close();
+}
+
 (async () => {
   try {
     await testMultiplayer();
     await testJoinErrors();
     await testLegacySolo();
+    await testReconnect();
+    await testHostTransfer();
     console.log('\n🎉 Todos os testes passaram');
     process.exit(0);
   } catch (e) {
