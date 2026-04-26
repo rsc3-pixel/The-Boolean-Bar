@@ -160,8 +160,26 @@ function handleEngineStdout(room, chunk) {
     if (!line.trim()) continue;
 
     const markers = [
-      { tag: 'JSON_STATE:',           type: 'game_state',      onParse: (data) => { room.currentTurn = data.turn; } },
-      { tag: 'JSON_DOUBT_STATE:',     type: 'doubt_state' },
+      {
+        tag: 'JSON_STATE:',
+        type: 'game_state',
+        onParse: (data) => {
+          room.currentTurn = data.turn;
+          // Espera input do jogador da vez (Phase 3)
+          const playersArr = Array.from(room.players.values());
+          room.expectedPlayerId = playersArr[data.turn]?.playerId ?? null;
+        },
+      },
+      {
+        tag: 'JSON_DOUBT_STATE:',
+        type: 'doubt_state',
+        onParse: (data) => {
+          // Durante a fase de dúvida, quem responde é o caller (oponente sendo perguntado)
+          const playersArr = Array.from(room.players.values());
+          const caller = playersArr.find(p => p.name === data.caller);
+          room.expectedPlayerId = caller?.playerId ?? room.expectedPlayerId;
+        },
+      },
       { tag: 'JSON_DOUBT_RESULT:',    type: 'doubt_result' },
       { tag: 'JSON_ROULETTE_RESULT:', type: 'roulette_result' },
       { tag: 'JSON_VICTORY:',         type: 'victory_state' },
@@ -332,9 +350,16 @@ function handleSendInput(ws, msg) {
     return send(ws, { type: 'error', code: 'no_engine', message: 'Jogo não iniciado' });
   }
 
-  // Phase 1: sem validação de turno. Phase 3 vai gatekeep aqui.
-  // Em soloMode, qualquer input do único cliente é forwarded.
-  // Em multiplayer, qualquer player pode mandar input por ora (UI vai gatekeep no Phase 3).
+  // Phase 3: validação de turno. Solo mode passa direto (1 cliente controla tudo).
+  if (!room.isSoloMode && room.expectedPlayerId && ctx.playerId !== room.expectedPlayerId) {
+    console.log(`[Server/${ctx.roomId}] input REJEITADO de ${ctx.playerId} (esperava ${room.expectedPlayerId})`);
+    return send(ws, {
+      type: 'input_rejected',
+      reason: 'not_your_turn',
+      expectedPlayerId: room.expectedPlayerId,
+    });
+  }
+
   if (room.engine.stdin.writable) {
     console.log(`[Server/${ctx.roomId}] input de ${ctx.playerId}: ${msg.data}`);
     room.engine.stdin.write(msg.data + '\n');

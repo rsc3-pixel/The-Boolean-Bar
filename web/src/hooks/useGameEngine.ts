@@ -172,6 +172,11 @@ export function useGameEngine() {
           console.warn("[WS] ⚠️ Error:", resp.code, resp.message);
           setRoomError({ code: resp.code, message: resp.message });
         }
+        if (resp.type === 'input_rejected') {
+          // Phase 3: server bloqueou input fora-de-turno. UI já deveria ter gateado;
+          // se chegou aqui, é fallback de segurança ou bug de gate. Só loga.
+          console.warn("[WS] ⛔ input_rejected:", resp.reason, "expected:", resp.expectedPlayerId);
+        }
       } catch (e) {
         console.error("[WS] Erro ao parsear mensagem:", e, event.data);
       }
