@@ -24,13 +24,18 @@ const MAX_PLAYERS_PER_ROOM = 7;
 const MIN_PLAYERS_PER_ROOM = 2;
 const ROOM_CODE_LENGTH = 4;
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem caracteres ambíguos (0/O, 1/I/L)
+const DISCONNECT_GRACE_MS = 60_000;       // Phase 4: 60s pra reconectar antes de remover
+const HEARTBEAT_INTERVAL_MS = 30_000;     // Phase 4: ping a cada 30s
+const HEARTBEAT_TIMEOUT_MS = 10_000;      // se sem pong em 10s após ping → terminate
 
 // ─── Estado em memória ────────────────────────────────────────────────────────
 /**
  * @typedef {Object} Player
  * @property {string} playerId
  * @property {string} name
- * @property {WebSocket} ws
+ * @property {WebSocket|null} ws  null quando desconectado
+ * @property {boolean} connected   Phase 4: false durante grace window
+ * @property {NodeJS.Timeout|null} disconnectTimer  Phase 4: pra hard-remove após grace
  *
  * @typedef {Object} Room
  * @property {string} roomId
@@ -38,10 +43,13 @@ const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem caracteres
  * @property {Map<string, Player>} players  insertion order = ordem de turno do engine
  * @property {import('child_process').ChildProcess|null} engine
  * @property {number} currentTurn  índice do jogador atual segundo o último JSON_STATE
+ * @property {string|null} expectedPlayerId  Phase 3: quem o engine está esperando input
  * @property {boolean} gameStarted
  * @property {boolean} isSoloMode  true = modo legado (1 cliente controla tudo)
  * @property {string[]} legacyPlayerNames  só usado em soloMode
  * @property {string} stdoutBuffer  buffer parcial entre chunks do engine
+ * @property {object|null} lastGameState  Phase 4: cache do último JSON_STATE pra sync no reconnect
+ * @property {object|null} lastDoubtState
  */
 
 /** @type {Map<string, Room>} */
@@ -72,7 +80,7 @@ function send(ws, msg) {
 
 function broadcast(room, msg) {
   for (const player of room.players.values()) {
-    send(player.ws, msg);
+    if (player.ws) send(player.ws, msg);  // pula players com ws null (desconectados)
   }
 }
 
@@ -87,6 +95,7 @@ function getRoomSnapshot(room) {
       name: p.name,
       slot: idx,
       isHost: p.playerId === room.hostId,
+      connected: p.connected,
     })),
   };
 }
@@ -99,8 +108,14 @@ function closeRoom(roomId, reason) {
     room.engine = null;
   }
   for (const player of room.players.values()) {
-    send(player.ws, { type: 'room_closed', reason });
-    wsToRoom.delete(player.ws);
+    if (player.disconnectTimer) {
+      clearTimeout(player.disconnectTimer);
+      player.disconnectTimer = null;
+    }
+    if (player.ws) {
+      send(player.ws, { type: 'room_closed', reason });
+      wsToRoom.delete(player.ws);
+    }
   }
   rooms.delete(roomId);
   console.log(`[Server] Sala ${roomId} fechada (${reason})`);
@@ -165,6 +180,8 @@ function handleEngineStdout(room, chunk) {
         type: 'game_state',
         onParse: (data) => {
           room.currentTurn = data.turn;
+          room.lastGameState = data;     // Phase 4: cache pra sync no reconnect
+          room.lastDoubtState = null;    // novo turno → fase de dúvida resetou
           // Espera input do jogador da vez (Phase 3)
           const playersArr = Array.from(room.players.values());
           room.expectedPlayerId = playersArr[data.turn]?.playerId ?? null;
@@ -174,6 +191,7 @@ function handleEngineStdout(room, chunk) {
         tag: 'JSON_DOUBT_STATE:',
         type: 'doubt_state',
         onParse: (data) => {
+          room.lastDoubtState = data;    // Phase 4: cache
           // Durante a fase de dúvida, quem responde é o caller (oponente sendo perguntado)
           const playersArr = Array.from(room.players.values());
           const caller = playersArr.find(p => p.name === data.caller);
@@ -224,13 +242,16 @@ function handleCreateRoom(ws, msg) {
   const room = {
     roomId,
     hostId: playerId,
-    players: new Map([[playerId, { playerId, name: playerName, ws }]]),
+    players: new Map([[playerId, { playerId, name: playerName, ws, connected: true, disconnectTimer: null }]]),
     engine: null,
     currentTurn: -1,
+    expectedPlayerId: null,
     gameStarted: false,
     isSoloMode: false,
     legacyPlayerNames: [],
     stdoutBuffer: '',
+    lastGameState: null,
+    lastDoubtState: null,
   };
   rooms.set(roomId, room);
   wsToRoom.set(ws, { roomId, playerId });
@@ -257,7 +278,7 @@ function handleJoinRoom(ws, msg) {
 
   const playerId = generatePlayerId();
   const playerName = (msg.playerName || `Player${room.players.size + 1}`).toString().slice(0, 32);
-  room.players.set(playerId, { playerId, name: playerName, ws });
+  room.players.set(playerId, { playerId, name: playerName, ws, connected: true, disconnectTimer: null });
   wsToRoom.set(ws, { roomId, playerId });
 
   send(ws, { type: 'room_joined', roomId, playerId, room: getRoomSnapshot(room) });
@@ -265,6 +286,7 @@ function handleJoinRoom(ws, msg) {
   console.log(`[Server/${roomId}] ${playerName} (${playerId}) entrou. Total: ${room.players.size}`);
 }
 
+// Saída intencional: remove já. Se for host, transfere se houver alguém conectado, senão fecha.
 function handleLeaveRoom(ws) {
   const ctx = wsToRoom.get(ws);
   if (!ctx) return;
@@ -273,18 +295,112 @@ function handleLeaveRoom(ws) {
     wsToRoom.delete(ws);
     return;
   }
-
-  room.players.delete(ctx.playerId);
+  const player = room.players.get(ctx.playerId);
+  if (player?.disconnectTimer) {
+    clearTimeout(player.disconnectTimer);
+  }
+  removePlayerHard(room, ctx.playerId);
   wsToRoom.delete(ws);
-  console.log(`[Server/${ctx.roomId}] ${ctx.playerId} saiu. Restam: ${room.players.size}`);
+}
+
+// Disconnect involuntário (WS close sem leave_room antes): grace window de 60s.
+function handleDisconnect(ws) {
+  const ctx = wsToRoom.get(ws);
+  if (!ctx) {
+    wsToRoom.delete(ws);
+    return;
+  }
+  const room = rooms.get(ctx.roomId);
+  if (!room) {
+    wsToRoom.delete(ws);
+    return;
+  }
+  const player = room.players.get(ctx.playerId);
+  if (!player) {
+    wsToRoom.delete(ws);
+    return;
+  }
+
+  // Marca como desconectado, agenda hard-remove
+  player.connected = false;
+  player.ws = null;
+  wsToRoom.delete(ws);
+
+  if (player.disconnectTimer) clearTimeout(player.disconnectTimer);
+  player.disconnectTimer = setTimeout(() => {
+    const stillThere = room.players.get(ctx.playerId);
+    if (stillThere && !stillThere.connected) {
+      console.log(`[Server/${ctx.roomId}] ${stillThere.name} timeout (${DISCONNECT_GRACE_MS}ms) — removendo`);
+      removePlayerHard(room, ctx.playerId);
+    }
+  }, DISCONNECT_GRACE_MS);
+
+  console.log(`[Server/${ctx.roomId}] ${player.name} desconectado (grace ${DISCONNECT_GRACE_MS / 1000}s)`);
+  broadcast(room, { type: 'room_state', room: getRoomSnapshot(room) });
+}
+
+function removePlayerHard(room, playerId) {
+  if (!room.players.has(playerId)) return;
+  room.players.delete(playerId);
+  console.log(`[Server/${room.roomId}] ${playerId} removido. Restam: ${room.players.size}`);
 
   if (room.players.size === 0) {
-    closeRoom(ctx.roomId, 'empty');
-  } else if (ctx.playerId === room.hostId) {
-    closeRoom(ctx.roomId, 'host_left');
-  } else {
-    broadcast(room, { type: 'room_state', room: getRoomSnapshot(room) });
+    closeRoom(room.roomId, 'empty');
+    return;
   }
+
+  // Host transfer (Phase 4)
+  if (playerId === room.hostId) {
+    const nextHost = Array.from(room.players.values()).find(p => p.connected) ??
+                     Array.from(room.players.values())[0];
+    room.hostId = nextHost.playerId;
+    console.log(`[Server/${room.roomId}] Host transferido pra ${nextHost.name} (${nextHost.playerId})`);
+  }
+
+  broadcast(room, { type: 'room_state', room: getRoomSnapshot(room) });
+}
+
+function handleReconnect(ws, msg) {
+  const playerId = (msg.playerId || '').toString();
+  const roomId = (msg.roomId || '').toString().toUpperCase();
+  if (!playerId || !roomId) {
+    return send(ws, { type: 'reconnect_failed', code: 'invalid_args', message: 'playerId e roomId obrigatórios' });
+  }
+  if (wsToRoom.has(ws)) {
+    return send(ws, { type: 'reconnect_failed', code: 'already_in_room', message: 'WS já tá vinculado a uma sala' });
+  }
+  const room = rooms.get(roomId);
+  if (!room) {
+    return send(ws, { type: 'reconnect_failed', code: 'room_not_found', message: 'Sala não existe mais' });
+  }
+  const player = room.players.get(playerId);
+  if (!player) {
+    return send(ws, { type: 'reconnect_failed', code: 'player_gone', message: 'Você foi removido da sala' });
+  }
+
+  // Re-bind
+  player.ws = ws;
+  player.connected = true;
+  if (player.disconnectTimer) {
+    clearTimeout(player.disconnectTimer);
+    player.disconnectTimer = null;
+  }
+  wsToRoom.set(ws, { roomId, playerId });
+
+  console.log(`[Server/${roomId}] ${player.name} reconectou`);
+
+  // Sync completo: snapshot da sala + último game state se game já tá rolando
+  send(ws, {
+    type: 'reconnect_success',
+    roomId,
+    playerId,
+    room: getRoomSnapshot(room),
+    lastGameState: room.lastGameState,
+    lastDoubtState: room.lastDoubtState,
+    expectedPlayerId: room.expectedPlayerId,
+  });
+
+  broadcast(room, { type: 'room_state', room: getRoomSnapshot(room) });
 }
 
 function handleStartGame(ws, msg) {
@@ -301,13 +417,16 @@ function handleStartGame(ws, msg) {
     const room = {
       roomId,
       hostId: playerId,
-      players: new Map([[playerId, { playerId, name: playerNames[0], ws }]]),
+      players: new Map([[playerId, { playerId, name: playerNames[0], ws, connected: true, disconnectTimer: null }]]),
       engine: null,
       currentTurn: -1,
+      expectedPlayerId: null,
       gameStarted: true,
       isSoloMode: true,
       legacyPlayerNames: playerNames,
       stdoutBuffer: '',
+      lastGameState: null,
+      lastDoubtState: null,
     };
     rooms.set(roomId, room);
     wsToRoom.set(ws, { roomId, playerId });
@@ -327,9 +446,10 @@ function handleStartGame(ws, msg) {
   if (room.gameStarted) {
     return send(ws, { type: 'error', code: 'already_started', message: 'Jogo já começou' });
   }
-  if (room.players.size < MIN_PLAYERS_PER_ROOM) {
+  const connectedCount = Array.from(room.players.values()).filter(p => p.connected).length;
+  if (connectedCount < MIN_PLAYERS_PER_ROOM) {
     return send(ws, { type: 'error', code: 'not_enough_players',
-                     message: `Mínimo de ${MIN_PLAYERS_PER_ROOM} jogadores pra começar` });
+                     message: `Mínimo de ${MIN_PLAYERS_PER_ROOM} jogadores conectados pra começar` });
   }
 
   room.gameStarted = true;
@@ -398,6 +518,7 @@ wss.on('connection', (ws) => {
       case 'create_room': return handleCreateRoom(ws, msg);
       case 'join_room':   return handleJoinRoom(ws, msg);
       case 'leave_room':  return handleLeaveRoom(ws);
+      case 'reconnect':   return handleReconnect(ws, msg);
       case 'start_game':  return handleStartGame(ws, msg);
       case 'send_input':  return handleSendInput(ws, msg);
       case 'shutdown':    return handleShutdown(ws);
@@ -408,10 +529,32 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     console.log('=> Frontend desconectado');
-    handleLeaveRoom(ws);
+    handleDisconnect(ws);  // Phase 4: grace window, não kicka direto
   });
 
   ws.on('error', (e) => {
     console.warn('[Server] WS error:', e.message);
   });
 });
+
+// ─── Heartbeat ping/pong (Phase 4) ───────────────────────────────────────────
+// Detecta WS zumbi (conexão morta sem FIN). A cada HEARTBEAT_INTERVAL_MS, manda
+// ping. Se a conexão não responder com pong até a próxima rodada, terminate.
+const heartbeatInterval = setInterval(() => {
+  for (const ws of wss.clients) {
+    if (ws.isAlive === false) {
+      console.log('[Server] WS zumbi detectado, terminate');
+      ws.terminate();  // dispara handleDisconnect via 'close'
+      continue;
+    }
+    ws.isAlive = false;
+    try { ws.ping(); } catch (_) { /* WS já morreu */ }
+  }
+}, HEARTBEAT_INTERVAL_MS);
+
+wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+});
+
+wss.on('close', () => clearInterval(heartbeatInterval));

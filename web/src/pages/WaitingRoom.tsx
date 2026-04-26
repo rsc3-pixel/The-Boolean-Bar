@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Copy, Check, Crown, LogOut, Play, Users } from "lucide-react";
+import { Copy, Check, Crown, LogOut, Play, Users, WifiOff } from "lucide-react";
 import type { RoomSnapshot } from "../hooks/useGameEngine";
 
 interface WaitingRoomProps {
@@ -25,7 +25,8 @@ export function WaitingRoom({
 }: WaitingRoomProps) {
   const [copied, setCopied] = useState(false);
   const isHost = room.hostId === myPlayerId;
-  const canStart = isHost && room.players.length >= MIN_PLAYERS && !room.gameStarted;
+  const connectedCount = room.players.filter(p => p.connected).length;
+  const canStart = isHost && connectedCount >= MIN_PLAYERS && !room.gameStarted;
 
   const copyCode = async () => {
     try {
@@ -104,13 +105,19 @@ export function WaitingRoom({
                 key={p.playerId}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className={`flex items-center gap-3 px-4 py-2 rounded-md ${
+                className={`flex items-center gap-3 px-4 py-2 rounded-md transition-opacity ${
                   p.playerId === myPlayerId ? "bg-cyan-500/10 border border-cyan-400/30" : "bg-black/30"
-                }`}
+                } ${!p.connected ? "opacity-40" : ""}`}
               >
                 <span className="font-mono text-zinc-500 text-sm w-6">#{p.slot + 1}</span>
                 <span className="font-sans text-cyan-100 flex-1">{p.name}</span>
-                {p.isHost && <Crown className="w-4 h-4 text-yellow-400" title="Host" />}
+                {!p.connected && (
+                  <span className="flex items-center gap-1 text-xs text-yellow-400/80 font-mono uppercase tracking-widest">
+                    <WifiOff className="w-3 h-3" />
+                    desconectado
+                  </span>
+                )}
+                {p.isHost && <Crown className="w-4 h-4 text-yellow-400" />}
                 {p.playerId === myPlayerId && (
                   <span className="text-xs uppercase tracking-widest text-cyan-400/60 font-mono">você</span>
                 )}
@@ -147,8 +154,8 @@ export function WaitingRoom({
               style={{ fontWeight: 700 }}
             >
               <Play className="w-5 h-5" />
-              {room.players.length < MIN_PLAYERS
-                ? `Mínimo ${MIN_PLAYERS} jogadores`
+              {connectedCount < MIN_PLAYERS
+                ? `Mínimo ${MIN_PLAYERS} conectados`
                 : room.gameStarted ? "Iniciando..." : "Iniciar Partida"}
             </button>
           ) : (

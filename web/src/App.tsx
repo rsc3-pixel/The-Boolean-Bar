@@ -21,11 +21,19 @@ export default function App() {
   // Instância unificada do Motor de Jogo (Mantém conexão persistente)
   const gameEngine = useGameEngine();
 
-  // ─── Multiplayer screen transitions (Phase 2) ────────────────────────────
-  // Ao entrar em uma sala via create_room/join_room, navega pra waitingRoom.
+  // ─── Multiplayer screen transitions (Phase 2 + Phase 4 reconnect) ────────
+  // Ao entrar em uma sala (create/join/reconnect), navega pra tela certa.
+  // Se gameStarted=true (reconnect mid-game), pula direto pro "game".
   useEffect(() => {
-    if (gameEngine.roomState && currentScreen === "onlineLobby") {
-      setCurrentScreen("waitingRoom");
+    if (!gameEngine.roomState) return;
+    const inWaitingFlow = currentScreen === "menu" || currentScreen === "onlineLobby";
+    if (inWaitingFlow) {
+      if (gameEngine.roomState.gameStarted) {
+        setPlayerNames(gameEngine.roomState.players.map(p => p.name));
+        setCurrentScreen("game");
+      } else {
+        setCurrentScreen("waitingRoom");
+      }
     }
   }, [gameEngine.roomState, currentScreen]);
 

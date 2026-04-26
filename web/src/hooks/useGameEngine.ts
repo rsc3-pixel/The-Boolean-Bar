@@ -45,6 +45,7 @@ export interface RoomPlayer {
   name: string;
   slot: number;
   isHost: boolean;
+  connected: boolean;  // Phase 4
 }
 
 export interface RoomSnapshot {
@@ -94,6 +95,20 @@ export function useGameEngine() {
     socket.onopen = () => {
       console.log("[WS] ✅ Conexão WebSocket ABERTA com sucesso!");
       setWsStatus("connected");
+
+      // Phase 4: auto-reconnect se temos credentials no sessionStorage
+      try {
+        const storedPlayerId = sessionStorage.getItem('booleanbar_playerId');
+        const storedRoomId = sessionStorage.getItem('booleanbar_roomId');
+        if (storedPlayerId && storedRoomId) {
+          console.log(`[WS] 🔄 Tentando reconnect: ${storedPlayerId}@${storedRoomId}`);
+          socket.send(JSON.stringify({
+            action: 'reconnect',
+            playerId: storedPlayerId,
+            roomId: storedRoomId,
+          }));
+        }
+      } catch (_) { /* sessionStorage indisponível, segue sem reconnect */ }
     };
 
     socket.onmessage = (event) => {
@@ -142,20 +157,26 @@ export function useGameEngine() {
           console.log("[WS] 🔔 TRIGGER recebido:", resp.event);
           if (resp.event === 'victory') setShowVictory(true);
         }
-        // ─── Multiplayer room messages (Phase 2) ───
+        // ─── Multiplayer room messages (Phase 2 + Phase 4) ───
         if (resp.type === 'room_created') {
           console.log("[WS] 🏠 ROOM CREATED:", resp.roomId);
           setPlayerId(resp.playerId);
           setRoomState(resp.room);
           setRoomError(null);
-          try { sessionStorage.setItem('booleanbar_playerId', resp.playerId); } catch (_) { /* no-op */ }
+          try {
+            sessionStorage.setItem('booleanbar_playerId', resp.playerId);
+            sessionStorage.setItem('booleanbar_roomId', resp.roomId);
+          } catch (_) { /* no-op */ }
         }
         if (resp.type === 'room_joined') {
           console.log("[WS] 🚪 ROOM JOINED:", resp.roomId);
           setPlayerId(resp.playerId);
           setRoomState(resp.room);
           setRoomError(null);
-          try { sessionStorage.setItem('booleanbar_playerId', resp.playerId); } catch (_) { /* no-op */ }
+          try {
+            sessionStorage.setItem('booleanbar_playerId', resp.playerId);
+            sessionStorage.setItem('booleanbar_roomId', resp.roomId);
+          } catch (_) { /* no-op */ }
         }
         if (resp.type === 'room_state') {
           console.log("[WS] 🔄 ROOM STATE update");
@@ -167,7 +188,33 @@ export function useGameEngine() {
           setPlayerId(null);
           setGameStarting(false);
           setRoomError({ code: 'room_closed', message: `Sala fechada: ${resp.reason}` });
-          try { sessionStorage.removeItem('booleanbar_playerId'); } catch (_) { /* no-op */ }
+          try {
+            sessionStorage.removeItem('booleanbar_playerId');
+            sessionStorage.removeItem('booleanbar_roomId');
+          } catch (_) { /* no-op */ }
+        }
+        // Phase 4: reconnect responses
+        if (resp.type === 'reconnect_success') {
+          console.log("[WS] 🔁 RECONNECT OK:", resp.roomId);
+          setPlayerId(resp.playerId);
+          setRoomState(resp.room);
+          setRoomError(null);
+          if (resp.lastGameState) setGameState(resp.lastGameState);
+          if (resp.lastDoubtState) setDoubtState(resp.lastDoubtState);
+          if (resp.room?.gameStarted) setGameStarting(true);
+        }
+        if (resp.type === 'reconnect_failed') {
+          console.warn("[WS] ❌ RECONNECT FAILED:", resp.code, resp.message);
+          // Limpa storage pra não tentar de novo
+          try {
+            sessionStorage.removeItem('booleanbar_playerId');
+            sessionStorage.removeItem('booleanbar_roomId');
+          } catch (_) { /* no-op */ }
+          setRoomState(null);
+          setPlayerId(null);
+          setGameStarting(false);
+          // Não setamos roomError aqui — falha de reconnect normalmente significa
+          // que a sala expirou; UI deve mostrar tela de lobby normal.
         }
         if (resp.type === 'game_starting') {
           console.log("[WS] 🚀 GAME STARTING (broadcast)");
@@ -243,7 +290,10 @@ export function useGameEngine() {
     setRoomState(null);
     setPlayerId(null);
     setGameStarting(false);
-    try { sessionStorage.removeItem('booleanbar_playerId'); } catch (_) { /* no-op */ }
+    try {
+      sessionStorage.removeItem('booleanbar_playerId');
+      sessionStorage.removeItem('booleanbar_roomId');
+    } catch (_) { /* no-op */ }
   }, [sendAction]);
 
   const startRoomGame = useCallback(() => {
