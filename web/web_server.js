@@ -1,21 +1,28 @@
 import { WebSocketServer } from 'ws';
 import { spawn, execSync } from 'child_process';
+import http from 'http';
 import path from 'path';
 import { existsSync } from 'fs';
+import { promises as fsp } from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const IS_PROD = process.env.NODE_ENV === 'production';
+const IS_WIN = process.platform === 'win32';
+const ENGINE_BIN = IS_WIN ? 'boolean_bar.exe' : 'boolean_bar';
 
-// ─── Exclusão permanente do Windows Defender ──────────────────────────────────
-try {
-  const projectRoot = path.resolve(__dirname, '..');
-  execSync(
-    `powershell -Command "Add-MpPreference -ExclusionPath '${projectRoot}' -ErrorAction SilentlyContinue"`,
-    { stdio: 'ignore' }
-  );
-  console.log('[Node Server] ✅ Exclusão do Windows Defender aplicada para:', projectRoot);
-} catch (e) {
-  console.warn('[Node Server] ⚠️ Não foi possível adicionar exclusão do Defender (normal sem admin).');
+// ─── Exclusão do Windows Defender (só Windows, dev) ──────────────────────────
+if (IS_WIN && !IS_PROD) {
+  try {
+    const projectRoot = path.resolve(__dirname, '..');
+    execSync(
+      `powershell -Command "Add-MpPreference -ExclusionPath '${projectRoot}' -ErrorAction SilentlyContinue"`,
+      { stdio: 'ignore' }
+    );
+    console.log('[Node Server] ✅ Exclusão do Windows Defender aplicada para:', projectRoot);
+  } catch (e) {
+    console.warn('[Node Server] ⚠️ Não foi possível adicionar exclusão do Defender (normal sem admin).');
+  }
 }
 
 // ─── Configuração ─────────────────────────────────────────────────────────────
@@ -123,21 +130,23 @@ function closeRoom(roomId, reason) {
 
 // ─── Engine spawn + output handling ───────────────────────────────────────────
 function spawnEngineForRoom(room) {
-  const exePathAbs = path.resolve(__dirname, '..', 'build', 'boolean_bar.exe');
+  const exePathAbs = path.resolve(__dirname, '..', 'build', ENGINE_BIN);
   if (!existsSync(exePathAbs)) {
     broadcast(room, {
       type: 'c_stderr',
-      data: `ERRO: boolean_bar.exe não encontrado em ${exePathAbs}. Rode "make" primeiro.`,
+      data: `ERRO: ${ENGINE_BIN} não encontrado em ${exePathAbs}. Rode "make" primeiro.`,
     });
     return false;
   }
 
-  // Unblock-File é Windows-only; na Linux falha silenciosamente
-  try {
-    execSync(`powershell -Command "Unblock-File -Path '${exePathAbs}'"`, { stdio: 'ignore' });
-  } catch (_) {}
+  // Unblock-File é Windows-only
+  if (IS_WIN) {
+    try {
+      execSync(`powershell -Command "Unblock-File -Path '${exePathAbs}'"`, { stdio: 'ignore' });
+    } catch (_) { /* graceful */ }
+  }
 
-  const engine = spawn(path.join(__dirname, '..', 'build', 'boolean_bar.exe'), [], { windowsHide: true });
+  const engine = spawn(exePathAbs, [], { windowsHide: true });
   room.engine = engine;
   room.stdoutBuffer = '';
 
@@ -497,9 +506,81 @@ function handleShutdown(ws) {
   }, 400);
 }
 
-// ─── WS Server ────────────────────────────────────────────────────────────────
-const wss = new WebSocketServer({ port: PORT });
-console.log(`[Node Server] Ponte WebSocket ativada na porta ${PORT}`);
+// ─── HTTP estático em produção (Phase 5) ─────────────────────────────────────
+// Em prod, o mesmo servidor serve os arquivos do `web/dist` E o WebSocket.
+// Em dev, o Vite serve o frontend (porta 5173) e este arquivo só atende WS.
+const DIST_DIR = path.resolve(__dirname, 'dist');
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js':   'application/javascript; charset=utf-8',
+  '.mjs':  'application/javascript; charset=utf-8',
+  '.css':  'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg':  'image/svg+xml',
+  '.png':  'image/png',
+  '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif':  'image/gif',
+  '.webp': 'image/webp',
+  '.ico':  'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2':'font/woff2',
+  '.ttf':  'font/ttf',
+  '.otf':  'font/otf',
+  '.mp4':  'video/mp4',
+  '.webm': 'video/webm',
+  '.txt':  'text/plain; charset=utf-8',
+  '.map':  'application/json',
+};
+
+async function serveStatic(req, res) {
+  const urlPath = (req.url || '/').split('?')[0];
+  const requested = urlPath === '/' ? '/index.html' : urlPath;
+  // Path traversal guard
+  const safeRel = path.normalize(requested).replace(/^(\.\.[\/\\])+/, '');
+  let filePath = path.join(DIST_DIR, safeRel);
+  if (!filePath.startsWith(DIST_DIR)) {
+    res.writeHead(403); return res.end('Forbidden');
+  }
+
+  try {
+    const stat = await fsp.stat(filePath);
+    if (stat.isDirectory()) filePath = path.join(filePath, 'index.html');
+    const content = await fsp.readFile(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    res.writeHead(200, {
+      'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
+      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000',
+    });
+    return res.end(content);
+  } catch (_) {
+    // SPA fallback: rotas não encontradas devolvem index.html
+    try {
+      const fallback = await fsp.readFile(path.join(DIST_DIR, 'index.html'));
+      res.writeHead(200, { 'Content-Type': MIME_TYPES['.html'], 'Cache-Control': 'no-cache' });
+      return res.end(fallback);
+    } catch (_) {
+      res.writeHead(404); res.end('Not Found');
+    }
+  }
+}
+
+// ─── WS Server (atrelado ao HTTP em prod, standalone em dev) ─────────────────
+let wss;
+if (IS_PROD) {
+  if (!existsSync(DIST_DIR)) {
+    console.error(`[Node Server] ❌ ${DIST_DIR} não existe. Rode 'npm run build' antes.`);
+    process.exit(1);
+  }
+  const httpServer = http.createServer(serveStatic);
+  wss = new WebSocketServer({ server: httpServer });
+  httpServer.listen(PORT, () => {
+    console.log(`[Node Server] HTTP + WS na porta ${PORT} — servindo ${DIST_DIR}`);
+  });
+} else {
+  wss = new WebSocketServer({ port: PORT });
+  console.log(`[Node Server] Ponte WebSocket ativada na porta ${PORT} (dev mode — Vite serve o frontend)`);
+}
 console.log('Aguardando frontend(s) conectarem...');
 
 wss.on('connection', (ws) => {

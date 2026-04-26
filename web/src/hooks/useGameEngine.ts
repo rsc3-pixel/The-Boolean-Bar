@@ -87,10 +87,17 @@ export function useGameEngine() {
       reconnectTimer.current = null;
     }
 
-    console.log("[WS] Tentando conectar ao Backend C em ws://localhost:8080...");
+    // Phase 5: em dev (Vite na 5173), conecta no ws://localhost:8080.
+    // Em prod (servido pela mesma origin via nginx/HTTPS), usa o host atual
+    // com wss:// — o reverse proxy roteia pro web_server.js.
+    const wsUrl = import.meta.env.DEV
+      ? "ws://localhost:8080"
+      : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`;
+
+    console.log(`[WS] Tentando conectar ao Backend em ${wsUrl}...`);
     setWsStatus("connecting");
 
-    const socket = new WebSocket("ws://localhost:8080");
+    const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
       console.log("[WS] ✅ Conexão WebSocket ABERTA com sucesso!");
