@@ -109,21 +109,26 @@ export function useGameEngine() {
           setGameState(resp.data);
         }
         if (resp.type === 'doubt_state') {
-          console.log("[WS] ⚔️ DOUBT STATE RECEBIDO!", resp.data);
+          // Engine perguntou ao oponente se duvida ou acredita.
+          // NÃO disparamos o overlay aqui — só atualizamos o estado pra UI mostrar
+          // a carta na mesa + os botões DUVIDO/ACREDITO. O overlay só deve aparecer
+          // se alguém clicar em DUVIDO (= doubt_result chegando).
+          console.log("[WS] ⚔️ DOUBT STATE RECEBIDO (aguardando ação do oponente)", resp.data);
           setDoubtState(resp.data);
-          setShowDoubtOverlay(true);
         }
         if (resp.type === 'doubt_result') {
-          // Resultado real do confronto lógico — quem vai para a roleta
+          // Alguém clicou DUVIDO. Agora sim disparamos a cascata de animação:
+          // overlay "Dúvida chamada!" → TruthTable → Roleta.
           console.log("[WS] ⚖️ DOUBT RESULT RECEBIDO!", resp.data);
           setDoubtResult(resp.data);
-          // Aciona a roleta logo após (com pequeno delay para TruthTable fechar)
-          setShowRoulette(true);
+          setShowDoubtOverlay(true); // dispara a cascata
         }
         if (resp.type === 'roulette_result') {
-          // Resultado real da roleta russa
+          // Resultado real da roleta russa: dispara a tela da roleta agora
+          // (não no doubt_result, pra não acionar antes de a engine girar o tambor).
           console.log("[WS] 🎰 ROULETTE RESULT RECEBIDO!", resp.data);
           setRouletteResult(resp.data);
+          setShowRoulette(true);
         }
         if (resp.type === 'victory_state') {
           console.log("[WS] 🏆 VICTORY STATE RECEBIDO!", resp.data);
@@ -131,9 +136,10 @@ export function useGameEngine() {
           setShowVictory(true);
         }
         if (resp.type === 'trigger') {
+          // Trigger 'show_doubt' e 'player_death' eram resíduos do modo demo
+          // (matching de texto na stdout do engine). Removidos pra não duplicar
+          // o disparo dos overlays — agora cascata vem só de doubt_result/roulette_result.
           console.log("[WS] 🔔 TRIGGER recebido:", resp.event);
-          if (resp.event === 'show_doubt') setShowDoubtOverlay(true);
-          if (resp.event === 'player_death') setShowRoulette(true);
           if (resp.event === 'victory') setShowVictory(true);
         }
         // ─── Multiplayer room messages (Phase 2) ───
