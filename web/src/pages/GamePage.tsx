@@ -30,8 +30,34 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     rouletteResult,
     victoryState,
     sendInput,
-    wsStatus
+    wsStatus,
+    // Phase 3: turn awareness
+    roomState,
+    playerId,
   } = engine;
+
+  // ─── Phase 3: turn awareness ─────────────────────────────────────────────
+  // Em modo solo (1 cliente controla todos), gate fica desabilitado e os controles aparecem sempre.
+  const isMultiplayer = !!roomState && !roomState.isSoloMode;
+  const myPlayerInRoom = roomState && playerId
+    ? roomState.players.find(p => p.playerId === playerId)
+    : null;
+  const myName = myPlayerInRoom?.name ?? null;
+  const mySlot = myPlayerInRoom?.slot ?? -1;
+
+  // Quando NÃO é phase de dúvida → vez do jogador no slot gameState.turn
+  // Quando É phase de dúvida → vez do caller (oponente sendo perguntado)
+  const isMyTurn = !isMultiplayer || (gameState?.turn === mySlot);
+  const isMyDoubt = !isMultiplayer || (doubtState?.caller === myName);
+
+  // Nome de quem deve agir agora (pra mostrar "Aguardando X..." nos outros clientes)
+  const expectedPlayerName = isMultiplayer && roomState
+    ? (doubtState ? doubtState.caller : roomState.players[gameState?.turn ?? -1]?.name)
+    : null;
+  const expectedPlayerEntry = isMultiplayer && roomState && expectedPlayerName
+    ? roomState.players.find(p => p.name === expectedPlayerName)
+    : null;
+  const expectedIsConnected = expectedPlayerEntry?.connected ?? true;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCardFormula, setSelectedCardFormula] = useState("");
@@ -164,11 +190,19 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                 {wsStatus === 'connected' ? 'C ENGINE ON' : wsStatus === 'connecting' ? 'CONECTANDO...' : 'OFFLINE'}
               </span>
             </div>
-            {/* Debug de turno */}
+            {/* Indicador de turno (Phase 3) */}
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-mono ${gameState ? 'text-emerald-400' : 'text-zinc-600'}`}>
-                {gameState ? `TURNO ${gameState.turn}` : 'AGUARDANDO...'}
-              </span>
+              {!gameState ? (
+                <span className="text-xs font-mono text-zinc-600">AGUARDANDO...</span>
+              ) : isMultiplayer ? (
+                isMyTurn || isMyDoubt ? (
+                  <span className="text-xs font-mono text-emerald-400 animate-pulse">SUA VEZ</span>
+                ) : (
+                  <span className="text-xs font-mono text-yellow-400">VEZ DE {expectedPlayerName?.toUpperCase() ?? '?'}</span>
+                )
+              ) : (
+                <span className="text-xs font-mono text-emerald-400">TURNO {gameState.turn}</span>
+              )}
             </div>
             {/* Balas no cilindro */}
             <div className="flex items-center gap-3">
@@ -197,6 +231,26 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
           </div>
         </div>
       </motion.header>
+
+      {/* Banner de turno (Phase 3 — só multiplayer, só quando não é minha vez) */}
+      {isMultiplayer && gameState && !isMyTurn && !isMyDoubt && expectedPlayerName && (
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className={`relative z-10 backdrop-blur-sm py-2 text-center border-b ${
+            expectedIsConnected
+              ? 'bg-yellow-950/40 border-yellow-500/30'
+              : 'bg-red-950/40 border-red-500/40'
+          }`}
+        >
+          <span className={`text-sm font-mono tracking-widest ${expectedIsConnected ? 'text-yellow-300' : 'text-red-300'}`}>
+            {expectedIsConnected
+              ? <>⏳ AGUARDANDO <span style={{ fontWeight: 700 }}>{expectedPlayerName.toUpperCase()}</span> JOGAR...</>
+              : <>📡 <span style={{ fontWeight: 700 }}>{expectedPlayerName.toUpperCase()}</span> DESCONECTOU — AGUARDANDO RECONEXÃO (60s)...</>
+            }
+          </span>
+        </motion.div>
+      )}
 
       {/* Área de jogo */}
       <div className="flex-1 relative overflow-hidden flex items-center justify-center bg-black game-area-wrapper">
@@ -267,19 +321,22 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                   </div>
                   <div className="flex flex-col gap-3">
                     <button
+                      disabled={!isMyDoubt}
                       onClick={() => {
-                        sendInput("1"); // 1 = duvidar
-                        setShowDoubtOverlay(true);
+                        if (!isMyDoubt) return;
+                        sendInput("1"); // 1 = duvidar — overlay aparece via doubt_result
                       }}
-                      className="px-10 py-4 bg-red-700 text-white rounded-lg border-2 border-red-500 hover:bg-red-600 transition-colors font-mono tracking-wider"
+                      className="px-10 py-4 bg-red-700 text-white rounded-lg border-2 border-red-500 hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono tracking-wider"
                     >
                       🚨 DUVIDO
                     </button>
                     <button
+                      disabled={!isMyDoubt}
                       onClick={() => {
+                        if (!isMyDoubt) return;
                         sendInput("0"); // 0 = acreditar
                       }}
-                      className="px-10 py-3 bg-zinc-800 text-zinc-300 rounded-lg border-2 border-zinc-700 hover:bg-zinc-700 transition-colors font-mono tracking-wider"
+                      className="px-10 py-3 bg-zinc-800 text-zinc-300 rounded-lg border-2 border-zinc-700 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono tracking-wider"
                     >
                       ACREDITO
                     </button>
@@ -299,12 +356,13 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                 </span>
               </div>
               {playerHand.length > 0 ? (
-                <div className="flex justify-center items-end gap-1 sm:gap-3 scale-75 sm:scale-100 origin-bottom">
+                <div className={`flex justify-center items-end gap-1 sm:gap-3 scale-75 sm:scale-100 origin-bottom transition-opacity ${!isMyTurn && !doubtState ? 'opacity-40 pointer-events-none' : ''}`}>
                   {playerHand.map((formula, index) => (
                     <div key={formula + index} style={{ transformOrigin: 'bottom center', transform: `rotate(${(index - Math.floor(playerHand.length / 2)) * 3}deg)` }}>
                       <LogicCard
                         formula={formula}
                         onClick={() => {
+                          if (!isMyTurn) return;
                           setSelectedCardFormula(formula);
                           setIsModalOpen(true);
                         }}
@@ -333,11 +391,12 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
 
       {/* Modal de Blefe: jogador escolhe a carta e declara o tipo */}
       <BluffModal
-        isOpen={isModalOpen}
+        isOpen={isModalOpen && isMyTurn}
         selectedFormula={selectedCardFormula}
         onClose={() => setIsModalOpen(false)}
         onConfirm={(bluffType) => {
           setIsModalOpen(false);
+          if (!isMyTurn) return;
           const cardIdx = (playerHand.indexOf(selectedCardFormula) + 1).toString();
           let blefeNum = "3"; // CONTINGÊNCIA
           if (bluffType === "TAUTOLOGIA") blefeNum = "1";
