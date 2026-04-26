@@ -34,6 +34,8 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     // Phase 3: turn awareness
     roomState,
     playerId,
+    // Phase 5: ranking
+    eliminationOrder,
   } = engine;
 
   // ─── Phase 3: turn awareness ─────────────────────────────────────────────
@@ -63,6 +65,21 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
   // Em multiplayer, só o jogador que perdeu a roleta vê PlayerEliminatedScreen,
   // e só o vencedor vê VictoryScreen. Solo mode mantém comportamento atual
   // (todas as telas pro único cliente).
+
+  // Estou eliminado? Verifica direto no gameState.players (alive=false).
+  const myInGame = isMultiplayer && myName && gameState
+    ? gameState.players.find(p => p.name === myName)
+    : null;
+  const iAmEliminated = !!myInGame && !myInGame.alive;
+  const aliveCount = gameState?.players.filter(p => p.alive).length ?? 0;
+
+  // Ranking final: vencedor + reverse(eliminationOrder).
+  // Ex: 4 players, ordem morte = ["D","C","B"], winner = "A"
+  // → finalRanking = ["A", "B", "C", "D"]  (1º, 2º, 3º, 4º)
+  const finalRanking = victoryState
+    ? [victoryState.winner, ...[...eliminationOrder].reverse().filter(n => n !== victoryState.winner)]
+    : [];
+  const myRankPosition = myName ? finalRanking.indexOf(myName) + 1 : 0;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCardFormula, setSelectedCardFormula] = useState("");
@@ -123,16 +140,26 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
   const handleRouletteComplete = () => {
     setShowRoulette(false);
     if (!pendingRouletteResult) return;
-    // Phase 5: em multiplayer, só o jogador que GIROU a roleta vê o resultado
-    // dela (sobrevivência ou eliminação). Outros players só veem o gameState
-    // atualizado e o jogo continuar.
+    // Phase 5: em multiplayer, só o jogador que GIROU a roleta vê o resultado.
     if (isMultiplayer && pendingRouletteResult.player !== myName) return;
     if (pendingRouletteResult.survived) {
       setShowSurvivalRelief(true);
-    } else {
+    } else if (!isMultiplayer) {
+      // Solo mode: eliminado imediatamente (cliente único controla todos).
       setShowEliminated(true);
     }
+    // Em multiplayer, se eu morri: o useEffect abaixo decide se mostro tela
+    // de eliminação (game ends) ou banner de spectator (jogo continua).
   };
+
+  // Phase 5: disparo da PlayerEliminatedScreen quando o JOGO ACABA com vitória
+  // de outra pessoa. Eu vi o "morri" na roleta antes; agora vejo o ranking final.
+  useEffect(() => {
+    if (!victoryState || !isMultiplayer || !myName) return;
+    if (victoryState.winner !== myName) {
+      setShowEliminated(true);
+    }
+  }, [victoryState, isMultiplayer, myName]);
 
   // Estado derivado de gameState (sem mocks)
   const opponents = gameState
@@ -240,8 +267,21 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         </div>
       </motion.header>
 
+      {/* Phase 5: banner de spectator quando estou eliminado mas o jogo continua */}
+      {isMultiplayer && iAmEliminated && !victoryState && aliveCount > 1 && (
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="relative z-10 bg-zinc-900/80 border-b border-red-500/40 backdrop-blur-sm py-2 text-center"
+        >
+          <span className="text-sm font-mono tracking-widest text-red-300/90">
+            💀 VOCÊ FOI ELIMINADO — ASSISTINDO O RESTO DA PARTIDA ({aliveCount} JOGADORES VIVOS)
+          </span>
+        </motion.div>
+      )}
+
       {/* Banner de turno (Phase 3 — só multiplayer, só quando não é minha vez) */}
-      {isMultiplayer && gameState && !isMyTurn && !isMyDoubt && expectedPlayerName && (
+      {isMultiplayer && !iAmEliminated && gameState && !isMyTurn && !isMyDoubt && expectedPlayerName && (
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -453,10 +493,12 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
 
       {/* Eliminado: posição e cards do roulette_result — em multiplayer só pro próprio eliminado */}
       <PlayerEliminatedScreen
-        isVisible={showEliminated && (!isMultiplayer || pendingRouletteResult?.player === myName)}
-        playerName={pendingRouletteResult?.player ?? roulettePlayerName}
+        isVisible={showEliminated && (!isMultiplayer || pendingRouletteResult?.player === myName || (isMultiplayer && iAmEliminated && !!victoryState))}
+        playerName={isMultiplayer && myName ? myName : (pendingRouletteResult?.player ?? roulettePlayerName)}
         cardsBurned={eliminatedPlayerCards}
-        finalPosition={finalPosition}
+        finalPosition={isMultiplayer && myRankPosition > 0 ? myRankPosition : finalPosition}
+        totalPlayers={isMultiplayer && roomState ? roomState.players.length : undefined}
+        ranking={isMultiplayer && finalRanking.length > 0 ? finalRanking : undefined}
         onDismiss={() => setShowEliminated(false)}
       />
 
@@ -468,6 +510,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         triggersPulled={gameState?.bullets ?? 0}
         bluffsSuccessful={0}
         doubtsWon={0}
+        ranking={isMultiplayer && finalRanking.length > 0 ? finalRanking : undefined}
         onLeaveBar={() => { setShowVictory(false); onExit(); }}
       />
 

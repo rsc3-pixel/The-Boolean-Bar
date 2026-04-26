@@ -80,6 +80,9 @@ export function useGameEngine() {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [roomError, setRoomError] = useState<RoomError | null>(null);
   const [gameStarting, setGameStarting] = useState(false);
+  // Phase 5: ordem de eliminação (do primeiro a morrer ao último). Final ranking
+  // = winner + reverse(eliminationOrder).
+  const [eliminationOrder, setEliminationOrder] = useState<string[]>([]);
 
   const connect = useCallback(() => {
     if (reconnectTimer.current) {
@@ -151,6 +154,10 @@ export function useGameEngine() {
           console.log("[WS] 🎰 ROULETTE RESULT RECEBIDO!", resp.data);
           setRouletteResult(resp.data);
           setShowRoulette(true);
+          // Phase 5: registra eliminação na ordem em que ocorre
+          if (resp.data.survived === false && resp.data.player) {
+            setEliminationOrder(prev => prev.includes(resp.data.player) ? prev : [...prev, resp.data.player]);
+          }
         }
         if (resp.type === 'victory_state') {
           console.log("[WS] 🏆 VICTORY STATE RECEBIDO!", resp.data);
@@ -267,6 +274,8 @@ export function useGameEngine() {
   const startGame = useCallback((playerNames: string[]) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       console.log("[WS] 🚀 Enviando START_GAME com nomes:", playerNames);
+      setEliminationOrder([]); // nova partida → reseta
+      setVictoryState(null);
       wsRef.current.send(JSON.stringify({ action: "start_game", playerNames }));
     } else {
       console.error("[WS] ⛔ WebSocket NÃO está conectado! readyState:", wsRef.current?.readyState);
@@ -305,6 +314,8 @@ export function useGameEngine() {
 
   const startRoomGame = useCallback(() => {
     setRoomError(null);
+    setEliminationOrder([]); // nova partida → reseta
+    setVictoryState(null);
     sendAction({ action: "start_game" }); // sem playerNames → modo sala
   }, [sendAction]);
 
@@ -356,5 +367,7 @@ export function useGameEngine() {
     leaveRoom,
     startRoomGame,
     clearRoomError,
+    // ─── Phase 5: ranking ──
+    eliminationOrder,
   };
 }
