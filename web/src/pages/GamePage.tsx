@@ -313,8 +313,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                       disabled={!isMyDoubt}
                       onClick={() => {
                         if (!isMyDoubt) return;
-                        sendInput("1"); // 1 = duvidar
-                        setShowDoubtOverlay(true);
+                        sendInput("1"); // 1 = duvidar — overlay aparece via doubt_result
                       }}
                       className="px-10 py-4 bg-red-700 text-white rounded-lg border-2 border-red-500 hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono tracking-wider"
                     >

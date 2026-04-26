@@ -204,12 +204,10 @@ function handleEngineStdout(room, chunk) {
     if (!handled) {
       console.log(`[ENGINE/${room.roomId}]: ${line.trim()}`);
       broadcast(room, { type: 'c_stdout', data: line });
-      if (line.includes('você DUVIDA')) {
-        broadcast(room, { type: 'trigger', event: 'show_doubt' });
-      }
-      if (line.includes('BANG!')) {
-        broadcast(room, { type: 'trigger', event: 'player_death' });
-      }
+      // Removidos triggers 'show_doubt' (textmatch de "você DUVIDA") e
+      // 'player_death' (textmatch de "BANG!") — eram resíduos do modo demo
+      // que disparavam overlays no frontend antes do tempo. Agora a cascata
+      // vem só pelos eventos JSON estruturados (doubt_result, roulette_result).
     }
   }
 }
