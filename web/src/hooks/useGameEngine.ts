@@ -39,6 +39,27 @@ export interface VictoryState {
   totalPlayers: number;
 }
 
+// ─── Multiplayer (Phase 2) ────────────────────────────────────────────────────
+export interface RoomPlayer {
+  playerId: string;
+  name: string;
+  slot: number;
+  isHost: boolean;
+}
+
+export interface RoomSnapshot {
+  roomId: string;
+  hostId: string;
+  gameStarted: boolean;
+  isSoloMode: boolean;
+  players: RoomPlayer[];
+}
+
+export interface RoomError {
+  code: string;
+  message: string;
+}
+
 export function useGameEngine() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,6 +73,12 @@ export function useGameEngine() {
   const [showRoulette, setShowRoulette] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
+
+  // ─── Room state (Phase 2) ──────────────────────────────────────────────────
+  const [roomState, setRoomState] = useState<RoomSnapshot | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [roomError, setRoomError] = useState<RoomError | null>(null);
+  const [gameStarting, setGameStarting] = useState(false);
 
   const connect = useCallback(() => {
     if (reconnectTimer.current) {
@@ -109,6 +136,42 @@ export function useGameEngine() {
           if (resp.event === 'player_death') setShowRoulette(true);
           if (resp.event === 'victory') setShowVictory(true);
         }
+        // ─── Multiplayer room messages (Phase 2) ───
+        if (resp.type === 'room_created') {
+          console.log("[WS] 🏠 ROOM CREATED:", resp.roomId);
+          setPlayerId(resp.playerId);
+          setRoomState(resp.room);
+          setRoomError(null);
+          try { sessionStorage.setItem('booleanbar_playerId', resp.playerId); } catch (_) { /* no-op */ }
+        }
+        if (resp.type === 'room_joined') {
+          console.log("[WS] 🚪 ROOM JOINED:", resp.roomId);
+          setPlayerId(resp.playerId);
+          setRoomState(resp.room);
+          setRoomError(null);
+          try { sessionStorage.setItem('booleanbar_playerId', resp.playerId); } catch (_) { /* no-op */ }
+        }
+        if (resp.type === 'room_state') {
+          console.log("[WS] 🔄 ROOM STATE update");
+          setRoomState(resp.room);
+        }
+        if (resp.type === 'room_closed') {
+          console.warn("[WS] 🚫 ROOM CLOSED:", resp.reason);
+          setRoomState(null);
+          setPlayerId(null);
+          setGameStarting(false);
+          setRoomError({ code: 'room_closed', message: `Sala fechada: ${resp.reason}` });
+          try { sessionStorage.removeItem('booleanbar_playerId'); } catch (_) { /* no-op */ }
+        }
+        if (resp.type === 'game_starting') {
+          console.log("[WS] 🚀 GAME STARTING (broadcast)");
+          setGameStarting(true);
+          setRoomState(resp.room);
+        }
+        if (resp.type === 'error') {
+          console.warn("[WS] ⚠️ Error:", resp.code, resp.message);
+          setRoomError({ code: resp.code, message: resp.message });
+        }
       } catch (e) {
         console.error("[WS] Erro ao parsear mensagem:", e, event.data);
       }
@@ -144,6 +207,40 @@ export function useGameEngine() {
       console.error("[WS] ⛔ WebSocket NÃO está conectado! readyState:", wsRef.current?.readyState);
     }
   }, []);
+
+  // ─── Room actions (Phase 2) ────────────────────────────────────────────────
+  const sendAction = useCallback((payload: object) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(payload));
+    } else {
+      console.error("[WS] ⛔ Tentou enviar action mas WS não está conectado");
+    }
+  }, []);
+
+  const createRoom = useCallback((playerName: string) => {
+    setRoomError(null);
+    sendAction({ action: "create_room", playerName });
+  }, [sendAction]);
+
+  const joinRoom = useCallback((roomId: string, playerName: string) => {
+    setRoomError(null);
+    sendAction({ action: "join_room", roomId: roomId.toUpperCase(), playerName });
+  }, [sendAction]);
+
+  const leaveRoom = useCallback(() => {
+    sendAction({ action: "leave_room" });
+    setRoomState(null);
+    setPlayerId(null);
+    setGameStarting(false);
+    try { sessionStorage.removeItem('booleanbar_playerId'); } catch (_) { /* no-op */ }
+  }, [sendAction]);
+
+  const startRoomGame = useCallback(() => {
+    setRoomError(null);
+    sendAction({ action: "start_game" }); // sem playerNames → modo sala
+  }, [sendAction]);
+
+  const clearRoomError = useCallback(() => setRoomError(null), []);
 
   const sendInput = useCallback((input: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -181,5 +278,15 @@ export function useGameEngine() {
     setShowRoulette,
     showVictory,
     setShowVictory,
+    // ─── Multiplayer (Phase 2) ──
+    roomState,
+    playerId,
+    roomError,
+    gameStarting,
+    createRoom,
+    joinRoom,
+    leaveRoom,
+    startRoomGame,
+    clearRoomError,
   };
 }
