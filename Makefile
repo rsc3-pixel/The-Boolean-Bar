@@ -26,8 +26,12 @@ BUILD_DIR = build
 WEB_DIR = web
 
 # ─── Compilador e Flags ──────────────────────────────────────────────────────
+# _POSIX_C_SOURCE=200809L expõe strdup() em <string.h> na glibc (Linux). Sem isso,
+# strdup é "implícito" → compilador assume retorno int → ponteiro 64-bit truncado
+# pra 32-bit → segfault em runtime. Windows não precisa mas não atrapalha.
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -g \
+         -D_POSIX_C_SOURCE=200809L \
          -I$(SRC_DIR) \
          -I$(SRC_DIR)/core \
          -I$(SRC_DIR)/modules \
