@@ -54,6 +54,10 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
   const expectedPlayerName = isMultiplayer && roomState
     ? (doubtState ? doubtState.caller : roomState.players[gameState?.turn ?? -1]?.name)
     : null;
+  const expectedPlayerEntry = isMultiplayer && roomState && expectedPlayerName
+    ? roomState.players.find(p => p.name === expectedPlayerName)
+    : null;
+  const expectedIsConnected = expectedPlayerEntry?.connected ?? true;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCardFormula, setSelectedCardFormula] = useState("");
@@ -233,10 +237,17 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="relative z-10 bg-yellow-950/40 border-b border-yellow-500/30 backdrop-blur-sm py-2 text-center"
+          className={`relative z-10 backdrop-blur-sm py-2 text-center border-b ${
+            expectedIsConnected
+              ? 'bg-yellow-950/40 border-yellow-500/30'
+              : 'bg-red-950/40 border-red-500/40'
+          }`}
         >
-          <span className="text-sm font-mono tracking-widest text-yellow-300">
-            ⏳ AGUARDANDO <span className="text-yellow-200" style={{ fontWeight: 700 }}>{expectedPlayerName.toUpperCase()}</span> JOGAR...
+          <span className={`text-sm font-mono tracking-widest ${expectedIsConnected ? 'text-yellow-300' : 'text-red-300'}`}>
+            {expectedIsConnected
+              ? <>⏳ AGUARDANDO <span style={{ fontWeight: 700 }}>{expectedPlayerName.toUpperCase()}</span> JOGAR...</>
+              : <>📡 <span style={{ fontWeight: 700 }}>{expectedPlayerName.toUpperCase()}</span> DESCONECTOU — AGUARDANDO RECONEXÃO (60s)...</>
+            }
           </span>
         </motion.div>
       )}
