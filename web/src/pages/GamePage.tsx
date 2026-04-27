@@ -30,8 +30,56 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     rouletteResult,
     victoryState,
     sendInput,
-    wsStatus
+    wsStatus,
+    // Phase 3: turn awareness
+    roomState,
+    playerId,
+    // Phase 5: ranking
+    eliminationOrder,
   } = engine;
+
+  // ─── Phase 3: turn awareness ─────────────────────────────────────────────
+  // Em modo solo (1 cliente controla todos), gate fica desabilitado e os controles aparecem sempre.
+  const isMultiplayer = !!roomState && !roomState.isSoloMode;
+  const myPlayerInRoom = roomState && playerId
+    ? roomState.players.find(p => p.playerId === playerId)
+    : null;
+  const myName = myPlayerInRoom?.name ?? null;
+  const mySlot = myPlayerInRoom?.slot ?? -1;
+
+  // Quando NÃO é phase de dúvida → vez do jogador no slot gameState.turn
+  // Quando É phase de dúvida → vez do caller (oponente sendo perguntado)
+  const isMyTurn = !isMultiplayer || (gameState?.turn === mySlot);
+  const isMyDoubt = !isMultiplayer || (doubtState?.caller === myName);
+
+  // Nome de quem deve agir agora (pra mostrar "Aguardando X..." nos outros clientes)
+  const expectedPlayerName = isMultiplayer && roomState
+    ? (doubtState ? doubtState.caller : roomState.players[gameState?.turn ?? -1]?.name)
+    : null;
+  const expectedPlayerEntry = isMultiplayer && roomState && expectedPlayerName
+    ? roomState.players.find(p => p.name === expectedPlayerName)
+    : null;
+  const expectedIsConnected = expectedPlayerEntry?.connected ?? true;
+
+  // ─── Phase 5: end-game screens só pra quem é o protagonista ──────────────
+  // Em multiplayer, só o jogador que perdeu a roleta vê PlayerEliminatedScreen,
+  // e só o vencedor vê VictoryScreen. Solo mode mantém comportamento atual
+  // (todas as telas pro único cliente).
+
+  // Estou eliminado? Verifica direto no gameState.players (alive=false).
+  const myInGame = isMultiplayer && myName && gameState
+    ? gameState.players.find(p => p.name === myName)
+    : null;
+  const iAmEliminated = !!myInGame && !myInGame.alive;
+  const aliveCount = gameState?.players.filter(p => p.alive).length ?? 0;
+
+  // Ranking final: vencedor + reverse(eliminationOrder).
+  // Ex: 4 players, ordem morte = ["D","C","B"], winner = "A"
+  // → finalRanking = ["A", "B", "C", "D"]  (1º, 2º, 3º, 4º)
+  const finalRanking = victoryState
+    ? [victoryState.winner, ...[...eliminationOrder].reverse().filter(n => n !== victoryState.winner)]
+    : [];
+  const myRankPosition = myName ? finalRanking.indexOf(myName) + 1 : 0;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCardFormula, setSelectedCardFormula] = useState("");
@@ -91,14 +139,27 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
   // Usa o pendingRouletteResult real do C (não decide sozinho)
   const handleRouletteComplete = () => {
     setShowRoulette(false);
-    if (pendingRouletteResult) {
-      if (pendingRouletteResult.survived) {
-        setShowSurvivalRelief(true);
-      } else {
-        setShowEliminated(true);
-      }
+    if (!pendingRouletteResult) return;
+    // Phase 5: em multiplayer, só o jogador que GIROU a roleta vê o resultado.
+    if (isMultiplayer && pendingRouletteResult.player !== myName) return;
+    if (pendingRouletteResult.survived) {
+      setShowSurvivalRelief(true);
+    } else if (!isMultiplayer) {
+      // Solo mode: eliminado imediatamente (cliente único controla todos).
+      setShowEliminated(true);
     }
+    // Em multiplayer, se eu morri: o useEffect abaixo decide se mostro tela
+    // de eliminação (game ends) ou banner de spectator (jogo continua).
   };
+
+  // Phase 5: disparo da PlayerEliminatedScreen quando o JOGO ACABA com vitória
+  // de outra pessoa. Eu vi o "morri" na roleta antes; agora vejo o ranking final.
+  useEffect(() => {
+    if (!victoryState || !isMultiplayer || !myName) return;
+    if (victoryState.winner !== myName) {
+      setShowEliminated(true);
+    }
+  }, [victoryState, isMultiplayer, myName]);
 
   // Estado derivado de gameState (sem mocks)
   const opponents = gameState
@@ -164,11 +225,19 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                 {wsStatus === 'connected' ? 'C ENGINE ON' : wsStatus === 'connecting' ? 'CONECTANDO...' : 'OFFLINE'}
               </span>
             </div>
-            {/* Debug de turno */}
+            {/* Indicador de turno (Phase 3) */}
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-mono ${gameState ? 'text-emerald-400' : 'text-zinc-600'}`}>
-                {gameState ? `TURNO ${gameState.turn}` : 'AGUARDANDO...'}
-              </span>
+              {!gameState ? (
+                <span className="text-xs font-mono text-zinc-600">AGUARDANDO...</span>
+              ) : isMultiplayer ? (
+                isMyTurn || isMyDoubt ? (
+                  <span className="text-xs font-mono text-emerald-400 animate-pulse">SUA VEZ</span>
+                ) : (
+                  <span className="text-xs font-mono text-yellow-400">VEZ DE {expectedPlayerName?.toUpperCase() ?? '?'}</span>
+                )
+              ) : (
+                <span className="text-xs font-mono text-emerald-400">TURNO {gameState.turn}</span>
+              )}
             </div>
             {/* Balas no cilindro */}
             <div className="flex items-center gap-3">
@@ -197,6 +266,39 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
           </div>
         </div>
       </motion.header>
+
+      {/* Phase 5: banner de spectator quando estou eliminado mas o jogo continua */}
+      {isMultiplayer && iAmEliminated && !victoryState && aliveCount > 1 && (
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="relative z-10 bg-zinc-900/80 border-b border-red-500/40 backdrop-blur-sm py-2 text-center"
+        >
+          <span className="text-sm font-mono tracking-widest text-red-300/90">
+            💀 VOCÊ FOI ELIMINADO — ASSISTINDO O RESTO DA PARTIDA ({aliveCount} JOGADORES VIVOS)
+          </span>
+        </motion.div>
+      )}
+
+      {/* Banner de turno (Phase 3 — só multiplayer, só quando não é minha vez) */}
+      {isMultiplayer && !iAmEliminated && gameState && !isMyTurn && !isMyDoubt && expectedPlayerName && (
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className={`relative z-10 backdrop-blur-sm py-2 text-center border-b ${
+            expectedIsConnected
+              ? 'bg-yellow-950/40 border-yellow-500/30'
+              : 'bg-red-950/40 border-red-500/40'
+          }`}
+        >
+          <span className={`text-sm font-mono tracking-widest ${expectedIsConnected ? 'text-yellow-300' : 'text-red-300'}`}>
+            {expectedIsConnected
+              ? <>⏳ AGUARDANDO <span style={{ fontWeight: 700 }}>{expectedPlayerName.toUpperCase()}</span> JOGAR...</>
+              : <>📡 <span style={{ fontWeight: 700 }}>{expectedPlayerName.toUpperCase()}</span> DESCONECTOU — AGUARDANDO RECONEXÃO (60s)...</>
+            }
+          </span>
+        </motion.div>
+      )}
 
       {/* Área de jogo */}
       <div className="flex-1 relative overflow-hidden flex items-center justify-center bg-black game-area-wrapper">
@@ -267,19 +369,22 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                   </div>
                   <div className="flex flex-col gap-3">
                     <button
+                      disabled={!isMyDoubt}
                       onClick={() => {
-                        sendInput("1"); // 1 = duvidar
-                        setShowDoubtOverlay(true);
+                        if (!isMyDoubt) return;
+                        sendInput("1"); // 1 = duvidar — overlay aparece via doubt_result
                       }}
-                      className="px-10 py-4 bg-red-700 text-white rounded-lg border-2 border-red-500 hover:bg-red-600 transition-colors font-mono tracking-wider"
+                      className="px-10 py-4 bg-red-700 text-white rounded-lg border-2 border-red-500 hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono tracking-wider"
                     >
                       🚨 DUVIDO
                     </button>
                     <button
+                      disabled={!isMyDoubt}
                       onClick={() => {
+                        if (!isMyDoubt) return;
                         sendInput("0"); // 0 = acreditar
                       }}
-                      className="px-10 py-3 bg-zinc-800 text-zinc-300 rounded-lg border-2 border-zinc-700 hover:bg-zinc-700 transition-colors font-mono tracking-wider"
+                      className="px-10 py-3 bg-zinc-800 text-zinc-300 rounded-lg border-2 border-zinc-700 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono tracking-wider"
                     >
                       ACREDITO
                     </button>
@@ -299,12 +404,13 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                 </span>
               </div>
               {playerHand.length > 0 ? (
-                <div className="flex justify-center items-end gap-1 sm:gap-3 scale-75 sm:scale-100 origin-bottom">
+                <div className={`flex justify-center items-end gap-1 sm:gap-3 scale-75 sm:scale-100 origin-bottom transition-opacity ${!isMyTurn && !doubtState ? 'opacity-40 pointer-events-none' : ''}`}>
                   {playerHand.map((formula, index) => (
                     <div key={formula + index} style={{ transformOrigin: 'bottom center', transform: `rotate(${(index - Math.floor(playerHand.length / 2)) * 3}deg)` }}>
                       <LogicCard
                         formula={formula}
                         onClick={() => {
+                          if (!isMyTurn) return;
                           setSelectedCardFormula(formula);
                           setIsModalOpen(true);
                         }}
@@ -333,11 +439,12 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
 
       {/* Modal de Blefe: jogador escolhe a carta e declara o tipo */}
       <BluffModal
-        isOpen={isModalOpen}
+        isOpen={isModalOpen && isMyTurn}
         selectedFormula={selectedCardFormula}
         onClose={() => setIsModalOpen(false)}
         onConfirm={(bluffType) => {
           setIsModalOpen(false);
+          if (!isMyTurn) return;
           const cardIdx = (playerHand.indexOf(selectedCardFormula) + 1).toString();
           let blefeNum = "3"; // CONTINGÊNCIA
           if (bluffType === "TAUTOLOGIA") blefeNum = "1";
@@ -374,9 +481,9 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         onComplete={handleRouletteComplete}
       />
 
-      {/* Sobreviveu: dados reais do roulette_result */}
+      {/* Sobreviveu: dados reais — em multiplayer só pro próprio sobrevivente */}
       <SurvivalReliefOverlay
-        isVisible={showSurvivalRelief}
+        isVisible={showSurvivalRelief && (!isMultiplayer || pendingRouletteResult?.player === myName)}
         playerName={pendingRouletteResult?.player ?? roulettePlayerName}
         livesRemaining={pendingRouletteResult?.lives ?? 2}
         newBulletCount={pendingRouletteResult?.bullets ?? bulletsInCylinder}
@@ -384,23 +491,26 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         onContinue={() => setShowSurvivalRelief(false)}
       />
 
-      {/* Eliminado: posição e cards do roulette_result */}
+      {/* Eliminado: posição e cards do roulette_result — em multiplayer só pro próprio eliminado */}
       <PlayerEliminatedScreen
-        isVisible={showEliminated}
-        playerName={pendingRouletteResult?.player ?? roulettePlayerName}
+        isVisible={showEliminated && (!isMultiplayer || pendingRouletteResult?.player === myName || (isMultiplayer && iAmEliminated && !!victoryState))}
+        playerName={isMultiplayer && myName ? myName : (pendingRouletteResult?.player ?? roulettePlayerName)}
         cardsBurned={eliminatedPlayerCards}
-        finalPosition={finalPosition}
+        finalPosition={isMultiplayer && myRankPosition > 0 ? myRankPosition : finalPosition}
+        totalPlayers={isMultiplayer && roomState ? roomState.players.length : undefined}
+        ranking={isMultiplayer && finalRanking.length > 0 ? finalRanking : undefined}
         onDismiss={() => setShowEliminated(false)}
       />
 
-      {/* Vitória: vencedor real do C */}
+      {/* Vitória: vencedor real do C — em multiplayer só aparece pro vencedor */}
       <VictoryScreen
-        isVisible={showVictory}
+        isVisible={showVictory && (!isMultiplayer || victoryState?.winner === myName)}
         playerName={victoryState?.winner ?? playerNames[playerNames.length - 1] ?? "JOGADOR"}
         opponentsDefeated={victoryState ? victoryState.totalPlayers - 1 : totalPlayers - 1}
         triggersPulled={gameState?.bullets ?? 0}
         bluffsSuccessful={0}
         doubtsWon={0}
+        ranking={isMultiplayer && finalRanking.length > 0 ? finalRanking : undefined}
         onLeaveBar={() => { setShowVictory(false); onExit(); }}
       />
 

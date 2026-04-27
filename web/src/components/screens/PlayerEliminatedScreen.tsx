@@ -6,6 +6,8 @@ interface PlayerEliminatedScreenProps {
   playerName: string;
   cardsBurned: number;
   finalPosition?: number;
+  totalPlayers?: number;
+  ranking?: string[];   // Phase 5: ranking final completo
   onDismiss?: () => void;
 }
 
@@ -14,6 +16,8 @@ export function PlayerEliminatedScreen({
   playerName,
   cardsBurned,
   finalPosition = 0,
+  totalPlayers,
+  ranking,
   onDismiss
 }: PlayerEliminatedScreenProps) {
   return (
@@ -302,9 +306,45 @@ export function PlayerEliminatedScreen({
                         #{finalPosition}
                       </motion.span>
                     </div>
-                    <span className="text-xs text-zinc-500 font-mono">DE 7 JOGADORES</span>
+                    <span className="text-xs text-zinc-500 font-mono">DE {totalPlayers ?? 7} JOGADORES</span>
                   </motion.div>
                 </div>
+
+                {/* Phase 5: ranking final */}
+                {ranking && ranking.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.1 }}
+                    className="mt-6"
+                  >
+                    <div className="text-xs uppercase tracking-[0.3em] text-zinc-500 font-mono mb-3 text-center">Ranking Final</div>
+                    <ol className="space-y-1.5">
+                      {ranking.map((name, idx) => {
+                        const pos = idx + 1;
+                        const isWinner = pos === 1;
+                        const isMe = name === playerName;
+                        return (
+                          <li
+                            key={name}
+                            className={`flex items-center gap-3 px-4 py-2 rounded-md font-mono ${
+                              isWinner ? "bg-cyan-500/10 border border-cyan-400/30" :
+                              isMe ? "bg-red-950/30 border border-red-700/40" :
+                              "bg-zinc-900/40 border border-zinc-800"
+                            }`}
+                          >
+                            <span className={`w-6 text-right ${isWinner ? "text-yellow-400" : isMe ? "text-red-400" : "text-zinc-500"}`} style={{ fontWeight: 700 }}>
+                              {isWinner ? "🏆" : `${pos}º`}
+                            </span>
+                            <span className={isWinner ? "text-cyan-200" : isMe ? "text-red-300" : "text-zinc-400"}>
+                              {name}{isMe ? " (você)" : ""}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </motion.div>
+                )}
 
                 {/* Brutal message */}
                 <motion.div

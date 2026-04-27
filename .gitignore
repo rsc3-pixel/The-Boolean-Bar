@@ -30,3 +30,9 @@ yarn-error.log*
 # Vite
 dist/
 .vite/
+
+# Claude Code
+.claude/
+
+# Bash artifact (Makefile uses cmd.exe-style >NUL redirection)
+/NUL
