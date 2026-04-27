@@ -21,6 +21,12 @@ typedef struct {
 
 // --- Definições para Jogadores ---
 
+// Enumeração para modo de jogo
+typedef enum {
+    MODE_LOGIC,     // Jogo de Roleta C/ Verdade (Cartas)
+    MODE_DICE       // Liar's Dice
+} GameMode;
+
 // Enumeração para o status de um jogador
 typedef enum {
     ALIVE,
@@ -34,8 +40,14 @@ typedef struct {
     PlayerStatus status;    // Status atual (vivo ou eliminado)
     bool estaVivo;          // Campo para facilitar filtro booleano (UH7)
     int score;              // Pontuação ou número de "vidas" restantes
-    Carta *hand[5];         // Mão com até 5 cartas (UH2)
+    
+    // Logic Mode
+    Carta *hand[5];         // Mão com até 5 cartas
     int num_cards;          // Número atual de cartas na mão
+
+    // Dice Mode
+    int dice[5];            // Faces dos dados: valores de 1 a 6
+    int dice_count;         // Quantos dados sobraram a ele
 } Jogador;
 
 // --- Definições para o Jogo (Mesa) ---
@@ -46,12 +58,20 @@ typedef struct {
 
 // Estrutura para representar o estado da mesa de jogo
 typedef struct {
+    GameMode mode;                 // Modo atual do jogo
     Jogador *players[MAX_PLAYERS]; // Array de ponteiros para jogadores
     int num_players_alive;         // Quantidade de jogadores ainda no jogo
-    Carta *current_card;           // A carta (fórmula) atualmente em jogo
     int current_player_index;      // Índice do jogador atual no turno
-    int balas_no_tambor;           // Capacidade do tambor e probabilidade de tiro (UH9)
     bool game_over;                // Flag para indicar se o jogo terminou
+
+    // Logic Mode
+    Carta *current_card;           // A carta (fórmula) atualmente em jogo
+    int balas_no_tambor;           // Capacidade do tambor e probabilidade de tiro (UH9)
+
+    // Dice Mode
+    int current_bet_quantity;      // Aposta Atual: Quantidade
+    int current_bet_face;          // Aposta Atual: Face do dado
+    int last_bet_player_id;        // Quem mandou a aposta vigente
 } Mesa;
 
 #endif // TYPES_H
