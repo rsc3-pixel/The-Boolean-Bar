@@ -49,6 +49,7 @@ SRCS = \
 	$(SRC_DIR)/modules/logic_engine.c \
 	$(SRC_DIR)/modules/deck_manager.c \
 	$(SRC_DIR)/modules/game_flow.c \
+	$(SRC_DIR)/modules/dice_flow.c \
 	$(SRC_DIR)/functional/predicates.c \
 	$(SRC_DIR)/ui/terminal_art.c
 

@@ -155,6 +155,11 @@ void ui_print_survival_art(const char *player_name);
  * @param player_name Nome do jogador na mira.
  * @param balas Número de balas no tambor.
  */
+// Dice Mode Renderers
+void ui_render_dice_board(Mesa *table);
+void ui_print_dice_hand(const int *dice, int count);
+
+// Logic Mode Renderers
 void ui_print_roulette_spin(const char *player_name, int balas);
 
 #endif // TERMINAL_ART_H

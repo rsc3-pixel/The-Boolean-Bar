@@ -12,6 +12,7 @@ int get_safe_int(const char *prompt, int min, int max) {
     int success;
     do {
         printf("%s", prompt);
+        fflush(stdout);
         success = scanf("%d", &value);
         clear_input_buffer(); // Limpa o restante do buffer
 
@@ -28,6 +29,7 @@ int get_safe_int(const char *prompt, int min, int max) {
 
 void get_safe_string(const char *prompt, char *buffer, int max_len) {
     printf("%s", prompt);
+    fflush(stdout);
     if (fgets(buffer, max_len, stdin) != NULL) {
         // Remover trailing newline se existir
         size_t len = strlen(buffer);
@@ -37,5 +39,7 @@ void get_safe_string(const char *prompt, char *buffer, int max_len) {
             // Se o texto inserido excedeu o buffer, precisa limpar stdin
             clear_input_buffer();
         }
+    } else {
+        buffer[0] = '\0'; // Zera o buffer caso EOF pra evitar garbage actions
     }
 }
