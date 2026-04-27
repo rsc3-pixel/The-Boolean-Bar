@@ -146,7 +146,9 @@ function spawnEngineForRoom(room) {
     } catch (_) { /* graceful */ }
   }
 
-  const engine = spawn(exePathAbs, [], { windowsHide: true });
+  // Passa "0" como argv[1] pra pular o prompt de seleção de modo (Boolean Bar = 0,
+  // Liar's Dice = 1). O modo Dice é só CLI por enquanto.
+  const engine = spawn(exePathAbs, ['0'], { windowsHide: true });
   room.engine = engine;
   room.stdoutBuffer = '';
 
