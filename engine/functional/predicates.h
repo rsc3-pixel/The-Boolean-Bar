@@ -8,7 +8,7 @@
  * @param p Jogador.
  * @return True se isAlive.
  */
-bool is_alive(Jogador *p);
+bool is_alive(const Jogador *p);
 
 /**
  * @brief Função de alta ordem (High-Order Function) que retorna o índice do próximo jogador
@@ -18,6 +18,6 @@ bool is_alive(Jogador *p);
  * @param predicate Função booleana para filtrar.
  * @return O índice do próximo jogador válido ou -1 se nenhum for encontrado.
  */
-int get_next_valid_player_index(Mesa *mesa, int current_index, bool (*predicate)(Jogador *));
+int get_next_valid_player_index(const Mesa *mesa, int current_index, bool (*predicate)(const Jogador *));
 
 #endif // PREDICATES_H

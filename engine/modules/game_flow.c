@@ -1,3 +1,10 @@
+/*
+ * THE BOOLEAN BAR - MOTOR DE REGRAS E FLUXO DE JOGO
+ * Autor: Matheus Larré
+ * Sprint: 1 (Concluída)
+ * Descrição: Implementação da Máquina de Estados Básica, ciclo de jogo 
+ * e invocação da avaliação de Tautologia e punição da roleta russa.
+ */
 #include "game_flow.h"
 #include "../core/memory.h"
 #include "../core/input_handler.h"
