@@ -127,9 +127,17 @@ export default function App() {
 
   if (currentScreen === "game") {
     return (
-      <GamePage 
-         playerNames={playerNames} 
-         onExit={() => setCurrentScreen("menu")} 
+      <GamePage
+         playerNames={playerNames}
+         onExit={() => {
+           // Em multiplayer, sair do jogo significa abandonar a sala
+           // (server vai encerrar a partida pra todos). Sem isso, o engine
+           // ficava zumbi esperando input do jogador que saiu.
+           if (gameEngine.roomState && !gameEngine.roomState.isSoloMode) {
+             gameEngine.leaveRoom();
+           }
+           setCurrentScreen("menu");
+         }}
          engine={gameEngine}
       />
     );

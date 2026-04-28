@@ -316,7 +316,12 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
 
           {/* Botão Back to Menu */}
           <motion.button
-            onClick={() => { if(window.confirm("Voltar ao menu?")) onExit(); }}
+            onClick={() => {
+              const msg = isMultiplayer
+                ? "Sair da partida? A sala será encerrada pra todos os jogadores."
+                : "Voltar ao menu?";
+              if (window.confirm(msg)) onExit();
+            }}
             className="absolute top-8 left-8 z-30 flex items-center gap-2 px-5 py-3 bg-cyan-950/50 backdrop-blur-md border-2 border-cyan-500/40 rounded-xl text-cyan-300 hover:text-cyan-100 hover:bg-cyan-900/60 transition-all duration-300"
           >
             <ArrowLeft className="w-5 h-5" />
