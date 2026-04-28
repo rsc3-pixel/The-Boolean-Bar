@@ -36,3 +36,6 @@ dist/
 
 # Bash artifact (Makefile uses cmd.exe-style >NUL redirection)
 /NUL
+
+# Personal AI rules
+.cursorrules
