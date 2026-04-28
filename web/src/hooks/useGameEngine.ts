@@ -201,7 +201,16 @@ export function useGameEngine() {
           setRoomState(null);
           setPlayerId(null);
           setGameStarting(false);
-          setRoomError({ code: 'room_closed', message: `Sala fechada: ${resp.reason}` });
+          // Mensagens amigáveis por motivo
+          const reasonMessages = {
+            empty: 'Sala fechada (vazia)',
+            host_left: 'Host saiu — sala encerrada',
+            player_left_mid_game: 'Outro jogador saiu da partida — partida encerrada',
+            all_disconnected: 'Todos desconectaram — sala encerrada',
+            engine_spawn_failed: 'Falha ao iniciar o jogo',
+          };
+          const msg = reasonMessages[resp.reason] || `Sala fechada: ${resp.reason}`;
+          setRoomError({ code: 'room_closed', message: msg });
           try {
             sessionStorage.removeItem('booleanbar_playerId');
             sessionStorage.removeItem('booleanbar_roomId');

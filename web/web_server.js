@@ -352,6 +352,7 @@ function handleDisconnect(ws) {
 
 function removePlayerHard(room, playerId) {
   if (!room.players.has(playerId)) return;
+  const wasGameStarted = room.gameStarted;
   room.players.delete(playerId);
   console.log(`[Server/${room.roomId}] ${playerId} removido. Restam: ${room.players.size}`);
 
@@ -360,7 +361,15 @@ function removePlayerHard(room, playerId) {
     return;
   }
 
-  // Host transfer (Phase 4)
+  // Phase 5 fix: se a partida estava rolando, encerra a sala. O engine não
+  // sabe lidar com player ausente — fica zumbi esperando input. Mais simples
+  // e previsível: avisa todo mundo, mata engine, todos voltam pro lobby.
+  if (wasGameStarted) {
+    closeRoom(room.roomId, 'player_left_mid_game');
+    return;
+  }
+
+  // Host transfer (Phase 4) — só faz sentido enquanto ainda tá no lobby
   if (playerId === room.hostId) {
     const nextHost = Array.from(room.players.values()).find(p => p.connected) ??
                      Array.from(room.players.values())[0];
