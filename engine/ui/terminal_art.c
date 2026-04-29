@@ -469,7 +469,6 @@ void ui_render_dice_board(Mesa *table) {
         printf("  %s│%s %-55s %s│%s\n", ANSI_STEEL_GRAY, ANSI_DARK_RED, m, ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
     }
     
-    printf("  %s│%s %-55s %s│%s\n", ANSI_STEEL_GRAY, ANSI_STEEL_GRAY, "               (Dica: O '1' e curinga na casa!)", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
     printf("  %s│%s %-55s %s│%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET, "", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
     printf("  %s├─────────────────────────────────────────────────────────┤%s\n", ANSI_STEEL_GRAY, ANSI_COLOR_RESET);
     

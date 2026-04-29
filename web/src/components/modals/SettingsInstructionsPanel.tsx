@@ -251,13 +251,6 @@ function StepDiceConfiguracao() {
           </div>
         ))}
       </div>
-      <div className="p-4 bg-zinc-900/60 border border-emerald-500/20 rounded-lg space-y-2">
-        <p className="text-xs font-mono text-zinc-500 tracking-wider">⚡ REGRA-CHAVE: O '1' é CURINGA</p>
-        <p className="text-emerald-300/90 font-mono text-xs">
-          Quando alguém aposta "X dados de face Y", todo dado com valor <span className="text-yellow-300 font-bold">1</span> conta como
-          se fosse <span className="text-yellow-300 font-bold">Y</span>. Isso aumenta a chance de qualquer aposta ser válida.
-        </p>
-      </div>
       <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-lg">
         <p className="text-xs text-emerald-300/80 font-mono">🎯 OBJETIVO: ser o último com dados na mesa.</p>
       </div>
@@ -330,14 +323,14 @@ function StepDiceApostar() {
 function StepDiceDuvidar() {
   return (
     <div className="space-y-4">
-      <p className="text-zinc-300 text-sm">Quando alguém duvida, todos abrem os copos e <span className="text-yellow-400 font-bold">contam os dados</span> da face apostada (lembre: '1' é curinga).</p>
+      <p className="text-zinc-300 text-sm">Quando alguém duvida, todos abrem os copos e <span className="text-yellow-400 font-bold">contam os dados</span> exatos da face apostada.</p>
       <div className="p-4 bg-zinc-900/60 border border-cyan-500/30 rounded-lg space-y-3">
         <p className="text-cyan-400 font-mono text-xs tracking-wider">📐 EXEMPLO</p>
-        <p className="text-zinc-300 text-xs">Aposta atual: <span className="text-yellow-300 font-mono font-bold">4 × face 5</span>. Bob duvida.</p>
+        <p className="text-zinc-300 text-xs">Aposta atual: <span className="text-yellow-300 font-mono font-bold">3 × face 5</span>. Bob duvida.</p>
         <p className="text-zinc-400 text-xs">Abrindo os copos:</p>
-        <p className="text-zinc-300 text-xs font-mono ml-3">• Alice tem: <span className="text-emerald-400">5</span>, 3, 2, <span className="text-yellow-300">1</span>, <span className="text-emerald-400">5</span> → 3 (2 cinco + 1 curinga)</p>
-        <p className="text-zinc-300 text-xs font-mono ml-3">• Bob tem: 6, 6, <span className="text-yellow-300">1</span>, 4, 4 → 1 (curinga)</p>
-        <p className="text-zinc-300 text-xs font-mono">Total: <span className="text-yellow-300 font-bold">4</span> dados de face 5 (com curingas)</p>
+        <p className="text-zinc-300 text-xs font-mono ml-3">• Alice tem: <span className="text-emerald-400">5</span>, 3, 2, 1, <span className="text-emerald-400">5</span> → 2 (dois cincos)</p>
+        <p className="text-zinc-300 text-xs font-mono ml-3">• Bob tem: 6, 6, <span className="text-emerald-400">5</span>, 4, 4 → 1 (um cinco)</p>
+        <p className="text-zinc-300 text-xs font-mono">Total: <span className="text-yellow-300 font-bold">3</span> dados de face 5 (aposta cobriu)</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="p-3 bg-emerald-950/30 border border-emerald-500/40 rounded-lg">
@@ -365,7 +358,7 @@ function StepDiceVitoria() {
       <div className="space-y-2">
         <p className="text-zinc-500 text-xs font-mono tracking-wider">ESTRATÉGIAS:</p>
         {[
-          { icon: "🎲", tip: "CONTE OS CURINGAS", desc: "Estatisticamente, cada copo tem ~0.83 'um' (curinga). Com 5 jogadores = ~4 curingas + dados específicos. Use isso pra estimar a aposta." },
+          { icon: "🎲", tip: "PROBABILIDADE BASE", desc: "Cada dado tem 1/6 de chance de cada face. Em 5 jogadores com 5 dados = 25 dados na mesa, ~4 dados de cada face em média. Use isso pra calibrar apostas." },
           { icon: "🎭", tip: "BLEFE CONTROLADO", desc: "Se a aposta tá baixa demais, suba alto pra forçar o oponente a duvidar (e perder)." },
           { icon: "📊", tip: "OBSERVE PADRÕES", desc: "Quando alguém sobe muito a quantidade, talvez tenha muitos dados daquela face. Pense duas vezes antes de duvidar." },
           { icon: "⏳", tip: "ESCASSEZ É FORÇA", desc: "Com poucos dados, sua aposta é mais difícil de prever. Use isso." },

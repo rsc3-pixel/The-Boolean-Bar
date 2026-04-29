@@ -28,7 +28,7 @@ static int contar_dados_mesa(Mesa *m, int face_buscada) {
         Jogador *p = m->players[i];
         if (p && p->estaVivo) {
             for (int k = 0; k < p->dice_count; k++) {
-                if (p->dice[k] == face_buscada || p->dice[k] == 1) { // '1' é curinga na casa!
+                if (p->dice[k] == face_buscada) {
                     total++;
                 }
             }
@@ -187,7 +187,7 @@ int dice_game_start() {
                         printf("\n>>> [%s] DUVIDOU DA APOSTA NA MESA! <<<\n", atual->name);
                         int total_reais = contar_dados_mesa(game_table, game_table->current_bet_face);
 
-                        printf("Abrindo os copos... havia %d dados de face [%d] (contando curingas '1')\n", total_reais, game_table->current_bet_face);
+                        printf("Abrindo os copos... havia %d dados de face [%d] na mesa\n", total_reais, game_table->current_bet_face);
 
                         Jogador *alvo = game_table->players[game_table->last_bet_player_id];
                         bool bet_valid = total_reais >= game_table->current_bet_quantity;

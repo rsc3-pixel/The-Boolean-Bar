@@ -182,7 +182,6 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
               <span className="text-zinc-500 font-mono text-lg">A MESA ESTÁ ABERTA — APOSTE PRIMEIRO</span>
             </div>
           )}
-          <span className="text-[10px] text-emerald-500/60 font-mono italic">Dica: o '1' é curinga (conta como qualquer face)</span>
         </div>
 
         {/* Mão própria + ações — bottom */}
@@ -391,7 +390,7 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
                               key={i}
                               value={v}
                               size="md"
-                              glowColor={v === diceReveal.betFace || v === 1 ? "emerald" : "zinc"}
+                              glowColor={v === diceReveal.betFace ? "emerald" : "zinc"}
                             />
                           ))
                       }
