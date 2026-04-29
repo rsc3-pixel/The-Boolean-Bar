@@ -47,6 +47,13 @@ export function WaitingRoom({
           className="flex flex-col items-center gap-3"
         >
           <span className="text-xs uppercase tracking-[0.4em] text-cyan-400/60 font-mono">Sala de Espera</span>
+          <span className={`text-[11px] uppercase tracking-[0.3em] font-mono px-3 py-1 rounded-full border ${
+            room.gameMode === "dice"
+              ? "text-emerald-300 border-emerald-400/40 bg-emerald-500/10"
+              : "text-cyan-300 border-cyan-400/40 bg-cyan-500/10"
+          }`}>
+            {room.gameMode === "dice" ? "🎲 Liar's Dice" : "🧠 Boolean Bar"}
+          </span>
           <button
             onClick={copyCode}
             title="Clique pra copiar o código"

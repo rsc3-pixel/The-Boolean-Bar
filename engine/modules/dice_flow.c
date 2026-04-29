@@ -111,15 +111,15 @@ int dice_game_start() {
             mem_free_mesa(game_table);
             return 1;
         }
-        game_table->players[i]->dice_count = 5; 
+        game_table->players[i]->dice_count = 5;
         game_table->num_players_alive++;
     }
 
     game_table->current_player_index = 0;
-    
+
     // Loop de Partida
     while (!game_table->game_over && game_table->num_players_alive > 1) {
-        
+
         // Setup de Rodada
         game_table->current_bet_quantity = 0;
         game_table->current_bet_face = 0;
@@ -127,7 +127,7 @@ int dice_game_start() {
         rolar_dados(game_table);
 
         int rodada_ativa = 1;
-        
+
         while (rodada_ativa) {
             ui_render_dice_board(game_table);
             print_json_dice_state(game_table, num_players);

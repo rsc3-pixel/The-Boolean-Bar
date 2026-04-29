@@ -5,7 +5,7 @@ import { MatchLobby } from "./pages/MatchLobby";
 import { GamePage } from "./pages/GamePage";
 import { DiceGamePage } from "./pages/DiceGamePage";
 import { DiceLobby } from "./pages/DiceLobby";
-import { OnlineLobby } from "./pages/OnlineLobby";
+import { OnlineLobby, type GameModeKind } from "./pages/OnlineLobby";
 import { WaitingRoom } from "./pages/WaitingRoom";
 import { SettingsInstructionsPanel } from "./components/modals/SettingsInstructionsPanel";
 import { useGameEngine } from "./hooks/useGameEngine";
@@ -17,7 +17,8 @@ export default function App() {
   const [playerNames, setPlayerNames] = useState<string[]>([]);
   const [dicePlayers, setDicePlayers] = useState<{name: string, isBot: boolean}[]>([]);
   const [showSettings, setShowSettings] = useState(false);
-  
+  const [gameMode, setGameMode] = useState<GameModeKind>("logic");
+
   // Instância unificada do Motor de Jogo (Mantém conexão persistente)
   const gameEngine = useGameEngine();
 
@@ -59,8 +60,6 @@ export default function App() {
     return (
       <>
         <MainMenu
-          onEnter={() => setCurrentScreen("lobby")}
-          onEnterDice={() => setCurrentScreen("diceLobby")}
           onEnterOnline={() => setCurrentScreen("onlineLobby")}
           onOpenRules={() => setShowSettings(true)}
           onFlee={() => gameEngine.sendShutdown()}
@@ -75,7 +74,9 @@ export default function App() {
       <OnlineLobby
         wsStatus={gameEngine.wsStatus}
         errorMessage={gameEngine.roomError?.message ?? null}
-        onCreateRoom={(name) => gameEngine.createRoom(name)}
+        gameMode={gameMode}
+        onGameModeChange={setGameMode}
+        onCreateRoom={(name) => gameEngine.createRoom(name, gameMode)}
         onJoinRoom={(roomId, name) => gameEngine.joinRoom(roomId, name)}
         onBack={() => setCurrentScreen("menu")}
         onClearError={() => gameEngine.clearRoomError()}

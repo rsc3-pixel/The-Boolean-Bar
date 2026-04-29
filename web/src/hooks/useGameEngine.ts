@@ -53,6 +53,7 @@ export interface RoomSnapshot {
   hostId: string;
   gameStarted: boolean;
   isSoloMode: boolean;
+  gameMode: 'logic' | 'dice';   // Phase 6: tipo de jogo (Boolean Bar ou Liar's Dice)
   players: RoomPlayer[];
 }
 
@@ -300,9 +301,9 @@ export function useGameEngine() {
     }
   }, []);
 
-  const createRoom = useCallback((playerName: string) => {
+  const createRoom = useCallback((playerName: string, gameMode: 'logic' | 'dice' = 'logic') => {
     setRoomError(null);
-    sendAction({ action: "create_room", playerName });
+    sendAction({ action: "create_room", playerName, gameMode });
   }, [sendAction]);
 
   const joinRoom = useCallback((roomId: string, playerName: string) => {
