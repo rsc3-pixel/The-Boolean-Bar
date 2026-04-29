@@ -210,7 +210,12 @@ int game_start() {
             printf("\n");
             ui_print_box("CONFRONTO LOGICO", ANSI_BRIGHT_CYAN);
             printf("\n");
-            FormulaType real_type = logic_evaluate_formula(jogada->formula_str);
+            // Sprint 1 do Matheus refatorou a API: agora vai por gerar_tabela_verdade.
+            // Os enums FormulaType (types.h) e Classificacao (logic_engine.h) batem
+            // por índice (TAUTOLOGY=TAUTOLOGIA=0, CONTRADICTION=CONTRADICAO=1, etc.).
+            TabelaVerdade *tv = gerar_tabela_verdade(jogada->formula_str);
+            FormulaType real_type = (FormulaType) tv->classificacao;
+            liberar_tabela(tv);
             const char *type_names[] = {"TAUTOLOGIA", "CONTRADICAO", "CONTINGENCIA"};
             printf("  %sTipo Real:%s  %s%s%s\n",
                    ANSI_STEEL_GRAY, ANSI_COLOR_RESET,
