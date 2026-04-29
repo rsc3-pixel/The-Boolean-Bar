@@ -5,6 +5,8 @@ import { Volume2, VolumeX, Monitor, ArrowLeft, Info, CheckCircle, XCircle, HelpC
 interface SettingsInstructionsPanelProps {
   isVisible: boolean;
   onBack: () => void;
+  musicEnabled?: boolean;
+  onMusicToggle?: (enabled: boolean) => void;
 }
 
 // ===================== CONTEÚDO DAS ETAPAS =====================
@@ -408,8 +410,14 @@ const TAB_ACTIVE: Record<string, string> = {
 };
 
 // ===================== COMPONENTE PRINCIPAL =====================
-export function SettingsInstructionsPanel({ isVisible, onBack }: SettingsInstructionsPanelProps) {
-  const [masterVolume, setMasterVolume] = useState(true);
+export function SettingsInstructionsPanel({ isVisible, onBack, musicEnabled, onMusicToggle }: SettingsInstructionsPanelProps) {
+  // Música controlada por props (App.tsx). Fallback pro state interno se props não passadas (compat).
+  const [internalVolume, setInternalVolume] = useState(true);
+  const masterVolume = musicEnabled ?? internalVolume;
+  const setMasterVolume = (v: boolean) => {
+    if (onMusicToggle) onMusicToggle(v);
+    else setInternalVolume(v);
+  };
   const [crtEffect, setCrtEffect] = useState(false);
   const [activeTab, setActiveTab] = useState<"instructions" | "settings">("instructions");
   const [activeStep, setActiveStep] = useState(0);
@@ -519,8 +527,8 @@ export function SettingsInstructionsPanel({ isVisible, onBack }: SettingsInstruc
                       <div className="flex items-center gap-4">
                         {masterVolume ? <Volume2 className="w-6 h-6 text-cyan-400" /> : <VolumeX className="w-6 h-6 text-zinc-500" />}
                         <div>
-                          <h3 className="tracking-wider text-cyan-300 font-mono font-bold text-sm">MASTER VOLUME</h3>
-                          <p className="text-xs text-zinc-400">Volume global do jogo</p>
+                          <h3 className="tracking-wider text-cyan-300 font-mono font-bold text-sm">MÚSICA DE FUNDO</h3>
+                          <p className="text-xs text-zinc-400">Trilha ambiente de cassino em loop</p>
                         </div>
                       </div>
                       <button onClick={() => setMasterVolume(!masterVolume)} className={`relative w-16 h-8 rounded-full border-2 transition-all duration-300 ${masterVolume ? "bg-cyan-600 border-cyan-400" : "bg-zinc-800 border-zinc-600"}`}>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MainMenu } from "./pages/MainMenu";
 import { Lobby } from "./pages/Lobby";
 import { MatchLobby } from "./pages/MatchLobby";
@@ -19,9 +19,63 @@ export default function App() {
   const [dicePlayers, setDicePlayers] = useState<{name: string, isBot: boolean}[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [gameMode, setGameMode] = useState<GameModeKind>("logic");
+  // Música de fundo (loop). Estado persistido em localStorage.
+  const [musicEnabled, setMusicEnabled] = useState<boolean>(() => {
+    try { return localStorage.getItem("booleanbar_music") !== "off"; }
+    catch { return true; }
+  });
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Instância unificada do Motor de Jogo (Mantém conexão persistente)
   const gameEngine = useGameEngine();
+
+  // ─── Música de fundo ─────────────────────────────────────────────────────
+  // Browsers bloqueiam autoplay sem interação do usuário. A gente cria o
+  // <audio> uma vez, e tenta tocar no 1º clique/keydown. Persiste no LS.
+  useEffect(() => {
+    const audio = new Audio("/audio/casino-ambience.mp3");
+    audio.loop = true;          // se acabar (5min), reinicia automaticamente
+    audio.volume = 0.25;        // baixo o suficiente pra não atrapalhar
+    audio.preload = "auto";
+    audioRef.current = audio;
+
+    const tryPlay = () => {
+      if (!audioRef.current) return;
+      // Lê o estado mais recente direto do localStorage pra evitar stale closure
+      const enabled = localStorage.getItem("booleanbar_music") !== "off";
+      if (enabled) audioRef.current.play().catch(() => { /* autoplay block */ });
+    };
+
+    // Primeira tentativa (pode ser bloqueada)
+    tryPlay();
+    // Fallback: na primeira interação do usuário, tenta de novo
+    const onFirstInteract = () => {
+      tryPlay();
+      window.removeEventListener("click", onFirstInteract);
+      window.removeEventListener("keydown", onFirstInteract);
+      window.removeEventListener("touchstart", onFirstInteract);
+    };
+    window.addEventListener("click", onFirstInteract);
+    window.addEventListener("keydown", onFirstInteract);
+    window.addEventListener("touchstart", onFirstInteract);
+
+    return () => {
+      audio.pause();
+      audio.src = "";
+      audioRef.current = null;
+      window.removeEventListener("click", onFirstInteract);
+      window.removeEventListener("keydown", onFirstInteract);
+      window.removeEventListener("touchstart", onFirstInteract);
+    };
+  }, []);
+
+  // Aplica mudança de toggle
+  useEffect(() => {
+    try { localStorage.setItem("booleanbar_music", musicEnabled ? "on" : "off"); } catch {}
+    if (!audioRef.current) return;
+    if (musicEnabled) audioRef.current.play().catch(() => {});
+    else audioRef.current.pause();
+  }, [musicEnabled]);
 
   // ─── Multiplayer screen transitions (Phase 2 + Phase 4 reconnect) ────────
   // Ao entrar em uma sala (create/join/reconnect), navega pra tela certa.
@@ -65,7 +119,12 @@ export default function App() {
           onOpenRules={() => setShowSettings(true)}
           onFlee={() => gameEngine.sendShutdown()}
         />
-        <SettingsInstructionsPanel isVisible={showSettings} onBack={() => setShowSettings(false)} />
+        <SettingsInstructionsPanel
+          isVisible={showSettings}
+          onBack={() => setShowSettings(false)}
+          musicEnabled={musicEnabled}
+          onMusicToggle={setMusicEnabled}
+        />
       </>
     );
   }
