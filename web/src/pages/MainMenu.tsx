@@ -2,14 +2,12 @@ import { motion } from "motion/react";
 import { BookOpen, DoorOpen, Users } from "lucide-react";
 
 interface MainMenuProps {
-  onEnter: () => void;
-  onEnterDice?: () => void;
-  onEnterOnline?: () => void;
+  onEnterOnline: () => void;
   onOpenRules: () => void;
   onFlee: () => void;
 }
 
-export function MainMenu({ onEnter, onEnterDice, onEnterOnline, onOpenRules, onFlee }: MainMenuProps) {
+export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) {
   return (
     <div className="size-full bg-black overflow-hidden relative flex items-center justify-center">
       {/* Deep black background */}
@@ -105,11 +103,11 @@ export function MainMenu({ onEnter, onEnterDice, onEnterOnline, onOpenRules, onF
           transition={{ duration: 1, delay: 1 }}
           className="flex flex-col gap-6 items-center"
         >
-          {/* 1. MASSIVE GLOWING CYAN BUTTON - "ENTER THE BAR" */}
+          {/* 1. MASSIVE GLOWING CYAN BUTTON - "MULTIPLAYER ONLINE" (botão principal) */}
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            onClick={onEnter}
+            onClick={onEnterOnline}
             className="group relative w-[600px] h-[100px] bg-cyan-500 rounded-2xl overflow-hidden transition-all duration-500"
             style={{
               boxShadow: '0 0 60px rgba(6, 182, 212, 0.8), 0 0 100px rgba(6, 182, 212, 0.5), inset 0 0 40px rgba(255, 255, 255, 0.1)'
@@ -144,16 +142,19 @@ export function MainMenu({ onEnter, onEnterDice, onEnterOnline, onOpenRules, onF
             />
 
             {/* Button text */}
-            <div className="relative h-full flex flex-col items-center justify-center gap-2">
-              <span
-                className="text-5xl tracking-[0.25em] text-black font-sans drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
-                style={{ fontWeight: 900 }}
-              >
-                ENTER THE BAR
-              </span>
-              <span className="text-sm tracking-[0.3em] text-cyan-950/80 font-mono uppercase">
-                Play Match
-              </span>
+            <div className="relative h-full flex items-center justify-center gap-4">
+              <Users className="w-9 h-9 text-black drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" strokeWidth={2} />
+              <div className="flex flex-col items-start gap-1">
+                <span
+                  className="text-4xl tracking-[0.25em] text-black font-sans drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                  style={{ fontWeight: 900 }}
+                >
+                  MULTIPLAYER
+                </span>
+                <span className="text-xs tracking-[0.3em] text-cyan-950/80 font-mono uppercase">
+                  Crie ou entre numa sala
+                </span>
+              </div>
             </div>
 
             {/* Hover glow amplification */}
@@ -163,95 +164,6 @@ export function MainMenu({ onEnter, onEnterDice, onEnterOnline, onOpenRules, onF
               className="absolute inset-0 pointer-events-none"
               style={{
                 boxShadow: '0 0 100px rgba(6, 182, 212, 1), 0 0 150px rgba(6, 182, 212, 0.8)'
-              }}
-            />
-          </motion.button>
-
-          {/* 1.25 MULTIPLAYER ONLINE BUTTON */}
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onEnterOnline}
-            className="group relative w-[600px] h-[85px] bg-transparent backdrop-blur-sm border-2 border-purple-400/40 rounded-xl overflow-hidden transition-all duration-300 hover:border-purple-300/60"
-            style={{
-              background: 'rgba(168, 85, 247, 0.04)',
-              boxShadow: '0 0 30px rgba(168, 85, 247, 0.15), inset 0 0 30px rgba(168, 85, 247, 0.05)'
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/5" />
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-purple-400/20 to-purple-500/10"
-            />
-            <div className="relative h-full flex items-center justify-center gap-4 px-8">
-              <Users className="w-7 h-7 text-purple-300" strokeWidth={1.5} />
-              <div className="flex flex-col items-start gap-0.5">
-                <span
-                  className="text-3xl tracking-[0.2em] text-purple-200 font-sans"
-                  style={{ fontWeight: 700 }}
-                >
-                  MULTIPLAYER ONLINE
-                </span>
-                <span className="text-xs tracking-[0.25em] text-purple-400/60 font-mono uppercase">
-                  Crie ou entre numa sala
-                </span>
-              </div>
-            </div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              className="absolute inset-0 rounded-xl pointer-events-none"
-              style={{ boxShadow: '0 0 40px rgba(168, 85, 247, 0.4)' }}
-            />
-          </motion.button>
-
-          {/* 1.5 GLASSMORPHISM OUTLINED BUTTON - "LIAR'S DICE MODE" */}
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onEnterDice}
-            className="group relative w-[600px] h-[85px] bg-transparent backdrop-blur-sm border-2 border-emerald-400/40 rounded-xl overflow-hidden transition-all duration-300 hover:border-emerald-300/60"
-            style={{
-              background: 'rgba(52, 211, 153, 0.03)',
-              boxShadow: '0 0 30px rgba(52, 211, 153, 0.15), inset 0 0 30px rgba(52, 211, 153, 0.05)'
-            }}
-          >
-            {/* Glassmorphic overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/5" />
-
-            {/* Hover glow */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-emerald-400/20 to-emerald-500/10"
-            />
-
-            {/* Button content */}
-            <div className="relative h-full flex items-center justify-center gap-4 px-8">
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M12 12h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path></svg>
-              <div className="flex flex-col items-start gap-0.5">
-                <span
-                  className="text-3xl tracking-[0.2em] text-emerald-300 font-sans"
-                  style={{ fontWeight: 700 }}
-                >
-                  LIAR'S DICE MODE
-                </span>
-                <span className="text-xs tracking-[0.25em] text-emerald-500/60 font-mono uppercase">
-                  Protótipo Visual
-                </span>
-              </div>
-            </div>
-
-            {/* Border glow on hover */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              className="absolute inset-0 rounded-xl pointer-events-none"
-              style={{
-                boxShadow: '0 0 40px rgba(52, 211, 153, 0.4)'
               }}
             />
           </motion.button>

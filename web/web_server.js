@@ -97,6 +97,7 @@ function getRoomSnapshot(room) {
     hostId: room.hostId,
     gameStarted: room.gameStarted,
     isSoloMode: room.isSoloMode,
+    gameMode: room.gameMode,
     players: Array.from(room.players.values()).map((p, idx) => ({
       playerId: p.playerId,
       name: p.name,
@@ -146,9 +147,10 @@ function spawnEngineForRoom(room) {
     } catch (_) { /* graceful */ }
   }
 
-  // Passa "0" como argv[1] pra pular o prompt de seleção de modo (Boolean Bar = 0,
-  // Liar's Dice = 1). O modo Dice é só CLI por enquanto.
-  const engine = spawn(exePathAbs, ['0'], { windowsHide: true });
+  // Passa "0" (Boolean Bar) ou "1" (Liar's Dice) como argv[1] pra pular o prompt
+  // de seleção de modo. Modo definido na criação da sala (ver handleCreateRoom).
+  const modeArg = room.gameMode === 'dice' ? '1' : '0';
+  const engine = spawn(exePathAbs, [modeArg], { windowsHide: true });
   room.engine = engine;
   room.stdoutBuffer = '';
 
@@ -249,6 +251,7 @@ function handleCreateRoom(ws, msg) {
   const playerName = (msg.playerName || 'Host').toString().slice(0, 32);
   const roomId = generateRoomCode();
   const playerId = generatePlayerId();
+  const gameMode = msg.gameMode === 'dice' ? 'dice' : 'logic';   // default = logic
 
   const room = {
     roomId,
@@ -259,6 +262,7 @@ function handleCreateRoom(ws, msg) {
     expectedPlayerId: null,
     gameStarted: false,
     isSoloMode: false,
+    gameMode,
     legacyPlayerNames: [],
     stdoutBuffer: '',
     lastGameState: null,
@@ -268,7 +272,7 @@ function handleCreateRoom(ws, msg) {
   wsToRoom.set(ws, { roomId, playerId });
 
   send(ws, { type: 'room_created', roomId, playerId, room: getRoomSnapshot(room) });
-  console.log(`[Server] Sala ${roomId} criada por ${playerName} (${playerId})`);
+  console.log(`[Server] Sala ${roomId} criada por ${playerName} (${playerId}) — modo ${gameMode}`);
 }
 
 function handleJoinRoom(ws, msg) {
@@ -443,6 +447,7 @@ function handleStartGame(ws, msg) {
       expectedPlayerId: null,
       gameStarted: true,
       isSoloMode: true,
+      gameMode: 'logic',   // legacy solo é sempre Boolean Bar
       legacyPlayerNames: playerNames,
       stdoutBuffer: '',
       lastGameState: null,
