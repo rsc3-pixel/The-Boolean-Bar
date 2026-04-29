@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { audioCues } from "../utils/audioCues";
 import { Skull, Circle, Settings, ArrowLeft, Pause } from "lucide-react";
 import { LogicCard } from "../components/ui/LogicCard";
 import { OpponentCard } from "../components/ui/OpponentCard";
@@ -88,6 +89,23 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
   const [showEliminated, setShowEliminated] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+
+  // ─── Notificação "sua vez" (Phase 7) ───────────────────────────────────
+  const prevMyTurnRef = useRef(false);
+  const prevMyDoubtRef = useRef(false);
+  const [flashTurn, setFlashTurn] = useState(false);
+  useEffect(() => {
+    if (!isMultiplayer) return;
+    const becameMyTurn = (isMyTurn && !prevMyTurnRef.current) || (isMyDoubt && !prevMyDoubtRef.current);
+    prevMyTurnRef.current = isMyTurn;
+    prevMyDoubtRef.current = isMyDoubt;
+    if (becameMyTurn && gameState && !victoryState) {
+      audioCues.yourTurn();
+      setFlashTurn(true);
+      const t = setTimeout(() => setFlashTurn(false), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [isMyTurn, isMyDoubt, isMultiplayer, gameState, victoryState]);
 
   // Guarda o resultado do confronto e da roleta para usar ao final das animações
   const [pendingDoubtResult, setPendingDoubtResult] = useState<typeof doubtResult>(null);
@@ -205,7 +223,21 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     : "—";
 
   return (
-    <div className="size-full bg-black overflow-hidden flex flex-col font-sans">
+    <div className="size-full bg-black overflow-hidden flex flex-col font-sans relative">
+      {/* Flash overlay quando vira minha vez (Phase 7) */}
+      <AnimatePresence>
+        {flashTurn && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.5, 0, 0.4, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.2, times: [0, 0.15, 0.45, 0.6, 1] }}
+            className="fixed inset-0 z-[60] pointer-events-none bg-cyan-400"
+            style={{ mixBlendMode: 'screen' }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.header
         initial={{ y: -100, opacity: 0 }}
@@ -378,6 +410,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                       disabled={!isMyDoubt}
                       onClick={() => {
                         if (!isMyDoubt) return;
+                        audioCues.doubt();
                         sendInput("1"); // 1 = duvidar — overlay aparece via doubt_result
                       }}
                       className="px-10 py-4 bg-red-700 text-white rounded-lg border-2 border-red-500 hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono tracking-wider"
@@ -451,6 +484,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         onConfirm={(bluffType) => {
           setIsModalOpen(false);
           if (!isMyTurn) return;
+          audioCues.bet();
           const cardIdx = (playerHand.indexOf(selectedCardFormula) + 1).toString();
           let blefeNum = "3"; // CONTINGÊNCIA
           if (bluffType === "TAUTOLOGIA") blefeNum = "1";

@@ -446,7 +446,7 @@ function sendDiceBotInput(room, data, msgType) {
 
   if (curQty === 0) {
     // Mesa vazia: aposta inicial conservadora
-    const initFace = 2 + Math.floor(Math.random() * 5); // 2-6
+    const initFace = 1 + Math.floor(Math.random() * 6); // 1-6
     console.log(`[Server/${room.roomId}] 🤖 bot abre mesa: 2 × face ${initFace}`);
     writeStdin(room, 'A\n', 0);
     writeStdin(room, '2\n', 150);
@@ -463,7 +463,7 @@ function sendDiceBotInput(room, data, msgType) {
     let newFace = curFace + 1;
     if (newFace > 6) {
       newQty = curQty + 1;
-      newFace = 2;
+      newFace = 1;
     }
     console.log(`[Server/${room.roomId}] 🤖 bot aposta: ${newQty} × face ${newFace}`);
     writeStdin(room, 'A\n', 0);

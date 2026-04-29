@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, AlertCircle, Eye, X, WifiOff, Skull, Coins } from "lucide-react";
 import { DiceFace } from "../components/ui/DiceFace";
 import { OpponentDiceCard } from "../components/ui/OpponentDiceCard";
 import { useGameEngine } from "../hooks/useGameEngine";
+import { audioCues } from "../utils/audioCues";
 
 interface DiceGameOnlineProps {
   onExit: () => void;
@@ -35,7 +36,7 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
   // ─── Estado da aposta (modal) ──────────────────────────────────────────
   const [showBetModal, setShowBetModal] = useState(false);
   const [betQty, setBetQty] = useState(1);
-  const [betFace, setBetFace] = useState(2);
+  const [betFace, setBetFace] = useState(1);
 
   // Pre-seleciona aposta mínima válida quando o modal abre
   useEffect(() => {
@@ -45,13 +46,13 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
       const curF = diceState.currentBetFace;
       if (curQ === 0) {
         setBetQty(1);
-        setBetFace(2);
+        setBetFace(1);
       } else if (curF < 6) {
         setBetQty(curQ);
         setBetFace(curF + 1);
       } else {
         setBetQty(curQ + 1);
-        setBetFace(2);
+        setBetFace(1);
       }
     }
   }, [showBetModal, diceState]);
@@ -60,6 +61,7 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
   const handleConfirmBet = () => {
     if (!isMyTurn) return;
     setShowBetModal(false);
+    audioCues.bet();
     // Sequência que o engine espera: 'A', então qty, então face
     sendInput("A");
     setTimeout(() => sendInput(String(betQty)), 100);
@@ -68,6 +70,7 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
   const handleDuvidar = () => {
     if (!isMyTurn || !diceState || diceState.currentBetQty === 0) return;
     if (window.confirm(`Duvidar da aposta atual (${diceState.currentBetQty}× face ${diceState.currentBetFace})?`)) {
+      audioCues.doubt();
       sendInput("D");
     }
   };
@@ -77,6 +80,45 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
       sendInput("P");
     }
   };
+
+  // ─── Notificação "sua vez" ─────────────────────────────────────────────
+  // Detecta transição de !isMyTurn → isMyTurn pra disparar som + flash
+  const prevIsMyTurnRef = useRef(false);
+  const [flashTurn, setFlashTurn] = useState(false);
+  useEffect(() => {
+    const becameMyTurn = isMyTurn && !prevIsMyTurnRef.current;
+    prevIsMyTurnRef.current = isMyTurn;
+    // Derivação inline pra evitar TDZ do iAmEliminated declarado mais abaixo
+    const myInfo = diceState?.players[mySlot];
+    const elim = !!myInfo && !myInfo.alive;
+    if (becameMyTurn && !elim && diceState && !victoryState) {
+      audioCues.yourTurn();
+      setFlashTurn(true);
+      const t = setTimeout(() => setFlashTurn(false), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [isMyTurn, diceState, mySlot, victoryState]);
+
+  // Som quando OUTRO jogador faz aposta ou duvida
+  const prevBetRef = useRef<{ qty: number; face: number; caller: string } | null>(null);
+  useEffect(() => {
+    if (!diceBet) return;
+    const prev = prevBetRef.current;
+    const isNew = !prev || prev.qty !== diceBet.qt || prev.face !== diceBet.face || prev.caller !== diceBet.caller;
+    if (isNew && diceBet.caller !== myName) {
+      audioCues.bet();
+    }
+    prevBetRef.current = { qty: diceBet.qt, face: diceBet.face, caller: diceBet.caller };
+  }, [diceBet, myName]);
+
+  const prevDoubtCallerRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!diceDoubt) return;
+    if (diceDoubt.caller !== prevDoubtCallerRef.current && diceDoubt.caller !== myName) {
+      audioCues.doubt();
+    }
+    prevDoubtCallerRef.current = diceDoubt.caller;
+  }, [diceDoubt, myName]);
 
   // ─── Render ────────────────────────────────────────────────────────────
   if (!diceState) {
@@ -101,7 +143,20 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
   const expectedPlayer = diceState.players[diceState.turn];
 
   return (
-    <div className="size-full bg-black overflow-hidden flex flex-col">
+    <div className="size-full bg-black overflow-hidden flex flex-col relative">
+      {/* Flash overlay quando vira minha vez (Phase 7) */}
+      <AnimatePresence>
+        {flashTurn && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.5, 0, 0.4, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.2, times: [0, 0.15, 0.45, 0.6, 1] }}
+            className="fixed inset-0 z-[60] pointer-events-none bg-emerald-400"
+            style={{ mixBlendMode: 'screen' }}
+          />
+        )}
+      </AnimatePresence>
       {/* Header */}
       <header className="relative z-20 h-12 sm:h-16 bg-zinc-950/80 backdrop-blur-xl border-b border-emerald-500/20 flex items-center justify-between px-2 sm:px-6">
         <button
@@ -313,9 +368,9 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
               </div>
 
               <div className="flex flex-col gap-2">
-                <span className="text-xs uppercase tracking-[0.3em] text-cyan-400/70 font-mono">Face do Dado (2-6)</span>
-                <div className="flex gap-2 justify-center">
-                  {[2, 3, 4, 5, 6].map(f => (
+                <span className="text-xs uppercase tracking-[0.3em] text-cyan-400/70 font-mono">Face do Dado (1-6)</span>
+                <div className="flex gap-1.5 sm:gap-2 justify-center flex-wrap">
+                  {[1, 2, 3, 4, 5, 6].map(f => (
                     <button
                       key={f}
                       onClick={() => setBetFace(f)}
