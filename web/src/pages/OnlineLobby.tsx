@@ -228,11 +228,6 @@ export function OnlineLobby({
             Liar's Dice
           </button>
         </div>
-        {gameMode === "dice" && (
-          <span className="text-[10px] tracking-wider text-yellow-400/70 font-mono italic">
-            ⚠️ UI ainda em desenvolvimento
-          </span>
-        )}
       </div>
     </div>
   );

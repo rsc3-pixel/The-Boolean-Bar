@@ -214,6 +214,29 @@ function handleEngineStdout(room, chunk) {
       { tag: 'JSON_DOUBT_RESULT:',    type: 'doubt_result' },
       { tag: 'JSON_ROULETTE_RESULT:', type: 'roulette_result' },
       { tag: 'JSON_VICTORY:',         type: 'victory_state' },
+      // ─── Liar's Dice (modo dados) ──
+      {
+        tag: 'JSON_DICE_STATE:',
+        type: 'dice_state',
+        // Filtragem per-client: cada cliente recebe só os PRÓPRIOS dados.
+        // O array allDice é removido do payload, e myDice (dos próprios) é
+        // injetado. Sem isso, todo mundo veria os dados de todos.
+        perClient: (data, _player, slot) => {
+          const myDice = Array.isArray(data.allDice) ? (data.allDice[slot] ?? []) : [];
+          const { allDice: _drop, ...rest } = data;
+          return { type: 'dice_state', data: { ...rest, myDice } };
+        },
+        onParse: (data) => {
+          room.currentTurn = data.turn;
+          room.lastDiceState = data;
+          // Em dice mode, o jogador da vez é quem decide (apostar/duvidar/sair)
+          const playersArr = Array.from(room.players.values());
+          room.expectedPlayerId = playersArr[data.turn]?.playerId ?? null;
+        },
+      },
+      { tag: 'JSON_DICE_BET:',    type: 'dice_bet' },
+      { tag: 'JSON_DICE_DOUBT:',  type: 'dice_doubt' },
+      { tag: 'JSON_DICE_REVEAL:', type: 'dice_reveal' },
     ];
 
     let handled = false;
@@ -224,7 +247,17 @@ function handleEngineStdout(room, chunk) {
       try {
         const parsed = JSON.parse(jsonPart);
         if (m.onParse) m.onParse(parsed);
-        broadcast(room, { type: m.type, data: parsed });
+        if (m.perClient) {
+          // Send personalizado por cliente (ex: dice_state filtra allDice)
+          const playersArr = Array.from(room.players.values());
+          for (let slot = 0; slot < playersArr.length; slot++) {
+            const player = playersArr[slot];
+            if (!player.ws) continue;
+            send(player.ws, m.perClient(parsed, player, slot));
+          }
+        } else {
+          broadcast(room, { type: m.type, data: parsed });
+        }
       } catch (e) {
         console.error(`[Server/${room.roomId}] Falha ao parsear ${m.tag}:`, e.message);
       }

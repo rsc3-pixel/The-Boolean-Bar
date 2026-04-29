@@ -39,6 +39,43 @@ export interface VictoryState {
   totalPlayers: number;
 }
 
+// ─── Liar's Dice (modo dados) ────────────────────────────────────────────────
+export interface DicePlayerInfo {
+  name: string;
+  alive: boolean;
+  dice_count: number;
+}
+export interface DiceState {
+  players: DicePlayerInfo[];
+  myDice: number[];        // Dados do PRÓPRIO cliente (server filtra)
+  currentBetQty: number;
+  currentBetFace: number;
+  lastBetPlayerId: number;
+  turn: number;
+  totalPlayers: number;
+}
+export interface DiceBet {
+  caller: string;
+  qt: number;
+  face: number;
+}
+export interface DiceDoubt {
+  caller: string;
+  target_id: number;
+}
+export interface DiceReveal {
+  doubter: string;
+  bettor: string;
+  betQty: number;
+  betFace: number;
+  totalReal: number;
+  betValid: boolean;
+  loser: string;
+  loserDiceCount: number;
+  eliminated: boolean;
+  allDice: number[][];   // Aqui pode revelar todos — a roda já abriu
+}
+
 // ─── Multiplayer (Phase 2) ────────────────────────────────────────────────────
 export interface RoomPlayer {
   playerId: string;
@@ -84,6 +121,13 @@ export function useGameEngine() {
   // Phase 5: ordem de eliminação (do primeiro a morrer ao último). Final ranking
   // = winner + reverse(eliminationOrder).
   const [eliminationOrder, setEliminationOrder] = useState<string[]>([]);
+
+  // ─── Liar's Dice state ──────────────────────────────────────────────────
+  const [diceState, setDiceState] = useState<DiceState | null>(null);
+  const [diceBet, setDiceBet] = useState<DiceBet | null>(null);
+  const [diceDoubt, setDiceDoubt] = useState<DiceDoubt | null>(null);
+  const [diceReveal, setDiceReveal] = useState<DiceReveal | null>(null);
+  const [showDiceReveal, setShowDiceReveal] = useState(false);
 
   const connect = useCallback(() => {
     if (reconnectTimer.current) {
@@ -164,6 +208,24 @@ export function useGameEngine() {
           console.log("[WS] 🏆 VICTORY STATE RECEBIDO!", resp.data);
           setVictoryState(resp.data);
           setShowVictory(true);
+        }
+        // ─── Liar's Dice events ────────────────────────────────────────
+        if (resp.type === 'dice_state') {
+          console.log("[WS] 🎲 DICE STATE:", resp.data);
+          setDiceState(resp.data);
+        }
+        if (resp.type === 'dice_bet') {
+          console.log("[WS] 🎲 DICE BET:", resp.data);
+          setDiceBet(resp.data);
+        }
+        if (resp.type === 'dice_doubt') {
+          console.log("[WS] 🎲 DICE DOUBT:", resp.data);
+          setDiceDoubt(resp.data);
+        }
+        if (resp.type === 'dice_reveal') {
+          console.log("[WS] 🎲 DICE REVEAL:", resp.data);
+          setDiceReveal(resp.data);
+          setShowDiceReveal(true);
         }
         if (resp.type === 'trigger') {
           // Trigger 'show_doubt' e 'player_death' eram resíduos do modo demo
@@ -324,9 +386,15 @@ export function useGameEngine() {
 
   const startRoomGame = useCallback(() => {
     setRoomError(null);
-    setEliminationOrder([]); // nova partida → reseta
+    setEliminationOrder([]);
     setVictoryState(null);
-    sendAction({ action: "start_game" }); // sem playerNames → modo sala
+    // Reset dice state pra começar limpo
+    setDiceState(null);
+    setDiceBet(null);
+    setDiceDoubt(null);
+    setDiceReveal(null);
+    setShowDiceReveal(false);
+    sendAction({ action: "start_game" });
   }, [sendAction]);
 
   const clearRoomError = useCallback(() => setRoomError(null), []);
@@ -379,5 +447,12 @@ export function useGameEngine() {
     clearRoomError,
     // ─── Phase 5: ranking ──
     eliminationOrder,
+    // ─── Liar's Dice ──
+    diceState,
+    diceBet,
+    diceDoubt,
+    diceReveal,
+    showDiceReveal,
+    setShowDiceReveal,
   };
 }
