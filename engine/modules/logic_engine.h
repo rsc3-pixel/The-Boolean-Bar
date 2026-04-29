@@ -1,18 +1,30 @@
 #ifndef LOGIC_ENGINE_H
 #define LOGIC_ENGINE_H
 
-#include "../core/types.h" // Inclui as definições de FormulaType
+#include <stdbool.h>
 
-/**
- * @brief Avalia uma fórmula lógica proposicional e determina seu tipo.
- *
- * Esta função é o coração do "Juiz" do jogo. Ela deve analisar a string da fórmula,
- * construir sua tabela-verdade e, a partir dela, classificar a fórmula como
- * Tautologia, Contradição ou Contingência.
- *
- * @param formula_str A string contendo a fórmula lógica a ser avaliada (ex: "P AND NOT P").
- * @return O FormulaType correspondente (TAUTOLOGY, CONTRADICTION, ou CONTINGENCY).
- */
-FormulaType logic_evaluate_formula(const char *formula_str);
+/* Classificação da proposição lógica */
+typedef enum {
+    TAUTOLOGIA,
+    CONTRADICAO,
+    CONTINGENCIA
+} Classificacao;
 
-#endif // LOGIC_ENGINE_H
+/* Tabela verdade gerada */
+typedef struct {
+    int     num_vars;           /* número de variáveis únicas */
+    char    vars[26];           /* identificadores das variáveis */
+    int     num_linhas;         /* 2^num_vars */
+    bool  **combinacoes;        /* matriz [num_linhas][num_vars] */
+    bool   *resultados;         /* vetor de resultados */
+    Classificacao classificacao;
+} TabelaVerdade;
+
+/* API pública */
+int          extrair_variaveis(const char *expr, char *vars_out);
+TabelaVerdade *gerar_tabela_verdade(const char *expr);
+void          imprimir_tabela(const TabelaVerdade *tv, const char *expr);
+void          liberar_tabela(TabelaVerdade *tv);
+const char   *classificacao_str(Classificacao c);
+
+#endif /* LOGIC_ENGINE_H */
