@@ -4,6 +4,7 @@ import { Lobby } from "./pages/Lobby";
 import { MatchLobby } from "./pages/MatchLobby";
 import { GamePage } from "./pages/GamePage";
 import { DiceGamePage } from "./pages/DiceGamePage";
+import { DiceGameOnline } from "./pages/DiceGameOnline";
 import { DiceLobby } from "./pages/DiceLobby";
 import { OnlineLobby, type GameModeKind } from "./pages/OnlineLobby";
 import { WaitingRoom } from "./pages/WaitingRoom";
@@ -127,18 +128,21 @@ export default function App() {
   }
 
   if (currentScreen === "game") {
+    const exitHandler = () => {
+      if (gameEngine.roomState && !gameEngine.roomState.isSoloMode) {
+        gameEngine.leaveRoom();
+      }
+      setCurrentScreen("menu");
+    };
+
+    // Routing por gameMode: dice → DiceGameOnline; default → GamePage (logic)
+    if (gameEngine.roomState?.gameMode === "dice") {
+      return <DiceGameOnline onExit={exitHandler} engine={gameEngine} />;
+    }
     return (
       <GamePage
          playerNames={playerNames}
-         onExit={() => {
-           // Em multiplayer, sair do jogo significa abandonar a sala
-           // (server vai encerrar a partida pra todos). Sem isso, o engine
-           // ficava zumbi esperando input do jogador que saiu.
-           if (gameEngine.roomState && !gameEngine.roomState.isSoloMode) {
-             gameEngine.leaveRoom();
-           }
-           setCurrentScreen("menu");
-         }}
+         onExit={exitHandler}
          engine={gameEngine}
       />
     );
