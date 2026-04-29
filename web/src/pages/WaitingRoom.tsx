@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Copy, Check, Crown, LogOut, Play, Users, WifiOff } from "lucide-react";
+import { Copy, Check, Crown, LogOut, Play, Users, WifiOff, Bot, UserPlus, Trash2 } from "lucide-react";
 import type { RoomSnapshot } from "../hooks/useGameEngine";
 
 interface WaitingRoomProps {
@@ -9,6 +9,8 @@ interface WaitingRoomProps {
   errorMessage?: string | null;
   onStart: () => void;
   onLeave: () => void;
+  onAddBot: () => void;
+  onRemoveBot: (botId: string) => void;
   onClearError: () => void;
 }
 
@@ -21,6 +23,8 @@ export function WaitingRoom({
   errorMessage,
   onStart,
   onLeave,
+  onAddBot,
+  onRemoveBot,
   onClearError,
 }: WaitingRoomProps) {
   const [copied, setCopied] = useState(false);
@@ -112,21 +116,35 @@ export function WaitingRoom({
                 key={p.playerId}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className={`flex items-center gap-3 px-4 py-2 rounded-md transition-opacity ${
-                  p.playerId === myPlayerId ? "bg-cyan-500/10 border border-cyan-400/30" : "bg-black/30"
+                className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-md transition-opacity ${
+                  p.playerId === myPlayerId ? "bg-cyan-500/10 border border-cyan-400/30"
+                  : p.isBot ? "bg-purple-950/20 border border-purple-700/30"
+                  : "bg-black/30"
                 } ${!p.connected ? "opacity-40" : ""}`}
               >
-                <span className="font-mono text-zinc-500 text-sm w-6">#{p.slot + 1}</span>
-                <span className="font-sans text-cyan-100 flex-1">{p.name}</span>
-                {!p.connected && (
-                  <span className="flex items-center gap-1 text-xs text-yellow-400/80 font-mono uppercase tracking-widest">
+                <span className="font-mono text-zinc-500 text-xs sm:text-sm w-6">#{p.slot + 1}</span>
+                {p.isBot && <Bot className="w-4 h-4 text-purple-400 shrink-0" />}
+                <span className={`font-sans flex-1 truncate ${p.isBot ? "text-purple-200" : "text-cyan-100"}`}>
+                  {p.name}
+                </span>
+                {!p.connected && !p.isBot && (
+                  <span className="flex items-center gap-1 text-[10px] sm:text-xs text-yellow-400/80 font-mono uppercase tracking-widest">
                     <WifiOff className="w-3 h-3" />
-                    desconectado
+                    <span className="hidden sm:inline">desconectado</span>
                   </span>
                 )}
-                {p.isHost && <Crown className="w-4 h-4 text-yellow-400" />}
+                {p.isHost && <Crown className="w-4 h-4 text-yellow-400 shrink-0" />}
                 {p.playerId === myPlayerId && (
-                  <span className="text-xs uppercase tracking-widest text-cyan-400/60 font-mono">você</span>
+                  <span className="text-[10px] sm:text-xs uppercase tracking-widest text-cyan-400/60 font-mono">você</span>
+                )}
+                {p.isBot && isHost && !room.gameStarted && (
+                  <button
+                    onClick={() => onRemoveBot(p.playerId)}
+                    title="Remover bot"
+                    className="ml-1 p-1 text-purple-400/60 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 )}
               </motion.div>
             ))}
@@ -142,6 +160,17 @@ export function WaitingRoom({
               </div>
             ))}
           </div>
+
+          {/* Botão Adicionar Bot — só pro host, antes do jogo iniciar */}
+          {isHost && !room.gameStarted && room.players.length < MAX_PLAYERS && (
+            <button
+              onClick={onAddBot}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 border border-dashed border-purple-500/40 hover:border-purple-400/70 hover:bg-purple-500/10 rounded-md text-purple-300 font-mono uppercase tracking-widest text-xs transition-colors"
+            >
+              <UserPlus className="w-4 h-4" />
+              Adicionar Bot
+            </button>
+          )}
         </motion.div>
 
         <div className="flex gap-3 w-full">
