@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, VolumeX, Monitor, ArrowLeft, Info, CheckCircle, XCircle, HelpCircle, Trophy } from "lucide-react";
+import { Volume2, VolumeX, Monitor, ArrowLeft, Info, CheckCircle, XCircle, HelpCircle, Trophy, Brain, Dices } from "lucide-react";
 
 interface SettingsInstructionsPanelProps {
   isVisible: boolean;
@@ -232,14 +232,171 @@ function StepVitoria() {
   );
 }
 
+// ===================== STEPS DO LIAR'S DICE =====================
+function StepDiceConfiguracao() {
+  return (
+    <div className="space-y-4">
+      <p className="text-zinc-300 leading-relaxed text-sm">
+        Cada jogador entra na mesa com <span className="text-emerald-400 font-bold font-mono">5 dados</span> escondidos
+        em um copo. Os valores só são visíveis pra você.
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {["J1","J2","J3","VOCÊ"].map((p, i) => (
+          <div key={i} className={`flex flex-col items-center gap-1 p-3 rounded-lg border ${i === 3 ? 'border-emerald-500 bg-emerald-950/30 text-emerald-300' : 'border-zinc-700 bg-zinc-900/40 text-zinc-400'} font-mono text-xs`}>
+            <span className="text-lg">{i === 3 ? '🫵' : '🎭'}</span>
+            <span>{p}</span>
+            <span className="text-emerald-400/80 text-[10px]">🫙 5 dados</span>
+          </div>
+        ))}
+      </div>
+      <div className="p-4 bg-zinc-900/60 border border-emerald-500/20 rounded-lg space-y-2">
+        <p className="text-xs font-mono text-zinc-500 tracking-wider">⚡ REGRA-CHAVE: O '1' é CURINGA</p>
+        <p className="text-emerald-300/90 font-mono text-xs">
+          Quando alguém aposta "X dados de face Y", todo dado com valor <span className="text-yellow-300 font-bold">1</span> conta como
+          se fosse <span className="text-yellow-300 font-bold">Y</span>. Isso aumenta a chance de qualquer aposta ser válida.
+        </p>
+      </div>
+      <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-lg">
+        <p className="text-xs text-emerald-300/80 font-mono">🎯 OBJETIVO: ser o último com dados na mesa.</p>
+      </div>
+    </div>
+  );
+}
+
+function StepDiceTurno() {
+  return (
+    <div className="space-y-4">
+      <p className="text-zinc-300 text-sm">No seu turno, escolha <span className="text-emerald-400 font-bold">UMA</span> de 3 ações:</p>
+      <div className="space-y-3">
+        <div className="p-4 bg-cyan-950/30 border-2 border-cyan-500/40 rounded-xl">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl">📈</span>
+            <p className="font-mono text-cyan-300 font-bold tracking-wider">APOSTAR</p>
+          </div>
+          <p className="text-zinc-300 text-xs">Faz uma aposta NOVA na quantidade total de dados de uma face na mesa. Precisa <span className="text-yellow-300">subir</span> a aposta atual.</p>
+        </div>
+        <div className="p-4 bg-red-950/30 border-2 border-red-500/40 rounded-xl">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl">👁️</span>
+            <p className="font-mono text-red-300 font-bold tracking-wider">DUVIDAR</p>
+          </div>
+          <p className="text-zinc-300 text-xs">Acusa que a aposta atual é <span className="text-red-300 font-bold">farol</span>. Todos abrem os copos e contam.</p>
+        </div>
+        <div className="p-4 bg-zinc-900/40 border-2 border-zinc-700/40 rounded-xl">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl">🚪</span>
+            <p className="font-mono text-zinc-300 font-bold tracking-wider">PEDIR AS CONTAS</p>
+          </div>
+          <p className="text-zinc-400 text-xs">Desiste do round e sai da partida (eliminação voluntária). Use só em emergência.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepDiceApostar() {
+  return (
+    <div className="space-y-4">
+      <p className="text-zinc-300 text-sm">Pra apostar você diz: <span className="text-cyan-300 font-mono font-bold">"Tem X dados de face Y na mesa"</span> (somando todos os jogadores).</p>
+      <div className="p-4 bg-zinc-900/60 border border-yellow-500/30 rounded-lg space-y-2">
+        <p className="text-xs font-mono text-yellow-400 tracking-wider">⚠️ REGRA DE ESCALADA</p>
+        <p className="text-zinc-300 text-xs">Sua aposta nova precisa <span className="text-yellow-300 font-bold">subir</span> a anterior:</p>
+        <ul className="text-zinc-400 text-xs space-y-1 ml-4 font-mono">
+          <li>• <span className="text-emerald-400">SUBIR a quantidade</span> (ex: 3→4 dados, com qualquer face)</li>
+          <li>• <span className="text-emerald-400">MANTER quantidade</span> e <span className="text-emerald-400">SUBIR a face</span> (ex: 3 dados de face 4 → 3 dados de face 5)</li>
+        </ul>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 rounded-lg">
+          <p className="text-emerald-300 font-mono text-xs font-bold mb-1">✓ APOSTAS VÁLIDAS</p>
+          <p className="text-zinc-400 text-xs font-mono">Atual: 3 × face 4</p>
+          <p className="text-emerald-300/80 text-xs font-mono">→ 4 × face 2 ✓</p>
+          <p className="text-emerald-300/80 text-xs font-mono">→ 3 × face 5 ✓</p>
+          <p className="text-emerald-300/80 text-xs font-mono">→ 6 × face 6 ✓</p>
+        </div>
+        <div className="p-3 bg-red-950/20 border border-red-500/30 rounded-lg">
+          <p className="text-red-300 font-mono text-xs font-bold mb-1">✗ APOSTAS INVÁLIDAS</p>
+          <p className="text-zinc-400 text-xs font-mono">Atual: 3 × face 4</p>
+          <p className="text-red-300/80 text-xs font-mono">→ 2 × face 6 ✗ (cai qty)</p>
+          <p className="text-red-300/80 text-xs font-mono">→ 3 × face 3 ✗ (cai face)</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepDiceDuvidar() {
+  return (
+    <div className="space-y-4">
+      <p className="text-zinc-300 text-sm">Quando alguém duvida, todos abrem os copos e <span className="text-yellow-400 font-bold">contam os dados</span> da face apostada (lembre: '1' é curinga).</p>
+      <div className="p-4 bg-zinc-900/60 border border-cyan-500/30 rounded-lg space-y-3">
+        <p className="text-cyan-400 font-mono text-xs tracking-wider">📐 EXEMPLO</p>
+        <p className="text-zinc-300 text-xs">Aposta atual: <span className="text-yellow-300 font-mono font-bold">4 × face 5</span>. Bob duvida.</p>
+        <p className="text-zinc-400 text-xs">Abrindo os copos:</p>
+        <p className="text-zinc-300 text-xs font-mono ml-3">• Alice tem: <span className="text-emerald-400">5</span>, 3, 2, <span className="text-yellow-300">1</span>, <span className="text-emerald-400">5</span> → 3 (2 cinco + 1 curinga)</p>
+        <p className="text-zinc-300 text-xs font-mono ml-3">• Bob tem: 6, 6, <span className="text-yellow-300">1</span>, 4, 4 → 1 (curinga)</p>
+        <p className="text-zinc-300 text-xs font-mono">Total: <span className="text-yellow-300 font-bold">4</span> dados de face 5 (com curingas)</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="p-3 bg-emerald-950/30 border border-emerald-500/40 rounded-lg">
+          <p className="text-emerald-300 font-mono text-xs font-bold mb-1">SE A APOSTA COBRIU (≥ qty)</p>
+          <p className="text-zinc-300 text-xs">→ <span className="text-red-300 font-bold">DUVIDADOR</span> perde 1 dado</p>
+        </div>
+        <div className="p-3 bg-red-950/30 border border-red-500/40 rounded-lg">
+          <p className="text-red-300 font-mono text-xs font-bold mb-1">SE FALTOU DADO (&lt; qty)</p>
+          <p className="text-zinc-300 text-xs">→ <span className="text-red-300 font-bold">APOSTADOR</span> perde 1 dado</p>
+        </div>
+      </div>
+      <p className="text-xs text-zinc-500 italic font-mono">Quem perde 1 dado e fica com <span className="text-red-400">0</span> é eliminado da partida.</p>
+    </div>
+  );
+}
+
+function StepDiceVitoria() {
+  return (
+    <div className="space-y-4">
+      <div className="p-5 bg-gradient-to-br from-emerald-950/40 to-zinc-950/40 border-2 border-emerald-500/30 rounded-xl text-center">
+        <Trophy className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
+        <p className="text-emerald-300 font-mono font-bold text-lg tracking-wider mb-1">ÚLTIMO COM DADOS VENCE</p>
+        <p className="text-zinc-300 text-sm">Quando todos os outros jogadores forem eliminados (ficarem com 0 dados), você ganha a mesa.</p>
+      </div>
+      <div className="space-y-2">
+        <p className="text-zinc-500 text-xs font-mono tracking-wider">ESTRATÉGIAS:</p>
+        {[
+          { icon: "🎲", tip: "CONTE OS CURINGAS", desc: "Estatisticamente, cada copo tem ~0.83 'um' (curinga). Com 5 jogadores = ~4 curingas + dados específicos. Use isso pra estimar a aposta." },
+          { icon: "🎭", tip: "BLEFE CONTROLADO", desc: "Se a aposta tá baixa demais, suba alto pra forçar o oponente a duvidar (e perder)." },
+          { icon: "📊", tip: "OBSERVE PADRÕES", desc: "Quando alguém sobe muito a quantidade, talvez tenha muitos dados daquela face. Pense duas vezes antes de duvidar." },
+          { icon: "⏳", tip: "ESCASSEZ É FORÇA", desc: "Com poucos dados, sua aposta é mais difícil de prever. Use isso." },
+        ].map(({ icon, tip, desc }) => (
+          <div key={tip} className="flex gap-3 p-3 rounded-lg bg-zinc-900/40 border border-zinc-700/40 hover:border-emerald-500/20 transition-colors">
+            <span className="text-lg">{icon}</span>
+            <div>
+              <p className="font-mono text-xs font-bold text-emerald-300 mb-0.5">{tip}</p>
+              <p className="text-zinc-400 text-xs">{desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ===================== DEFINIÇÃO DAS ETAPAS =====================
-const STEPS = [
+const STEPS_LOGIC = [
   { id: 1, icon: "🎰", label: "INÍCIO", color: "cyan",    title: "Configuração da Mesa",        Component: StepConfiguracao },
   { id: 2, icon: "🃏", label: "TURNO", color: "emerald",  title: "Fluxo de um Turno",           Component: StepTurno },
   { id: 3, icon: "🧠", label: "TIPOS", color: "purple",   title: "Tipos de Fórmulas Lógicas",  Component: StepLogica },
   { id: 4, icon: "⚡", label: "SÍMBOLOS", color: "yellow", title: "Tabela de Conectivos",        Component: StepConectivos },
   { id: 5, icon: "🔫", label: "ROLETA", color: "red",     title: "Roleta Russa",                Component: StepRoleta },
   { id: 6, icon: "🏆", label: "VITÓRIA", color: "emerald", title: "Como Vencer",                Component: StepVitoria },
+];
+
+const STEPS_DICE = [
+  { id: 1, icon: "🫙", label: "INÍCIO",   color: "emerald", title: "Configuração da Mesa",     Component: StepDiceConfiguracao },
+  { id: 2, icon: "🎲", label: "AÇÕES",   color: "cyan",    title: "As 3 Ações do Turno",      Component: StepDiceTurno },
+  { id: 3, icon: "📈", label: "APOSTAR", color: "yellow",  title: "Como Apostar",             Component: StepDiceApostar },
+  { id: 4, icon: "👁️", label: "DUVIDAR", color: "red",     title: "Como Duvidar Funciona",    Component: StepDiceDuvidar },
+  { id: 5, icon: "🏆", label: "VITÓRIA", color: "emerald", title: "Como Vencer",              Component: StepDiceVitoria },
 ];
 
 const TAB_ACTIVE: Record<string, string> = {
@@ -256,8 +413,11 @@ export function SettingsInstructionsPanel({ isVisible, onBack }: SettingsInstruc
   const [crtEffect, setCrtEffect] = useState(false);
   const [activeTab, setActiveTab] = useState<"instructions" | "settings">("instructions");
   const [activeStep, setActiveStep] = useState(0);
+  const [rulesMode, setRulesMode] = useState<"logic" | "dice">("logic");
 
-  const step = STEPS[activeStep];
+  const STEPS = rulesMode === "logic" ? STEPS_LOGIC : STEPS_DICE;
+  const safeStepIdx = Math.min(activeStep, STEPS.length - 1);
+  const step = STEPS[safeStepIdx];
   const { Component } = step;
 
   return (
@@ -403,6 +563,41 @@ export function SettingsInstructionsPanel({ isVisible, onBack }: SettingsInstruc
             <div className="absolute bottom-10 left-10 w-20 h-20 border-l-4 border-b-4 border-emerald-400/20 pointer-events-none" />
             <div className="absolute bottom-10 right-10 w-20 h-20 border-r-4 border-b-4 border-cyan-400/20 pointer-events-none" />
           </motion.div>
+
+          {/* Toggle de modo de jogo — canto inferior direito (só aparece na aba de instruções) */}
+          {activeTab === "instructions" && (
+            <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[110] flex flex-col items-end gap-2">
+              <span className="hidden sm:block text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-mono">Manual</span>
+              <div className="flex bg-black/80 border border-zinc-700 rounded-full p-1 backdrop-blur-md">
+                <button
+                  onClick={() => { setRulesMode("logic"); setActiveStep(0); }}
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-all ${
+                    rulesMode === "logic"
+                      ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.6)]"
+                      : "text-zinc-400 hover:text-cyan-300"
+                  }`}
+                  style={rulesMode === "logic" ? { fontWeight: 700 } : undefined}
+                >
+                  <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Boolean Bar</span>
+                  <span className="sm:hidden">Lógica</span>
+                </button>
+                <button
+                  onClick={() => { setRulesMode("dice"); setActiveStep(0); }}
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-all ${
+                    rulesMode === "dice"
+                      ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(52,211,153,0.6)]"
+                      : "text-zinc-400 hover:text-emerald-300"
+                  }`}
+                  style={rulesMode === "dice" ? { fontWeight: 700 } : undefined}
+                >
+                  <Dices className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Liar's Dice</span>
+                  <span className="sm:hidden">Dados</span>
+                </button>
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

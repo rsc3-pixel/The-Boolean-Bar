@@ -72,7 +72,7 @@ export function OnlineLobby({
         </span>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-8 w-[480px]">
+      <div className="relative z-10 flex flex-col items-center gap-6 sm:gap-8 w-[90vw] max-w-[480px] px-2">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
