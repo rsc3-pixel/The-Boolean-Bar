@@ -10,6 +10,7 @@ import { OnlineLobby, type GameModeKind } from "./pages/OnlineLobby";
 import { WaitingRoom } from "./pages/WaitingRoom";
 import { SettingsInstructionsPanel } from "./components/modals/SettingsInstructionsPanel";
 import { useGameEngine } from "./hooks/useGameEngine";
+import { audioCues } from "./utils/audioCues";
 
 type GameScreen = "menu" | "lobby" | "matchLobby" | "game" | "diceLobby" | "diceGame" | "onlineLobby" | "waitingRoom";
 
@@ -30,48 +31,62 @@ export default function App() {
   const gameEngine = useGameEngine();
 
   // ─── Música de fundo ─────────────────────────────────────────────────────
-  // Browsers bloqueiam autoplay sem interação do usuário. A gente cria o
-  // <audio> uma vez, e tenta tocar no 1º clique/keydown. Persiste no LS.
+  // Mobile (especialmente iOS Safari) bloqueia autoplay agressivamente.
+  // Estratégia: tenta no mount (provavelmente falha), e fica em loop tentando
+  // a cada interação do usuário até `play()` resolver com sucesso. Aí sim
+  // remove os listeners.
   useEffect(() => {
     const audio = new Audio("/audio/casino-ambience.mp3");
-    audio.loop = true;          // se acabar (5min), reinicia automaticamente
-    audio.volume = 0.25;        // baixo o suficiente pra não atrapalhar
+    audio.loop = true;
+    audio.volume = 0.25;
     audio.preload = "auto";
+    // playsInline ajuda no iOS — evita comportamento de fullscreen
+    (audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
     audioRef.current = audio;
 
-    const tryPlay = () => {
-      if (!audioRef.current) return;
-      // Lê o estado mais recente direto do localStorage pra evitar stale closure
+    let removed = false;
+    const onInteract = () => {
+      if (removed) return;
       const enabled = localStorage.getItem("booleanbar_music") !== "off";
-      if (enabled) audioRef.current.play().catch(() => { /* autoplay block */ });
+      if (!enabled) return;
+      audio.play().then(() => {
+        // Sucesso! Remove os listeners.
+        removed = true;
+        window.removeEventListener("click", onInteract);
+        window.removeEventListener("keydown", onInteract);
+        window.removeEventListener("touchstart", onInteract);
+        window.removeEventListener("pointerdown", onInteract);
+        // Aproveita a gesture pra resumir AudioContext dos efeitos sonoros
+        audioCues.resume();
+      }).catch(() => {
+        // Falhou (talvez ainda não houve gesture). Tenta de novo na próxima.
+      });
     };
 
-    // Primeira tentativa (pode ser bloqueada)
-    tryPlay();
-    // Fallback: na primeira interação do usuário, tenta de novo
-    const onFirstInteract = () => {
-      tryPlay();
-      window.removeEventListener("click", onFirstInteract);
-      window.removeEventListener("keydown", onFirstInteract);
-      window.removeEventListener("touchstart", onFirstInteract);
-    };
-    window.addEventListener("click", onFirstInteract);
-    window.addEventListener("keydown", onFirstInteract);
-    window.addEventListener("touchstart", onFirstInteract);
+    // Primeira tentativa (pode falhar silencioso)
+    onInteract();
+    // Listeners ficam ativos até play() resolver
+    window.addEventListener("click", onInteract);
+    window.addEventListener("keydown", onInteract);
+    window.addEventListener("touchstart", onInteract, { passive: true });
+    window.addEventListener("pointerdown", onInteract);
 
     return () => {
+      removed = true;
       audio.pause();
       audio.src = "";
       audioRef.current = null;
-      window.removeEventListener("click", onFirstInteract);
-      window.removeEventListener("keydown", onFirstInteract);
-      window.removeEventListener("touchstart", onFirstInteract);
+      window.removeEventListener("click", onInteract);
+      window.removeEventListener("keydown", onInteract);
+      window.removeEventListener("touchstart", onInteract);
+      window.removeEventListener("pointerdown", onInteract);
     };
   }, []);
 
   // Aplica mudança de toggle
   useEffect(() => {
     try { localStorage.setItem("booleanbar_music", musicEnabled ? "on" : "off"); } catch {}
+    audioCues.setEnabled(musicEnabled);   // toggle controla música + efeitos
     if (!audioRef.current) return;
     if (musicEnabled) audioRef.current.play().catch(() => {});
     else audioRef.current.pause();

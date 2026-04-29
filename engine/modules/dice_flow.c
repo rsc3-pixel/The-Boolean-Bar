@@ -160,7 +160,7 @@ int dice_game_start() {
                 // APOSTAR
                 if (op == 'A') {
                     int qt = get_safe_int("Nova Quantidade de Dados (> 0): ", 1, 99);
-                    int face = get_safe_int("Nova Face do Dado (2 a 6): ", 2, 6);
+                    int face = get_safe_int("Nova Face do Dado (1 a 6): ", 1, 6);
                     
                     if (qt > game_table->current_bet_quantity || 
                        (qt == game_table->current_bet_quantity && face > game_table->current_bet_face)) {
