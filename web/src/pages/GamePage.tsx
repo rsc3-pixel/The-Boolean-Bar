@@ -211,36 +211,37 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="relative z-20 h-20 bg-zinc-950/80 backdrop-blur-xl border-b border-cyan-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
+        className="relative z-20 h-14 sm:h-20 bg-zinc-950/80 backdrop-blur-xl border-b border-cyan-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
       >
-        <div className="h-full max-w-7xl mx-auto px-8 flex items-center justify-between">
-          <h1 className="text-3xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-400 drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}>
-            THE BOOLEAN BAR
+        <div className="h-full max-w-7xl mx-auto px-3 sm:px-8 flex items-center justify-between">
+          <h1 className="text-base sm:text-3xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-400 drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}>
+            <span className="sm:hidden">BOOLEAN</span>
+            <span className="hidden sm:inline">THE BOOLEAN BAR</span>
           </h1>
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-2 sm:gap-8">
             {/* Status WebSocket */}
-            <div className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full ${wsStatus === 'connected' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : wsStatus === 'connecting' ? 'bg-yellow-400 animate-pulse' : 'bg-red-500 animate-pulse'}`} />
-              <span className="text-xs font-mono tracking-wider" style={{ color: wsStatus === 'connected' ? '#34d399' : wsStatus === 'connecting' ? '#facc15' : '#ef4444' }}>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${wsStatus === 'connected' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : wsStatus === 'connecting' ? 'bg-yellow-400 animate-pulse' : 'bg-red-500 animate-pulse'}`} />
+              <span className="hidden sm:inline text-xs font-mono tracking-wider" style={{ color: wsStatus === 'connected' ? '#34d399' : wsStatus === 'connecting' ? '#facc15' : '#ef4444' }}>
                 {wsStatus === 'connected' ? 'C ENGINE ON' : wsStatus === 'connecting' ? 'CONECTANDO...' : 'OFFLINE'}
               </span>
             </div>
             {/* Indicador de turno (Phase 3) */}
             <div className="flex items-center gap-2">
               {!gameState ? (
-                <span className="text-xs font-mono text-zinc-600">AGUARDANDO...</span>
+                <span className="text-[10px] sm:text-xs font-mono text-zinc-600">AGUARDANDO...</span>
               ) : isMultiplayer ? (
                 isMyTurn || isMyDoubt ? (
-                  <span className="text-xs font-mono text-emerald-400 animate-pulse">SUA VEZ</span>
+                  <span className="text-[10px] sm:text-xs font-mono text-emerald-400 animate-pulse">SUA VEZ</span>
                 ) : (
-                  <span className="text-xs font-mono text-yellow-400">VEZ DE {expectedPlayerName?.toUpperCase() ?? '?'}</span>
+                  <span className="text-[10px] sm:text-xs font-mono text-yellow-400 truncate max-w-[80px] sm:max-w-none">VEZ DE {expectedPlayerName?.toUpperCase() ?? '?'}</span>
                 )
               ) : (
-                <span className="text-xs font-mono text-emerald-400">TURNO {gameState.turn}</span>
+                <span className="text-[10px] sm:text-xs font-mono text-emerald-400">TURNO {gameState.turn}</span>
               )}
             </div>
-            {/* Balas no cilindro */}
-            <div className="flex items-center gap-3">
+            {/* Balas no cilindro — esconder no mobile (info redundante) */}
+            <div className="hidden sm:flex items-center gap-3">
               <span className="text-xs tracking-widest text-zinc-400 font-mono">BALAS:</span>
               <div className="flex items-center gap-1">
                 {Array.from({ length: cylinderCapacity }).map((_, i) => (
@@ -250,18 +251,18 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
               <span className="text-sm font-mono text-red-400">{bulletsInCylinder}/{cylinderCapacity}</span>
             </div>
             {/* Jogadores vivos */}
-            <div className="flex items-center gap-2">
-              <Skull className="w-4 h-4 text-red-400" />
-              <span className="text-xs tracking-widest text-zinc-400 font-mono">VIVOS:</span>
-              <span className="text-sm font-mono text-emerald-400">{playersAlive}/{totalPlayers}</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Skull className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
+              <span className="hidden sm:inline text-xs tracking-widest text-zinc-400 font-mono">VIVOS:</span>
+              <span className="text-xs sm:text-sm font-mono text-emerald-400">{playersAlive}/{totalPlayers}</span>
             </div>
             <motion.button
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setShowSettings(true)}
-              className="p-2 bg-cyan-600/20 border border-cyan-500/30 rounded-lg hover:bg-cyan-600/40 hover:border-cyan-400/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all duration-300"
+              className="p-1.5 sm:p-2 bg-cyan-600/20 border border-cyan-500/30 rounded-lg hover:bg-cyan-600/40 hover:border-cyan-400/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all duration-300"
             >
-              <Settings className="w-5 h-5 text-cyan-400" />
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
             </motion.button>
           </div>
         </div>
@@ -322,16 +323,16 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                 : "Voltar ao menu?";
               if (window.confirm(msg)) onExit();
             }}
-            className="absolute top-8 left-8 z-30 flex items-center gap-2 px-5 py-3 bg-cyan-950/50 backdrop-blur-md border-2 border-cyan-500/40 rounded-xl text-cyan-300 hover:text-cyan-100 hover:bg-cyan-900/60 transition-all duration-300"
+            className="absolute top-3 left-3 sm:top-8 sm:left-8 z-30 flex items-center gap-2 px-3 py-2 sm:px-5 sm:py-3 bg-cyan-950/50 backdrop-blur-md border-2 border-cyan-500/40 rounded-xl text-cyan-300 hover:text-cyan-100 hover:bg-cyan-900/60 transition-all duration-300"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-mono font-bold">BACK TO MENU</span>
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline text-sm font-mono font-bold">BACK TO MENU</span>
           </motion.button>
 
           {/* Botão Pause */}
           <motion.button
             onClick={() => setIsPaused(!isPaused)}
-            className="absolute top-8 right-8 z-30 p-3 bg-zinc-950/60 backdrop-blur-md border-2 border-zinc-600/40 rounded-xl text-zinc-400 hover:text-cyan-300 hover:bg-cyan-950/50 transition-all duration-300"
+            className="absolute top-3 right-3 sm:top-8 sm:right-8 z-30 p-2 sm:p-3 bg-zinc-950/60 backdrop-blur-md border-2 border-zinc-600/40 rounded-xl text-zinc-400 hover:text-cyan-300 hover:bg-cyan-950/50 transition-all duration-300"
           >
             <Pause className="w-6 h-6" strokeWidth={2.5} />
           </motion.button>
@@ -350,7 +351,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
           )}
 
           {/* Oponentes */}
-          <div className="relative mt-4 w-full z-10 max-w-6xl mx-auto px-8 grid grid-cols-6 gap-4 justify-items-center">
+          <div className="relative mt-4 w-full z-10 max-w-6xl mx-auto px-2 sm:px-8 grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4 justify-items-center">
             {opponents.map((opponent) => <OpponentCard key={opponent.name} {...opponent} />)}
           </div>
 

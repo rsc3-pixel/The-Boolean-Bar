@@ -103,28 +103,28 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
   return (
     <div className="size-full bg-black overflow-hidden flex flex-col">
       {/* Header */}
-      <header className="relative z-20 h-16 bg-zinc-950/80 backdrop-blur-xl border-b border-emerald-500/20 flex items-center justify-between px-6">
+      <header className="relative z-20 h-12 sm:h-16 bg-zinc-950/80 backdrop-blur-xl border-b border-emerald-500/20 flex items-center justify-between px-2 sm:px-6">
         <button
           onClick={() => {
             if (window.confirm("Sair da partida? A sala será encerrada pra todos.")) onExit();
           }}
-          className="flex items-center gap-2 px-3 py-2 text-emerald-400 hover:text-emerald-200 font-mono text-xs uppercase tracking-widest transition-colors"
+          className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 text-emerald-400 hover:text-emerald-200 font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Sair
         </button>
 
-        <h1 className="text-2xl tracking-[0.3em] text-emerald-300 font-sans" style={{ fontWeight: 800 }}>
-          🎲 LIAR'S DICE
+        <h1 className="text-base sm:text-2xl tracking-[0.2em] sm:tracking-[0.3em] text-emerald-300 font-sans" style={{ fontWeight: 800 }}>
+          🎲 <span className="hidden sm:inline">LIAR'S DICE</span><span className="sm:hidden">DICE</span>
         </h1>
 
-        <div className="flex items-center gap-4 text-xs font-mono">
+        <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono">
           {isMyTurn ? (
             <span className="text-emerald-400 animate-pulse">SUA VEZ</span>
           ) : (
-            <span className="text-yellow-400">VEZ DE {expectedPlayer?.name?.toUpperCase() ?? "?"}</span>
+            <span className="text-yellow-400 truncate max-w-[80px] sm:max-w-none">VEZ DE {expectedPlayer?.name?.toUpperCase() ?? "?"}</span>
           )}
-          <span className="text-zinc-500">VIVOS: {aliveCount}/{diceState.totalPlayers}</span>
+          <span className="hidden sm:inline text-zinc-500">VIVOS: {aliveCount}/{diceState.totalPlayers}</span>
         </div>
       </header>
 

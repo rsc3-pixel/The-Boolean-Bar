@@ -55,7 +55,7 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: "easeOut" }}
-          className="flex flex-col items-center gap-6 mb-20"
+          className="flex flex-col items-center gap-3 sm:gap-6 mb-8 sm:mb-20"
         >
           {/* Decorative top line */}
           <motion.div
@@ -67,7 +67,7 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
 
           {/* Main title */}
           <h1
-            className="text-7xl tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-400 px-4"
+            className="text-3xl sm:text-5xl md:text-7xl tracking-[0.15em] sm:tracking-[0.2em] md:tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-400 px-4 text-center"
             style={{
               fontFamily: 'Inter, sans-serif',
               fontWeight: 900,
@@ -90,7 +90,7 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
           {/* Decorative bottom line */}
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: "400px" }}
+            animate={{ width: "min(400px, 90vw)" }}
             transition={{ duration: 1.5, delay: 0.3 }}
             className="h-[1px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"
           />
@@ -101,14 +101,14 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 1 }}
-          className="flex flex-col gap-6 items-center"
+          className="flex flex-col gap-3 sm:gap-6 items-center w-full"
         >
           {/* 1. MASSIVE GLOWING CYAN BUTTON - "MULTIPLAYER ONLINE" (botão principal) */}
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={onEnterOnline}
-            className="group relative w-[600px] h-[100px] bg-cyan-500 rounded-2xl overflow-hidden transition-all duration-500"
+            className="group relative w-[90vw] max-w-[600px] h-[80px] sm:h-[100px] bg-cyan-500 rounded-2xl overflow-hidden transition-all duration-500"
             style={{
               boxShadow: '0 0 60px rgba(6, 182, 212, 0.8), 0 0 100px rgba(6, 182, 212, 0.5), inset 0 0 40px rgba(255, 255, 255, 0.1)'
             }}
@@ -142,16 +142,16 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
             />
 
             {/* Button text */}
-            <div className="relative h-full flex items-center justify-center gap-4">
-              <Users className="w-9 h-9 text-black drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" strokeWidth={2} />
-              <div className="flex flex-col items-start gap-1">
+            <div className="relative h-full flex items-center justify-center gap-3 sm:gap-4 px-4">
+              <Users className="w-7 h-7 sm:w-9 sm:h-9 text-black drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] shrink-0" strokeWidth={2} />
+              <div className="flex flex-col items-start gap-0.5 sm:gap-1">
                 <span
-                  className="text-4xl tracking-[0.25em] text-black font-sans drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                  className="text-2xl sm:text-4xl tracking-[0.15em] sm:tracking-[0.25em] text-black font-sans drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
                   style={{ fontWeight: 900 }}
                 >
                   MULTIPLAYER
                 </span>
-                <span className="text-xs tracking-[0.3em] text-cyan-950/80 font-mono uppercase">
+                <span className="text-[10px] sm:text-xs tracking-[0.2em] sm:tracking-[0.3em] text-cyan-950/80 font-mono uppercase">
                   Crie ou entre numa sala
                 </span>
               </div>
@@ -173,7 +173,7 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={onOpenRules}
-            className="group relative w-[600px] h-[85px] bg-transparent backdrop-blur-sm border-2 border-cyan-400/40 rounded-xl overflow-hidden transition-all duration-300 hover:border-cyan-300/60"
+            className="group relative w-[90vw] max-w-[600px] h-[70px] sm:h-[85px] bg-transparent backdrop-blur-sm border-2 border-cyan-400/40 rounded-xl overflow-hidden transition-all duration-300 hover:border-cyan-300/60"
             style={{
               background: 'rgba(6, 182, 212, 0.03)',
               boxShadow: '0 0 30px rgba(6, 182, 212, 0.15), inset 0 0 30px rgba(6, 182, 212, 0.05)'
@@ -191,16 +191,16 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
             />
 
             {/* Button content */}
-            <div className="relative h-full flex items-center justify-center gap-4 px-8">
-              <BookOpen className="w-7 h-7 text-cyan-400" strokeWidth={1.5} />
+            <div className="relative h-full flex items-center justify-center gap-3 sm:gap-4 px-4 sm:px-8">
+              <BookOpen className="w-5 h-5 sm:w-7 sm:h-7 text-cyan-400 shrink-0" strokeWidth={1.5} />
               <div className="flex flex-col items-start gap-0.5">
                 <span
-                  className="text-3xl tracking-[0.2em] text-cyan-300 font-sans"
+                  className="text-xl sm:text-3xl tracking-[0.15em] sm:tracking-[0.2em] text-cyan-300 font-sans"
                   style={{ fontWeight: 700 }}
                 >
                   RULES OF LOGIC
                 </span>
-                <span className="text-xs tracking-[0.25em] text-cyan-500/60 font-mono uppercase">
+                <span className="text-[10px] sm:text-xs tracking-[0.2em] sm:tracking-[0.25em] text-cyan-500/60 font-mono uppercase">
                   Settings & Instructions
                 </span>
               </div>
@@ -226,7 +226,7 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
                 onFlee();
               }
             }}
-            className="group relative w-[600px] h-[85px] bg-transparent border-2 border-red-600/40 rounded-xl overflow-hidden transition-all duration-300 hover:border-red-500/60"
+            className="group relative w-[90vw] max-w-[600px] h-[70px] sm:h-[85px] bg-transparent border-2 border-red-600/40 rounded-xl overflow-hidden transition-all duration-300 hover:border-red-500/60"
             style={{
               background: 'rgba(127, 29, 29, 0.15)',
               boxShadow: '0 0 25px rgba(220, 38, 38, 0.3), inset 0 0 25px rgba(220, 38, 38, 0.1)'
@@ -254,16 +254,16 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
             />
 
             {/* Button content */}
-            <div className="relative h-full flex items-center justify-center gap-4 px-8">
-              <DoorOpen className="w-7 h-7 text-red-400/80" strokeWidth={1.5} />
+            <div className="relative h-full flex items-center justify-center gap-3 sm:gap-4 px-4 sm:px-8">
+              <DoorOpen className="w-5 h-5 sm:w-7 sm:h-7 text-red-400/80 shrink-0" strokeWidth={1.5} />
               <div className="flex flex-col items-start gap-0.5">
                 <span
-                  className="text-3xl tracking-[0.2em] text-red-300/90 font-sans"
+                  className="text-xl sm:text-3xl tracking-[0.15em] sm:tracking-[0.2em] text-red-300/90 font-sans"
                   style={{ fontWeight: 700 }}
                 >
                   FLEE
                 </span>
-                <span className="text-xs tracking-[0.25em] text-red-500/50 font-mono uppercase">
+                <span className="text-[10px] sm:text-xs tracking-[0.2em] sm:tracking-[0.25em] text-red-500/50 font-mono uppercase">
                   Quit
                 </span>
               </div>
