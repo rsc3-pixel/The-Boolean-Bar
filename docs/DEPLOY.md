@@ -7,22 +7,32 @@ Guia rápido pra aplicar mudanças do `main` no servidor de produção.
 
 ---
 
-## TL;DR — comando de deploy
+## ⚠️ ONDE rodar cada comando
 
-Depende do que foi alterado:
+Tem **2 ambientes diferentes**:
 
-| Tipo de mudança | Comando único na VM |
-|---|---|
-| **Só frontend** (web/src/**) | `cd ~/boolean-bar && git pull origin main && make web-build && pm2 restart boolean-bar` |
-| **Só servidor Node** (web_server.js) | `cd ~/boolean-bar && git pull origin main && pm2 restart boolean-bar` |
-| **Engine C** (engine/**) | `cd ~/boolean-bar && git pull origin main && make clean && make && make web-build && pm2 restart boolean-bar` |
-| **Áudio/imagem** (web/public/**) | `cd ~/boolean-bar && git pull origin main && make web-build && pm2 restart boolean-bar` |
+1. **Terminal local (sua máquina Windows)** — PowerShell, cmd ou git bash, qualquer um. Tem `gcloud` instalado.
+2. **VM (depois do SSH)** — bash do Linux. É onde tá o repo, o PM2, o engine compilado.
 
-> ⚠️ **`make clean` é obrigatório quando o engine C muda**. O Makefile não rastreia dependências de headers (`types.h`, etc) automaticamente, então `.o` antigos podem ficar incompatíveis com `.h` novos → segfault em runtime.
+O fluxo padrão:
+
+```
+[Local PowerShell/cmd]
+    └─→ gcloud compute ssh flux --zone=us-west1-a
+        ↓
+        [Conecta na VM — agora você tá num bash do Linux]
+        └─→ cd ~/boolean-bar && git pull && ... (comandos de deploy)
+            ↓
+        [Quando terminar, digita 'exit' pra voltar pro local]
+```
+
+Os comandos das próximas seções (com `$`) rodam **dentro da VM**, depois do SSH. Os que dizem **"no terminal local"** rodam na sua máquina Windows.
 
 ---
 
-## Acesso à VM
+## Passo 1 — Conectar na VM (no terminal local)
+
+Abra PowerShell ou cmd e execute:
 
 ```bash
 gcloud compute ssh flux --zone=us-west1-a
@@ -31,6 +41,31 @@ gcloud compute ssh flux --zone=us-west1-a
 > Pré-requisitos: ter o gcloud SDK instalado e autenticado (`gcloud auth login`) com o projeto setado (`gcloud config set project <ID>`).
 
 A primeira vez você precisa de uma chave SSH local — o gcloud cria automaticamente em `~/.ssh/google_compute_engine`.
+
+Quando aparecer um prompt tipo `CHONGRENATOO@flux:~$`, você está **dentro da VM**. Agora siga pro Passo 2.
+
+---
+
+## Passo 2 — Deploy (dentro da VM, após SSH)
+
+Cola o comando único correspondente ao que mudou:
+
+| Tipo de mudança | Comando único (dentro da VM) |
+|---|---|
+| **Só frontend** (web/src/**) | `cd ~/boolean-bar && git pull origin main && make web-build && pm2 restart boolean-bar` |
+| **Só servidor Node** (web_server.js) | `cd ~/boolean-bar && git pull origin main && pm2 restart boolean-bar` |
+| **Engine C** (engine/**) | `cd ~/boolean-bar && git pull origin main && make clean && make && make web-build && pm2 restart boolean-bar` |
+| **Áudio/imagem** (web/public/**) | `cd ~/boolean-bar && git pull origin main && make web-build && pm2 restart boolean-bar` |
+
+> ⚠️ **`make clean` é obrigatório quando o engine C muda**. O Makefile não rastreia dependências de headers (`types.h`, etc) automaticamente, então `.o` antigos podem ficar incompatíveis com `.h` novos → segfault em runtime.
+
+Pra sair da VM e voltar pro PowerShell/cmd local, digita `exit` ou aperta `Ctrl+D`.
+
+---
+
+## Passo 3 — Validar no browser
+
+Acessa https://rsc3-boolean.duckdns.org e dá um **hard refresh** (`Ctrl+Shift+R` ou `Ctrl+F5`) pra invalidar cache. A mudança deve aparecer.
 
 ---
 
