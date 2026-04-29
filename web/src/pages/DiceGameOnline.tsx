@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, AlertCircle, Eye, X, WifiOff, Skull } from "lucide-react";
+import { ArrowLeft, AlertCircle, Eye, X, WifiOff, Skull, Coins } from "lucide-react";
 import { DiceFace } from "../components/ui/DiceFace";
 import { OpponentDiceCard } from "../components/ui/OpponentDiceCard";
 import { useGameEngine } from "../hooks/useGameEngine";
@@ -228,7 +228,8 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
                 className="h-14 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-black font-sans uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                 style={{ fontWeight: 700 }}
               >
-                <span className="text-sm">📈 Apostar</span>
+                <Coins className="w-4 h-4" />
+                <span className="text-sm">Apostar</span>
               </button>
               <button
                 disabled={!isMyTurn || diceState.currentBetQty === 0}

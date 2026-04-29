@@ -83,6 +83,7 @@ export interface RoomPlayer {
   slot: number;
   isHost: boolean;
   connected: boolean;  // Phase 4
+  isBot: boolean;      // Phase 6
 }
 
 export interface RoomSnapshot {
@@ -271,6 +272,7 @@ export function useGameEngine() {
             player_left_mid_game: 'Outro jogador saiu da partida — partida encerrada',
             all_disconnected: 'Todos desconectaram — sala encerrada',
             engine_spawn_failed: 'Falha ao iniciar o jogo',
+            no_humans: 'Não restou nenhum jogador humano — sala encerrada',
           };
           const msg = reasonMessages[resp.reason] || `Sala fechada: ${resp.reason}`;
           setRoomError({ code: 'room_closed', message: msg });
@@ -384,6 +386,16 @@ export function useGameEngine() {
     } catch (_) { /* no-op */ }
   }, [sendAction]);
 
+  const addBot = useCallback(() => {
+    setRoomError(null);
+    sendAction({ action: "add_bot" });
+  }, [sendAction]);
+
+  const removeBot = useCallback((botId: string) => {
+    setRoomError(null);
+    sendAction({ action: "remove_bot", botId });
+  }, [sendAction]);
+
   const startRoomGame = useCallback(() => {
     setRoomError(null);
     setEliminationOrder([]);
@@ -444,6 +456,8 @@ export function useGameEngine() {
     joinRoom,
     leaveRoom,
     startRoomGame,
+    addBot,
+    removeBot,
     clearRoomError,
     // ─── Phase 5: ranking ──
     eliminationOrder,

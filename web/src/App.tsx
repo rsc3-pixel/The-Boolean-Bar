@@ -91,6 +91,8 @@ export default function App() {
         room={gameEngine.roomState}
         myPlayerId={gameEngine.playerId}
         errorMessage={gameEngine.roomError?.message ?? null}
+        onAddBot={() => gameEngine.addBot()}
+        onRemoveBot={(botId) => gameEngine.removeBot(botId)}
         onStart={() => gameEngine.startRoomGame()}
         onLeave={() => {
           gameEngine.leaveRoom();
