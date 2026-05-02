@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Volume2, VolumeX } from "lucide-react";
 import { MainMenu } from "./pages/MainMenu";
 import { Lobby } from "./pages/Lobby";
@@ -226,9 +227,27 @@ export default function App() {
     );
   }
 
+  // Phase 7: crossfade entre telas. mode="wait" garante que a tela velha
+  // sai 100% antes da nova entrar (sem layout overlap). Cada tela é keyed
+  // pelo `currentScreen` então AnimatePresence detecta transição.
+  // Edge case: dentro da screen "game", o conteúdo pode trocar entre
+  // GamePage (logic) e DiceGameOnline (dice) sem mudar a key — não anima
+  // de novo, o que é o comportamento correto (mesma tela lógica).
+
   return (
     <>
-      {screenContent}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentScreen}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25, ease: "easeInOut" }}
+          className="size-full"
+        >
+          {screenContent}
+        </motion.div>
+      </AnimatePresence>
 
       {/* Settings modal — disponível em qualquer tela quando aberto */}
       <SettingsInstructionsPanel
