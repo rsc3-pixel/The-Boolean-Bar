@@ -421,13 +421,23 @@ export function useGameEngine() {
     }
   }, []);
 
+  // Phase 7: FLEE — fecha a aba do usuário (NÃO derruba o servidor).
+  // Antes mandava action 'shutdown' que matava o WS server pra todo mundo.
   const sendShutdown = useCallback(() => {
+    console.log("[WS] 🚪 FLEE: fechando aba...");
+    // Fecha a conexão WS limpa antes de sair
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      console.log("[WS] 🚪 Enviando SHUTDOWN ao servidor...");
-      wsRef.current.send(JSON.stringify({ action: 'shutdown' }));
+      try { wsRef.current.send(JSON.stringify({ action: 'leave_room' })); } catch (_) { /* no-op */ }
+      wsRef.current.close();
     }
-    // Tenta fechar a aba após pequeno delay
-    setTimeout(() => { try { window.close(); } catch(_) {} }, 600);
+    // window.close() só funciona se a aba foi aberta via script (window.open)
+    // ou se é PWA standalone. Pra abas normais o browser bloqueia silencioso.
+    // Tenta primeiro; se não fechar em 250ms, redireciona pra about:blank
+    // como fallback (efetivamente "sai" do jogo).
+    try { window.close(); } catch (_) { /* no-op */ }
+    setTimeout(() => {
+      try { window.location.href = "about:blank"; } catch (_) { /* no-op */ }
+    }, 250);
   }, []);
 
   return {
