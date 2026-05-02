@@ -55,16 +55,18 @@ The-Boolean-Bar/
 │   │   ├── hooks/
 │   │   │   ├── useGameEngine.ts # hook único — WS + state de sala/jogo
 │   │   │   └── useDiceGame.ts   # legacy (modo dice offline) — não usado em multiplayer
+│   │   ├── utils/
+│   │   │   └── audioCues.ts     # tons sintetizados via Web Audio (sua vez / bet / doubt)
 │   │   ├── pages/
-│   │   │   ├── MainMenu.tsx     # menu, botão grande "MULTIPLAYER" cyan
-│   │   │   ├── OnlineLobby.tsx  # criar/entrar sala + toggle de modo (logic/dice)
+│   │   │   ├── MainMenu.tsx     # menu, botão grande "MULTIPLAYER" cyan + heartbeat neon
+│   │   │   ├── OnlineLobby.tsx  # criar/entrar sala + toggle de modo (dice/logic)
 │   │   │   ├── WaitingRoom.tsx  # lobby da sala, lista de players, +bot, iniciar
 │   │   │   ├── GamePage.tsx     # MODO LÓGICA — partida ativa
 │   │   │   ├── DiceGameOnline.tsx # MODO DICE — partida ativa multiplayer
 │   │   │   ├── DiceGamePage.tsx # legacy offline (não usado em multiplayer)
 │   │   │   └── DiceLobby.tsx    # legacy
 │   │   └── components/
-│   │       ├── modals/SettingsInstructionsPanel.tsx  # manuais + toggle música
+│   │       ├── modals/SettingsInstructionsPanel.tsx  # manuais (toggle Dice/Logic) + toggle música
 │   │       ├── ui/DiceFace.tsx, OpponentDiceCard.tsx (componentes dice)
 │   │       └── ...
 │   └── test_rooms.js            # smoke test do server (rodar com `node test_rooms.js`)
@@ -86,7 +88,9 @@ The-Boolean-Bar/
 3. **Phase 3 — Turn-aware**: server tracka `expectedPlayerId`. UI gateia controles por turno. Banner "AGUARDANDO X" pros não-da-vez.
 4. **Phase 4 — Reconnect**: refresh da aba ou queda de internet por <60s reconecta na sala. sessionStorage guarda `playerId`+`roomId`. Heartbeat ping/pong detecta zumbis. Host transfer se host sair (prefere humano).
 5. **Phase 5 — Deploy**: Linux Makefile, frontend servido pela mesma porta do WS em prod, nginx reverse-proxy com upgrade de WS, HTTPS via certbot.
-6. **Extras**: ranking final no fim, spectator mode pra eliminados, bots controlados pelo server, modo Dice end-to-end, música de fundo, mobile responsive, manual com toggle Lógica/Dice, sem regra do '1' como curinga (removida a pedido do user).
+6. **Extras**: ranking final no fim, spectator mode pra eliminados, bots controlados pelo server, modo Dice end-to-end, mobile responsive, manual com toggle Dice/Logic, sem regra do '1' como curinga (removida a pedido do user), face 1 apostável no Dice (1-6, não mais 2-6).
+7. **Áudio (Phase 7)**: música de cassino em loop (volume 50%), sons sintetizados via Web Audio (sua vez / bet / doubt), botão flutuante mute no canto inferior esquerdo (sempre visível), localStorage `booleanbar_music`. Audio context só ativa após user gesture (browser policy) — listener fica até `play()` resolver.
+8. **UX polish**: crossfade 250ms entre telas (`AnimatePresence` no `App.tsx`), flash overlay verde/cyan + 2 beeps quando vira sua vez, ritmo de coração (lub-dub) nos elementos neon do MainMenu (título + botão MULTIPLAYER + linhas decorativas).
 
 ### Protocolo WS (cliente ↔ server)
 
@@ -98,7 +102,7 @@ The-Boolean-Bar/
 - `start_game` (host only quando há sala; OU sem sala → modo solo legado)
 - `add_bot` / `remove_bot` `{botId}` (host only, antes do start)
 - `send_input` `{data}` (vai pro stdin do engine se for sua vez)
-- `shutdown` (mata o servidor — só pra dev)
+- `shutdown` (mata o servidor — **só usar em dev**! FLEE no menu NÃO manda mais isso desde o fix de Phase 7)
 
 **Server → Client:**
 - `server_hello`, `room_created`, `room_joined`, `room_state`, `room_closed` (com reason: `empty | host_left | player_left_mid_game | all_disconnected | engine_spawn_failed | no_humans`)
@@ -138,6 +142,10 @@ Adicionados no lobby pelo host (`add_bot` action). Têm `isBot: true`, `ws: null
 | **Bot não pode ser host** | Em host transfer, `removePlayerHard` busca `find(p => p.connected && !p.isBot)`. Se só sobram bots → fecha a sala (`reason: 'no_humans'`) |
 | **Engine não sabe lidar com player ausente mid-loop** | Por isso quando alguém sai mid-game, server fecha a sala inteira (`reason: 'player_left_mid_game'`). Continuação parcial seria refactor maior do engine |
 | **Repo privado** | `git clone` precisa de PAT. Na VM o token tá salvo em `~/.git-credentials`. Se sumir, `git config --global credential.helper store` + clone novo |
+| **FLEE não derruba mais o servidor** | Antes `sendShutdown` mandava `action: 'shutdown'` que fazia `process.exit(0)` no server — em prod multiplayer derrubava o jogo de TODOS. Fix: agora só envia `leave_room` + fecha WS local + tenta `window.close()` (browser bloqueia em abas normais) e fallback redireciona pra `about:blank` |
+| **`reconnect_success` deve incluir `lastDiceState`** | No fix de Phase 7 do dice mode: server cacheia `room.lastDiceState` em cada `JSON_DICE_STATE` e re-filtra per-client no reconnect (extrai `myDice` do slot, remove `allDice`). Sem isso, refresh mid-game em modo dice = tela preta |
+| **Audio precisa user gesture pra começar** | Browsers (especialmente iOS Safari) bloqueiam autoplay de `<audio>` E criação de `AudioContext` antes do 1º clique/touch/keydown. Solução em `App.tsx`: listener fica registrado até `audio.play()` resolver com sucesso (não usa `{ once: true }`). Ao primeiro gesture aceito, também faz `audioCues.resume()` pra liberar o contexto dos efeitos |
+| **Flag `audioCues.enabled`** | O toggle global de música também controla os efeitos sonoros (sua vez / bet / doubt). `audioCues.setEnabled(musicEnabled)` é chamado no useEffect que reage ao toggle. Um único switch pra tudo |
 
 ---
 
@@ -169,11 +177,13 @@ Veja [docs/DEPLOY.md](docs/DEPLOY.md) pro guia completo (qual comando rodar onde
 ## Limitações conhecidas (escopo futuro)
 
 - IA do bot é simples (random pra logic, escala mínima pra dice). Sem inteligência estatística, sem blefe consciente.
-- Modo Dice via web não suporta "1 como curinga" (a pedido do user — pode ser opção futura). Bet face mínima continua 2 (UI tem só 2-6).
+- Modo Dice **não tem mais '1' como curinga** (removido a pedido do user). Aposta agora aceita face 1-6 (UI mostra 6 faces).
 - Mobile na GamePage (lógica) usa zoom hack — funciona mas não é ideal.
-- Volume da música é fixo em 25% (toggle on/off só, sem slider).
+- Volume da música fixo em 50% (toggle on/off só, sem slider). Pode adicionar slider depois se pedido.
 - Engine não sabe pular jogador desconectado mid-loop (sala encerra).
 - Em multi com só bots, jogo trava na fase de "Pressione Enter" (humano envia "\n", bot não).
+- `window.close()` do FLEE só funciona em PWA ou aba aberta via script. Em aba normal, fallback redireciona pra `about:blank`.
+- Sons sintetizados podem soar "8-bit" demais — se quiser samples mais realistas, precisa adicionar `.mp3`/`.wav` em `web/public/audio/` e importar no `audioCues.ts`.
 
 ---
 
