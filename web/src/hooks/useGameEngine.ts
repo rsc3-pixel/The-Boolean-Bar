@@ -289,6 +289,7 @@ export function useGameEngine() {
           setRoomError(null);
           if (resp.lastGameState) setGameState(resp.lastGameState);
           if (resp.lastDoubtState) setDoubtState(resp.lastDoubtState);
+          if (resp.lastDiceState) setDiceState(resp.lastDiceState);   // Phase 7 fix
           if (resp.room?.gameStarted) setGameStarting(true);
         }
         if (resp.type === 'reconnect_failed') {

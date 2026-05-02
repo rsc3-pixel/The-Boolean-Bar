@@ -590,6 +590,17 @@ function handleReconnect(ws, msg) {
   console.log(`[Server/${roomId}] ${player.name} reconectou`);
 
   // Sync completo: snapshot da sala + último game state se game já tá rolando
+  // Phase 7 fix: pra modo dice, reenvia lastDiceState filtrado per-client
+  // (server precisa filtrar pra não vazar dados alheios). Pra logic, lastGameState.
+  let lastDiceStateForClient = null;
+  if (room.lastDiceState && Array.isArray(room.lastDiceState.allDice)) {
+    const playersArr = Array.from(room.players.values());
+    const slot = playersArr.findIndex(p => p.playerId === playerId);
+    const myDice = slot >= 0 ? (room.lastDiceState.allDice[slot] ?? []) : [];
+    const { allDice: _drop, ...rest } = room.lastDiceState;
+    lastDiceStateForClient = { ...rest, myDice };
+  }
+
   send(ws, {
     type: 'reconnect_success',
     roomId,
@@ -597,6 +608,7 @@ function handleReconnect(ws, msg) {
     room: getRoomSnapshot(room),
     lastGameState: room.lastGameState,
     lastDoubtState: room.lastDoubtState,
+    lastDiceState: lastDiceStateForClient,
     expectedPlayerId: room.expectedPlayerId,
   });
 
