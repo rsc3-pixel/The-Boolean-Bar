@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import { MainMenu } from "./pages/MainMenu";
 import { Lobby } from "./pages/Lobby";
 import { MatchLobby } from "./pages/MatchLobby";
@@ -38,7 +39,7 @@ export default function App() {
   useEffect(() => {
     const audio = new Audio("/audio/casino-ambience.mp3");
     audio.loop = true;
-    audio.volume = 0.25;
+    audio.volume = 0.5;
     audio.preload = "auto";
     // playsInline ajuda no iOS — evita comportamento de fullscreen
     (audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
@@ -126,26 +127,19 @@ export default function App() {
     }
   }, [gameEngine.roomState, gameEngine.roomError, currentScreen]);
 
-  if (currentScreen === "menu") {
-    return (
-      <>
-        <MainMenu
-          onEnterOnline={() => setCurrentScreen("onlineLobby")}
-          onOpenRules={() => setShowSettings(true)}
-          onFlee={() => gameEngine.sendShutdown()}
-        />
-        <SettingsInstructionsPanel
-          isVisible={showSettings}
-          onBack={() => setShowSettings(false)}
-          musicEnabled={musicEnabled}
-          onMusicToggle={setMusicEnabled}
-        />
-      </>
-    );
-  }
+  // Conteúdo da tela atual (resolvido no switch abaixo)
+  let screenContent: ReactNode = null;
 
-  if (currentScreen === "onlineLobby") {
-    return (
+  if (currentScreen === "menu") {
+    screenContent = (
+      <MainMenu
+        onEnterOnline={() => setCurrentScreen("onlineLobby")}
+        onOpenRules={() => setShowSettings(true)}
+        onFlee={() => gameEngine.sendShutdown()}
+      />
+    );
+  } else if (currentScreen === "onlineLobby") {
+    screenContent = (
       <OnlineLobby
         wsStatus={gameEngine.wsStatus}
         errorMessage={gameEngine.roomError?.message ?? null}
@@ -157,10 +151,8 @@ export default function App() {
         onClearError={() => gameEngine.clearRoomError()}
       />
     );
-  }
-
-  if (currentScreen === "waitingRoom" && gameEngine.roomState && gameEngine.playerId) {
-    return (
+  } else if (currentScreen === "waitingRoom" && gameEngine.roomState && gameEngine.playerId) {
+    screenContent = (
       <WaitingRoom
         room={gameEngine.roomState}
         myPlayerId={gameEngine.playerId}
@@ -175,58 +167,49 @@ export default function App() {
         onClearError={() => gameEngine.clearRoomError()}
       />
     );
-  }
-
-  if (currentScreen === "lobby") {
-    return (
-      <Lobby 
-        onStartMatch={(names) => { 
-          setPlayerNames(names); 
-          setCurrentScreen("game"); 
-          gameEngine.startGame(names); 
-        }} 
+  } else if (currentScreen === "lobby") {
+    screenContent = (
+      <Lobby
+        onStartMatch={(names) => {
+          setPlayerNames(names);
+          setCurrentScreen("game");
+          gameEngine.startGame(names);
+        }}
       />
     );
-  }
-
-  if (currentScreen === "matchLobby") {
-    return (
-      <MatchLobby 
-        onBackToMenu={() => setCurrentScreen("menu")} 
-        onStartMatch={(players) => { 
+  } else if (currentScreen === "matchLobby") {
+    screenContent = (
+      <MatchLobby
+        onBackToMenu={() => setCurrentScreen("menu")}
+        onStartMatch={(players) => {
           const names = players.map(p => p.name);
-          setPlayerNames(names); 
-          setCurrentScreen("game"); 
-          gameEngine.startGame(names); 
-        }} 
+          setPlayerNames(names);
+          setCurrentScreen("game");
+          gameEngine.startGame(names);
+        }}
       />
     );
-  }
-
-  if (currentScreen === "game") {
+  } else if (currentScreen === "game") {
     const exitHandler = () => {
       if (gameEngine.roomState && !gameEngine.roomState.isSoloMode) {
         gameEngine.leaveRoom();
       }
       setCurrentScreen("menu");
     };
-
-    // Routing por gameMode: dice → DiceGameOnline; default → GamePage (logic)
     if (gameEngine.roomState?.gameMode === "dice") {
-      return <DiceGameOnline onExit={exitHandler} engine={gameEngine} />;
+      screenContent = <DiceGameOnline onExit={exitHandler} engine={gameEngine} />;
+    } else {
+      screenContent = (
+        <GamePage
+          playerNames={playerNames}
+          onExit={exitHandler}
+          engine={gameEngine}
+        />
+      );
     }
-    return (
-      <GamePage
-         playerNames={playerNames}
-         onExit={exitHandler}
-         engine={gameEngine}
-      />
-    );
-  }
-
-  if (currentScreen === "diceLobby") {
-    return (
-      <DiceLobby 
+  } else if (currentScreen === "diceLobby") {
+    screenContent = (
+      <DiceLobby
         onStartMatch={(players) => {
           setDicePlayers(players);
           setCurrentScreen("diceGame");
@@ -234,16 +217,40 @@ export default function App() {
         onBack={() => setCurrentScreen("menu")}
       />
     );
-  }
-
-  if (currentScreen === "diceGame") {
-    return (
-      <DiceGamePage 
-         playerConfigs={dicePlayers} 
-         onExit={() => setCurrentScreen("menu")} 
+  } else if (currentScreen === "diceGame") {
+    screenContent = (
+      <DiceGamePage
+        playerConfigs={dicePlayers}
+        onExit={() => setCurrentScreen("menu")}
       />
     );
   }
 
-  return null;
+  return (
+    <>
+      {screenContent}
+
+      {/* Settings modal — disponível em qualquer tela quando aberto */}
+      <SettingsInstructionsPanel
+        isVisible={showSettings}
+        onBack={() => setShowSettings(false)}
+        musicEnabled={musicEnabled}
+        onMusicToggle={setMusicEnabled}
+      />
+
+      {/* Botão flutuante de áudio — canto inferior esquerdo, sempre visível */}
+      <button
+        onClick={() => setMusicEnabled(!musicEnabled)}
+        title={musicEnabled ? "Desligar som" : "Ligar som"}
+        aria-label={musicEnabled ? "Desligar som" : "Ligar som"}
+        className={`fixed bottom-4 left-4 z-[200] w-12 h-12 sm:w-14 sm:h-14 rounded-full backdrop-blur-md border-2 flex items-center justify-center transition-all duration-300 shadow-lg ${
+          musicEnabled
+            ? "bg-cyan-500/20 border-cyan-400/60 text-cyan-300 hover:bg-cyan-500/30 hover:scale-110 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+            : "bg-zinc-900/80 border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:scale-110"
+        }`}
+      >
+        {musicEnabled ? <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" />}
+      </button>
+    </>
+  );
 }
