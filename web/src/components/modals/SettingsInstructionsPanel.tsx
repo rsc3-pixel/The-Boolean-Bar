@@ -483,7 +483,13 @@ export function SettingsInstructionsPanel({ isVisible, onBack, musicEnabled, onM
                     {/* Step content */}
                     <div className="flex-1 overflow-y-auto p-5">
                       <AnimatePresence mode="wait">
-                        <motion.div key={activeStep} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.2 }}>
+                        <motion.div
+                          key={`${rulesMode}-${activeStep}`}
+                          initial={{ opacity: 0, x: 12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -12 }}
+                          transition={{ duration: 0.22, ease: "easeOut" }}
+                        >
                           <h2 className="text-base font-mono font-bold mb-4 text-white flex items-center gap-2">
                             <span>{step.icon}</span>
                             <span className="text-zinc-500">ETAPA {step.id}:</span>
