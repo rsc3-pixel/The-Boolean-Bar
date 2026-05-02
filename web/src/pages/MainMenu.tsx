@@ -222,7 +222,7 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => {
-              if (window.confirm('Fechar o Boolean Bar? O servidor será encerrado.')) {
+              if (window.confirm('Sair do Boolean Bar? A aba vai fechar.')) {
                 onFlee();
               }
             }}
