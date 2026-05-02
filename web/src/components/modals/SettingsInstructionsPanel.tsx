@@ -571,19 +571,6 @@ export function SettingsInstructionsPanel({ isVisible, onBack, musicEnabled, onM
               <span className="hidden sm:block text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-mono">Manual</span>
               <div className="flex bg-black/80 border border-zinc-700 rounded-full p-1 backdrop-blur-md">
                 <button
-                  onClick={() => { setRulesMode("logic"); setActiveStep(0); }}
-                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-all ${
-                    rulesMode === "logic"
-                      ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.6)]"
-                      : "text-zinc-400 hover:text-cyan-300"
-                  }`}
-                  style={rulesMode === "logic" ? { fontWeight: 700 } : undefined}
-                >
-                  <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Boolean Bar</span>
-                  <span className="sm:hidden">Lógica</span>
-                </button>
-                <button
                   onClick={() => { setRulesMode("dice"); setActiveStep(0); }}
                   className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-all ${
                     rulesMode === "dice"
@@ -595,6 +582,19 @@ export function SettingsInstructionsPanel({ isVisible, onBack, musicEnabled, onM
                   <Dices className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Liar's Dice</span>
                   <span className="sm:hidden">Dados</span>
+                </button>
+                <button
+                  onClick={() => { setRulesMode("logic"); setActiveStep(0); }}
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-all ${
+                    rulesMode === "logic"
+                      ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.6)]"
+                      : "text-zinc-400 hover:text-cyan-300"
+                  }`}
+                  style={rulesMode === "logic" ? { fontWeight: 700 } : undefined}
+                >
+                  <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Boolean Bar</span>
+                  <span className="sm:hidden">Lógica</span>
                 </button>
               </div>
             </div>
