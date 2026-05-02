@@ -57,25 +57,46 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
           transition={{ duration: 1, ease: "easeOut" }}
           className="flex flex-col items-center gap-3 sm:gap-6 mb-8 sm:mb-20"
         >
-          {/* Decorative top line */}
+          {/* Decorative top line — pulsa junto com o título */}
           <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: "400px" }}
-            transition={{ duration: 1.5, delay: 0.3 }}
+            initial={{ width: 0, opacity: 0.5 }}
+            animate={{
+              width: "min(400px, 90vw)",
+              opacity: [0.4, 1, 0.6, 1, 0.4, 0.4],
+            }}
+            transition={{
+              width: { duration: 1.5, delay: 0.3 },
+              opacity: { duration: 1.4, times: [0, 0.08, 0.18, 0.26, 0.4, 1], repeat: Infinity, ease: 'easeInOut', delay: 1.5 },
+            }}
             className="h-[1px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"
           />
 
-          {/* Main title */}
-          <h1
+          {/* Main title — pulsa em ritmo de coração (lub-dub ___ pause) */}
+          <motion.h1
             className="text-3xl sm:text-5xl md:text-7xl tracking-[0.15em] sm:tracking-[0.2em] md:tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-400 px-4 text-center"
             style={{
               fontFamily: 'Inter, sans-serif',
               fontWeight: 900,
-              textShadow: '0 0 60px rgba(6, 182, 212, 0.8), 0 0 100px rgba(6, 182, 212, 0.5)'
+            }}
+            animate={{
+              textShadow: [
+                '0 0 30px rgba(6, 182, 212, 0.4), 0 0 50px rgba(6, 182, 212, 0.25)',   // baseline
+                '0 0 80px rgba(6, 182, 212, 1), 0 0 130px rgba(6, 182, 212, 0.7)',     // lub (pico 1)
+                '0 0 50px rgba(6, 182, 212, 0.6), 0 0 80px rgba(6, 182, 212, 0.4)',    // ease
+                '0 0 80px rgba(6, 182, 212, 1), 0 0 130px rgba(6, 182, 212, 0.7)',     // dub (pico 2)
+                '0 0 30px rgba(6, 182, 212, 0.4), 0 0 50px rgba(6, 182, 212, 0.25)',   // back to baseline
+                '0 0 30px rgba(6, 182, 212, 0.4), 0 0 50px rgba(6, 182, 212, 0.25)',   // pause longa
+              ],
+            }}
+            transition={{
+              duration: 1.4,
+              times: [0, 0.08, 0.18, 0.26, 0.4, 1],
+              repeat: Infinity,
+              ease: 'easeInOut',
             }}
           >
             THE BOOLEAN BAR
-          </h1>
+          </motion.h1>
 
           {/* Subtitle */}
           <motion.p
@@ -87,11 +108,17 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
             Lógica ou Morte
           </motion.p>
 
-          {/* Decorative bottom line */}
+          {/* Decorative bottom line — pulsa junto com o título */}
           <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: "min(400px, 90vw)" }}
-            transition={{ duration: 1.5, delay: 0.3 }}
+            initial={{ width: 0, opacity: 0.5 }}
+            animate={{
+              width: "min(400px, 90vw)",
+              opacity: [0.4, 1, 0.6, 1, 0.4, 0.4],
+            }}
+            transition={{
+              width: { duration: 1.5, delay: 0.3 },
+              opacity: { duration: 1.4, times: [0, 0.08, 0.18, 0.26, 0.4, 1], repeat: Infinity, ease: 'easeInOut', delay: 1.5 },
+            }}
             className="h-[1px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"
           />
         </motion.div>
@@ -113,16 +140,17 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
               boxShadow: '0 0 60px rgba(6, 182, 212, 0.8), 0 0 100px rgba(6, 182, 212, 0.5), inset 0 0 40px rgba(255, 255, 255, 0.1)'
             }}
           >
-            {/* Pulsing glow effect */}
+            {/* Heartbeat glow — sincronizado com o título (lub-dub ___ pause) */}
             <motion.div
               animate={{
-                opacity: [0.6, 1, 0.6],
-                scale: [1, 1.05, 1]
+                opacity: [0.55, 1, 0.7, 1, 0.55, 0.55],
+                scale: [1, 1.04, 1.01, 1.04, 1, 1],
               }}
               transition={{
-                duration: 2.5,
+                duration: 1.4,
+                times: [0, 0.08, 0.18, 0.26, 0.4, 1],
                 repeat: Infinity,
-                ease: "easeInOut"
+                ease: "easeInOut",
               }}
               className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-400"
             />
