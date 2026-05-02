@@ -15,6 +15,7 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
   const {
     diceState,
     diceBet,
+    diceDoubt,
     diceReveal,
     showDiceReveal,
     setShowDiceReveal,
