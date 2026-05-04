@@ -1,12 +1,12 @@
 #include "predicates.h"
 #include <stddef.h>
 
-bool is_alive(Jogador *p) {
+bool is_alive(const Jogador *p) {
     if (p == NULL) return false;
     return p->estaVivo && p->status == ALIVE;
 }
 
-int get_next_valid_player_index(Mesa *mesa, int current_index, bool (*predicate)(Jogador *)) {
+int get_next_valid_player_index(const Mesa *mesa, int current_index, bool (*predicate)(const Jogador *)) {
     if (mesa == NULL || predicate == NULL) return -1;
     
     // Verifica circulamente até MAX_PLAYERS

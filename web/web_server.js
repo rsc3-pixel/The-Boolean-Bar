@@ -40,9 +40,10 @@ const HEARTBEAT_TIMEOUT_MS = 10_000;      // se sem pong em 10s após ping → t
  * @typedef {Object} Player
  * @property {string} playerId
  * @property {string} name
- * @property {WebSocket|null} ws  null quando desconectado
- * @property {boolean} connected   Phase 4: false durante grace window
+ * @property {WebSocket|null} ws  null quando desconectado OU quando é bot
+ * @property {boolean} connected   Phase 4: false durante grace window. Bots sempre true.
  * @property {NodeJS.Timeout|null} disconnectTimer  Phase 4: pra hard-remove após grace
+ * @property {boolean} isBot   Phase 6: true se for jogador automatizado pelo server
  *
  * @typedef {Object} Room
  * @property {string} roomId
@@ -97,12 +98,14 @@ function getRoomSnapshot(room) {
     hostId: room.hostId,
     gameStarted: room.gameStarted,
     isSoloMode: room.isSoloMode,
+    gameMode: room.gameMode,
     players: Array.from(room.players.values()).map((p, idx) => ({
       playerId: p.playerId,
       name: p.name,
       slot: idx,
       isHost: p.playerId === room.hostId,
       connected: p.connected,
+      isBot: p.isBot ?? false,
     })),
   };
 }
@@ -146,9 +149,10 @@ function spawnEngineForRoom(room) {
     } catch (_) { /* graceful */ }
   }
 
-  // Passa "0" como argv[1] pra pular o prompt de seleção de modo (Boolean Bar = 0,
-  // Liar's Dice = 1). O modo Dice é só CLI por enquanto.
-  const engine = spawn(exePathAbs, ['0'], { windowsHide: true });
+  // Passa "0" (Boolean Bar) ou "1" (Liar's Dice) como argv[1] pra pular o prompt
+  // de seleção de modo. Modo definido na criação da sala (ver handleCreateRoom).
+  const modeArg = room.gameMode === 'dice' ? '1' : '0';
+  const engine = spawn(exePathAbs, [modeArg], { windowsHide: true });
   room.engine = engine;
   room.stdoutBuffer = '';
 
@@ -212,6 +216,29 @@ function handleEngineStdout(room, chunk) {
       { tag: 'JSON_DOUBT_RESULT:',    type: 'doubt_result' },
       { tag: 'JSON_ROULETTE_RESULT:', type: 'roulette_result' },
       { tag: 'JSON_VICTORY:',         type: 'victory_state' },
+      // ─── Liar's Dice (modo dados) ──
+      {
+        tag: 'JSON_DICE_STATE:',
+        type: 'dice_state',
+        // Filtragem per-client: cada cliente recebe só os PRÓPRIOS dados.
+        // O array allDice é removido do payload, e myDice (dos próprios) é
+        // injetado. Sem isso, todo mundo veria os dados de todos.
+        perClient: (data, _player, slot) => {
+          const myDice = Array.isArray(data.allDice) ? (data.allDice[slot] ?? []) : [];
+          const { allDice: _drop, ...rest } = data;
+          return { type: 'dice_state', data: { ...rest, myDice } };
+        },
+        onParse: (data) => {
+          room.currentTurn = data.turn;
+          room.lastDiceState = data;
+          // Em dice mode, o jogador da vez é quem decide (apostar/duvidar/sair)
+          const playersArr = Array.from(room.players.values());
+          room.expectedPlayerId = playersArr[data.turn]?.playerId ?? null;
+        },
+      },
+      { tag: 'JSON_DICE_BET:',    type: 'dice_bet' },
+      { tag: 'JSON_DICE_DOUBT:',  type: 'dice_doubt' },
+      { tag: 'JSON_DICE_REVEAL:', type: 'dice_reveal' },
     ];
 
     let handled = false;
@@ -222,7 +249,19 @@ function handleEngineStdout(room, chunk) {
       try {
         const parsed = JSON.parse(jsonPart);
         if (m.onParse) m.onParse(parsed);
-        broadcast(room, { type: m.type, data: parsed });
+        if (m.perClient) {
+          // Send personalizado por cliente (ex: dice_state filtra allDice)
+          const playersArr = Array.from(room.players.values());
+          for (let slot = 0; slot < playersArr.length; slot++) {
+            const player = playersArr[slot];
+            if (!player.ws) continue;
+            send(player.ws, m.perClient(parsed, player, slot));
+          }
+        } else {
+          broadcast(room, { type: m.type, data: parsed });
+        }
+        // Phase 6: se a vez é de um bot, agenda input automatizado
+        maybeTriggerBot(room, m.type, parsed);
       } catch (e) {
         console.error(`[Server/${room.roomId}] Falha ao parsear ${m.tag}:`, e.message);
       }
@@ -249,16 +288,18 @@ function handleCreateRoom(ws, msg) {
   const playerName = (msg.playerName || 'Host').toString().slice(0, 32);
   const roomId = generateRoomCode();
   const playerId = generatePlayerId();
+  const gameMode = msg.gameMode === 'dice' ? 'dice' : 'logic';   // default = logic
 
   const room = {
     roomId,
     hostId: playerId,
-    players: new Map([[playerId, { playerId, name: playerName, ws, connected: true, disconnectTimer: null }]]),
+    players: new Map([[playerId, { playerId, name: playerName, ws, connected: true, disconnectTimer: null, isBot: false }]]),
     engine: null,
     currentTurn: -1,
     expectedPlayerId: null,
     gameStarted: false,
     isSoloMode: false,
+    gameMode,
     legacyPlayerNames: [],
     stdoutBuffer: '',
     lastGameState: null,
@@ -268,7 +309,7 @@ function handleCreateRoom(ws, msg) {
   wsToRoom.set(ws, { roomId, playerId });
 
   send(ws, { type: 'room_created', roomId, playerId, room: getRoomSnapshot(room) });
-  console.log(`[Server] Sala ${roomId} criada por ${playerName} (${playerId})`);
+  console.log(`[Server] Sala ${roomId} criada por ${playerName} (${playerId}) — modo ${gameMode}`);
 }
 
 function handleJoinRoom(ws, msg) {
@@ -289,7 +330,7 @@ function handleJoinRoom(ws, msg) {
 
   const playerId = generatePlayerId();
   const playerName = (msg.playerName || `Player${room.players.size + 1}`).toString().slice(0, 32);
-  room.players.set(playerId, { playerId, name: playerName, ws, connected: true, disconnectTimer: null });
+  room.players.set(playerId, { playerId, name: playerName, ws, connected: true, disconnectTimer: null, isBot: false });
   wsToRoom.set(ws, { roomId, playerId });
 
   send(ws, { type: 'room_joined', roomId, playerId, room: getRoomSnapshot(room) });
@@ -298,6 +339,139 @@ function handleJoinRoom(ws, msg) {
 }
 
 // Saída intencional: remove já. Se for host, transfere se houver alguém conectado, senão fecha.
+// ─── Bots (Phase 6) ──────────────────────────────────────────────────────────
+const BOT_NAMES = ['BotZeta', 'BotKappa', 'BotOmega', 'BotPsi', 'BotDelta', 'BotSigma', 'BotEpsilon'];
+
+function handleAddBot(ws) {
+  const ctx = wsToRoom.get(ws);
+  if (!ctx) return send(ws, { type: 'error', code: 'no_room', message: 'Você não está em uma sala' });
+  const room = rooms.get(ctx.roomId);
+  if (!room) return send(ws, { type: 'error', code: 'no_room', message: 'Sala não encontrada' });
+  if (ctx.playerId !== room.hostId) {
+    return send(ws, { type: 'error', code: 'not_host', message: 'Só o host pode adicionar bots' });
+  }
+  if (room.gameStarted) {
+    return send(ws, { type: 'error', code: 'game_in_progress', message: 'Não dá pra adicionar bot com partida em andamento' });
+  }
+  if (room.players.size >= MAX_PLAYERS_PER_ROOM) {
+    return send(ws, { type: 'error', code: 'room_full', message: `Sala cheia (máx ${MAX_PLAYERS_PER_ROOM})` });
+  }
+
+  // Escolhe um nome de bot que ainda não está na sala
+  const usedNames = new Set(Array.from(room.players.values()).map(p => p.name));
+  const baseName = BOT_NAMES.find(n => !usedNames.has(n)) ?? `Bot${room.players.size}`;
+  const botId = generatePlayerId();
+  room.players.set(botId, {
+    playerId: botId,
+    name: baseName,
+    ws: null,
+    connected: true,    // bot está sempre "conectado"
+    disconnectTimer: null,
+    isBot: true,
+  });
+  console.log(`[Server/${room.roomId}] Bot ${baseName} adicionado (${botId})`);
+  broadcast(room, { type: 'room_state', room: getRoomSnapshot(room) });
+}
+
+function handleRemoveBot(ws, msg) {
+  const ctx = wsToRoom.get(ws);
+  if (!ctx) return send(ws, { type: 'error', code: 'no_room', message: 'Você não está em uma sala' });
+  const room = rooms.get(ctx.roomId);
+  if (!room) return send(ws, { type: 'error', code: 'no_room', message: 'Sala não encontrada' });
+  if (ctx.playerId !== room.hostId) {
+    return send(ws, { type: 'error', code: 'not_host', message: 'Só o host pode remover bots' });
+  }
+  if (room.gameStarted) {
+    return send(ws, { type: 'error', code: 'game_in_progress', message: 'Não dá pra remover bot com partida em andamento' });
+  }
+  const botId = (msg.botId || '').toString();
+  const bot = room.players.get(botId);
+  if (!bot || !bot.isBot) {
+    return send(ws, { type: 'error', code: 'invalid_bot', message: 'Bot não encontrado' });
+  }
+  room.players.delete(botId);
+  console.log(`[Server/${room.roomId}] Bot ${bot.name} removido (${botId})`);
+  broadcast(room, { type: 'room_state', room: getRoomSnapshot(room) });
+}
+
+// ─── IA do Bot ───────────────────────────────────────────────────────────────
+// Quando é a vez de um bot agir, server gera os inputs automaticamente e
+// escreve no stdin do engine. Delay pra parecer "pensando".
+const BOT_THINK_MS = 1200;
+
+function maybeTriggerBot(room, msgType, parsed) {
+  if (!room.engine || !room.expectedPlayerId) return;
+  const player = room.players.get(room.expectedPlayerId);
+  if (!player?.isBot) return;
+  // Captura snapshot da expectativa pra evitar race se turno muda no meio
+  const expectedAtScheduling = room.expectedPlayerId;
+  setTimeout(() => {
+    if (!room.engine?.stdin?.writable) return;
+    if (room.expectedPlayerId !== expectedAtScheduling) return; // turno mudou, abort
+    if (room.gameMode === 'dice') {
+      sendDiceBotInput(room, parsed, msgType);
+    } else {
+      sendLogicBotInput(room, parsed, msgType);
+    }
+  }, BOT_THINK_MS);
+}
+
+function writeStdin(room, str, delay = 100) {
+  setTimeout(() => {
+    if (room.engine?.stdin?.writable) room.engine.stdin.write(str);
+  }, delay);
+}
+
+function sendLogicBotInput(room, data, msgType) {
+  if (msgType === 'game_state') {
+    // Escolhe carta aleatória + tipo aleatório
+    const numCards = data.currentHand?.length ?? 1;
+    const card = 1 + Math.floor(Math.random() * Math.max(1, numCards));
+    const type = 1 + Math.floor(Math.random() * 3);
+    console.log(`[Server/${room.roomId}] 🤖 bot joga carta ${card} declarando tipo ${type}`);
+    writeStdin(room, `${card}\n`, 0);
+    writeStdin(room, `${type}\n`, 200);
+  } else if (msgType === 'doubt_state') {
+    // 50/50 duvidar ou acreditar
+    const choice = Math.random() < 0.5 ? '1' : '0';
+    console.log(`[Server/${room.roomId}] 🤖 bot ${choice === '1' ? 'DUVIDOU' : 'acreditou'}`);
+    writeStdin(room, `${choice}\n`, 0);
+  }
+}
+
+function sendDiceBotInput(room, data, msgType) {
+  if (msgType !== 'dice_state') return;
+  const curQty = data.currentBetQty ?? 0;
+  const curFace = data.currentBetFace ?? 0;
+
+  if (curQty === 0) {
+    // Mesa vazia: aposta inicial conservadora
+    const initFace = 1 + Math.floor(Math.random() * 6); // 1-6
+    console.log(`[Server/${room.roomId}] 🤖 bot abre mesa: 2 × face ${initFace}`);
+    writeStdin(room, 'A\n', 0);
+    writeStdin(room, '2\n', 150);
+    writeStdin(room, `${initFace}\n`, 300);
+    return;
+  }
+
+  // 30% duvida, 70% sobe a aposta minimamente
+  if (Math.random() < 0.3) {
+    console.log(`[Server/${room.roomId}] 🤖 bot DUVIDOU`);
+    writeStdin(room, 'D\n', 0);
+  } else {
+    let newQty = curQty;
+    let newFace = curFace + 1;
+    if (newFace > 6) {
+      newQty = curQty + 1;
+      newFace = 1;
+    }
+    console.log(`[Server/${room.roomId}] 🤖 bot aposta: ${newQty} × face ${newFace}`);
+    writeStdin(room, 'A\n', 0);
+    writeStdin(room, `${newQty}\n`, 150);
+    writeStdin(room, `${newFace}\n`, 300);
+  }
+}
+
 function handleLeaveRoom(ws) {
   const ctx = wsToRoom.get(ws);
   if (!ctx) return;
@@ -371,10 +545,16 @@ function removePlayerHard(room, playerId) {
 
   // Host transfer (Phase 4) — só faz sentido enquanto ainda tá no lobby
   if (playerId === room.hostId) {
-    const nextHost = Array.from(room.players.values()).find(p => p.connected) ??
-                     Array.from(room.players.values())[0];
-    room.hostId = nextHost.playerId;
-    console.log(`[Server/${room.roomId}] Host transferido pra ${nextHost.name} (${nextHost.playerId})`);
+    const players = Array.from(room.players.values());
+    // Phase 6: preferir humano conectado; bot só pode ser host se for o único
+    const humanConnected = players.find(p => p.connected && !p.isBot);
+    if (!humanConnected) {
+      // Sobrou só bots → fecha a sala
+      closeRoom(room.roomId, 'no_humans');
+      return;
+    }
+    room.hostId = humanConnected.playerId;
+    console.log(`[Server/${room.roomId}] Host transferido pra ${humanConnected.name} (${humanConnected.playerId})`);
   }
 
   broadcast(room, { type: 'room_state', room: getRoomSnapshot(room) });
@@ -410,6 +590,17 @@ function handleReconnect(ws, msg) {
   console.log(`[Server/${roomId}] ${player.name} reconectou`);
 
   // Sync completo: snapshot da sala + último game state se game já tá rolando
+  // Phase 7 fix: pra modo dice, reenvia lastDiceState filtrado per-client
+  // (server precisa filtrar pra não vazar dados alheios). Pra logic, lastGameState.
+  let lastDiceStateForClient = null;
+  if (room.lastDiceState && Array.isArray(room.lastDiceState.allDice)) {
+    const playersArr = Array.from(room.players.values());
+    const slot = playersArr.findIndex(p => p.playerId === playerId);
+    const myDice = slot >= 0 ? (room.lastDiceState.allDice[slot] ?? []) : [];
+    const { allDice: _drop, ...rest } = room.lastDiceState;
+    lastDiceStateForClient = { ...rest, myDice };
+  }
+
   send(ws, {
     type: 'reconnect_success',
     roomId,
@@ -417,6 +608,7 @@ function handleReconnect(ws, msg) {
     room: getRoomSnapshot(room),
     lastGameState: room.lastGameState,
     lastDoubtState: room.lastDoubtState,
+    lastDiceState: lastDiceStateForClient,
     expectedPlayerId: room.expectedPlayerId,
   });
 
@@ -437,12 +629,13 @@ function handleStartGame(ws, msg) {
     const room = {
       roomId,
       hostId: playerId,
-      players: new Map([[playerId, { playerId, name: playerNames[0], ws, connected: true, disconnectTimer: null }]]),
+      players: new Map([[playerId, { playerId, name: playerNames[0], ws, connected: true, disconnectTimer: null, isBot: false }]]),
       engine: null,
       currentTurn: -1,
       expectedPlayerId: null,
       gameStarted: true,
       isSoloMode: true,
+      gameMode: 'logic',   // legacy solo é sempre Boolean Bar
       legacyPlayerNames: playerNames,
       stdoutBuffer: '',
       lastGameState: null,
@@ -613,6 +806,8 @@ wss.on('connection', (ws) => {
       case 'reconnect':   return handleReconnect(ws, msg);
       case 'start_game':  return handleStartGame(ws, msg);
       case 'send_input':  return handleSendInput(ws, msg);
+      case 'add_bot':     return handleAddBot(ws);
+      case 'remove_bot':  return handleRemoveBot(ws, msg);
       case 'shutdown':    return handleShutdown(ws);
       default:
         return send(ws, { type: 'error', code: 'unknown_action', message: `Ação desconhecida: ${msg.action}` });

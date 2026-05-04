@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Plus, LogIn, ArrowLeft } from "lucide-react";
+import { Plus, LogIn, ArrowLeft, Brain, Dices } from "lucide-react";
+
+export type GameModeKind = "logic" | "dice";
 
 interface OnlineLobbyProps {
   wsStatus: "connecting" | "connected" | "disconnected";
   errorMessage?: string | null;
+  gameMode: GameModeKind;
+  onGameModeChange: (mode: GameModeKind) => void;
   onCreateRoom: (playerName: string) => void;
   onJoinRoom: (roomId: string, playerName: string) => void;
   onBack: () => void;
@@ -16,6 +20,8 @@ type Mode = "choose" | "create" | "join";
 export function OnlineLobby({
   wsStatus,
   errorMessage,
+  gameMode,
+  onGameModeChange,
   onCreateRoom,
   onJoinRoom,
   onBack,
@@ -66,7 +72,7 @@ export function OnlineLobby({
         </span>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-8 w-[480px]">
+      <div className="relative z-10 flex flex-col items-center gap-6 sm:gap-8 w-[90vw] max-w-[480px] px-2">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -191,6 +197,37 @@ export function OnlineLobby({
             </div>
           </motion.div>
         )}
+      </div>
+
+      {/* Toggle de modo de jogo — canto inferior direito */}
+      <div className="absolute bottom-6 right-6 z-20 flex flex-col items-end gap-2">
+        <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-mono">Modo do Jogo</span>
+        <div className="flex bg-black/60 border border-zinc-700 rounded-full p-1 backdrop-blur-md">
+          <button
+            onClick={() => onGameModeChange("dice")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs uppercase tracking-widest transition-all ${
+              gameMode === "dice"
+                ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(52,211,153,0.6)]"
+                : "text-zinc-400 hover:text-emerald-300"
+            }`}
+            style={gameMode === "dice" ? { fontWeight: 700 } : undefined}
+          >
+            <Dices className="w-4 h-4" />
+            Liar's Dice
+          </button>
+          <button
+            onClick={() => onGameModeChange("logic")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs uppercase tracking-widest transition-all ${
+              gameMode === "logic"
+                ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.6)]"
+                : "text-zinc-400 hover:text-cyan-300"
+            }`}
+            style={gameMode === "logic" ? { fontWeight: 700 } : undefined}
+          >
+            <Brain className="w-4 h-4" />
+            Boolean Bar
+          </button>
+        </div>
       </div>
     </div>
   );

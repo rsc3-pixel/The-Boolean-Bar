@@ -89,6 +89,23 @@ prod: all web-build
 	@echo "[Prod] Iniciando server único na porta $${PORT:-8080}..."
 	cd $(WEB_DIR) && NODE_ENV=production node web_server.js
 
+# ─── Modo terminal (sem web) ─────────────────────────────────────────────────
+# Roda o engine direto no terminal. O binário pergunta o modo (0=Logica, 1=Dados)
+# se chamado sem argumento.
+run: all
+	@echo "[Terminal] Rodando engine — escolha o modo (0=Boolean Bar, 1=Liar's Dice)..."
+	./$(TARGET)
+
+# Atalho pra cair direto no Boolean Bar (modo Lógica)
+run-logic: all
+	@echo "[Terminal] Boolean Bar (Lógica)..."
+	./$(TARGET) 0
+
+# Atalho pra cair direto no Liar's Dice
+run-dice: all
+	@echo "[Terminal] Liar's Dice (Dados)..."
+	./$(TARGET) 1
+
 # Modo desenvolvimento (Windows): abre 2 processos hidden + browser
 ifeq ($(PLATFORM),windows)
 dev: all
@@ -117,4 +134,4 @@ kill:
 
 restart: kill dev
 
-.PHONY: all clean run dev prod web-build kill restart prepare
+.PHONY: all clean run run-logic run-dice dev prod web-build kill restart prepare
