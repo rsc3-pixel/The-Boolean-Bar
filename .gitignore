@@ -36,3 +36,10 @@ dist/
 
 # Bash artifact (Makefile uses cmd.exe-style >NUL redirection)
 /NUL
+
+# Personal AI rules
+.cursorrules
+
+# Áudio bruto baixado em assets/ — só commitar a versão otimizada de
+# web/public/audio/ (que é a que o Vite serve em produção).
+/assets/*.mp3
