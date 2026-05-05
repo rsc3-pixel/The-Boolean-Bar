@@ -2,7 +2,7 @@ import { WebSocketServer } from 'ws';
 import { spawn, execSync } from 'child_process';
 import http from 'http';
 import path from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
 import { promises as fsp } from 'fs';
 import { fileURLToPath } from 'url';
 
@@ -34,6 +34,8 @@ const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem caracteres
 const DISCONNECT_GRACE_MS = 60_000;       // Phase 4: 60s pra reconectar antes de remover
 const HEARTBEAT_INTERVAL_MS = 30_000;     // Phase 4: ping a cada 30s
 const HEARTBEAT_TIMEOUT_MS = 10_000;      // se sem pong em 10s após ping → terminate
+const HISTORY_FILE = path.resolve(__dirname, '..', 'history.json');  // Capstone: histórico de partidas
+const HISTORY_MAX_ENTRIES = 100;          // mantém só as últimas 100 partidas
 
 // ─── Estado em memória ────────────────────────────────────────────────────────
 /**
@@ -90,6 +92,42 @@ function broadcast(room, msg) {
   for (const player of room.players.values()) {
     if (player.ws) send(player.ws, msg);  // pula players com ws null (desconectados)
   }
+}
+
+// ─── Histórico de partidas (Capstone) ────────────────────────────────────────
+// Persiste cada vitória em ../history.json. Lê de volta no action 'get_history'.
+function readHistory() {
+  try {
+    if (!existsSync(HISTORY_FILE)) return [];
+    const raw = readFileSync(HISTORY_FILE, 'utf-8');
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    console.warn('[History] Falha ao ler:', e.message);
+    return [];
+  }
+}
+
+function appendHistoryEntry(entry) {
+  try {
+    const history = readHistory();
+    history.push(entry);
+    // Mantém só as últimas N entradas pra arquivo não crescer indefinidamente
+    const trimmed = history.length > HISTORY_MAX_ENTRIES
+      ? history.slice(-HISTORY_MAX_ENTRIES)
+      : history;
+    writeFileSync(HISTORY_FILE, JSON.stringify(trimmed, null, 2), 'utf-8');
+    console.log(`[History] partida registrada: sala=${entry.roomId} vencedor=${entry.winner} (total: ${trimmed.length})`);
+  } catch (e) {
+    console.warn('[History] Falha ao gravar:', e.message);
+  }
+}
+
+function handleGetHistory(ws) {
+  const history = readHistory();
+  // Devolve em ordem reversa (mais recente primeiro), limitado a 30 últimas
+  const recent = [...history].reverse().slice(0, 30);
+  send(ws, { type: 'history', entries: recent });
 }
 
 function getRoomSnapshot(room) {
@@ -215,7 +253,24 @@ function handleEngineStdout(room, chunk) {
       },
       { tag: 'JSON_DOUBT_RESULT:',    type: 'doubt_result' },
       { tag: 'JSON_ROULETTE_RESULT:', type: 'roulette_result' },
-      { tag: 'JSON_VICTORY:',         type: 'victory_state' },
+      {
+        tag: 'JSON_VICTORY:',
+        type: 'victory_state',
+        onParse: (data) => {
+          // Capstone: persiste resultado da partida no histórico em disco
+          appendHistoryEntry({
+            timestamp: new Date().toISOString(),
+            roomId: room.roomId,
+            gameMode: room.gameMode,
+            players: Array.from(room.players.values()).map(p => ({
+              name: p.name,
+              isBot: p.isBot ?? false,
+            })),
+            winner: data.winner,
+            totalPlayers: data.totalPlayers,
+          });
+        },
+      },
       // ─── Liar's Dice (modo dados) ──
       {
         tag: 'JSON_DICE_STATE:',
@@ -808,6 +863,7 @@ wss.on('connection', (ws) => {
       case 'send_input':  return handleSendInput(ws, msg);
       case 'add_bot':     return handleAddBot(ws);
       case 'remove_bot':  return handleRemoveBot(ws, msg);
+      case 'get_history': return handleGetHistory(ws);
       case 'shutdown':    return handleShutdown(ws);
       default:
         return send(ws, { type: 'error', code: 'unknown_action', message: `Ação desconhecida: ${msg.action}` });

@@ -68,6 +68,16 @@ export interface VictoryState {
   totalPlayers: number;
 }
 
+// ─── Histórico de partidas (Capstone) ────────────────────────────────────────
+export interface HistoryEntry {
+  timestamp: string;
+  roomId: string;
+  gameMode: 'logic' | 'dice';
+  players: { name: string; isBot: boolean }[];
+  winner: string;
+  totalPlayers: number;
+}
+
 // ─── Liar's Dice (modo dados) ────────────────────────────────────────────────
 
 /** Informações públicas de um jogador no modo Liar's Dice (visíveis a todos). */
@@ -212,6 +222,9 @@ export function useGameEngine() {
   const [diceReveal, setDiceReveal] = useState<DiceReveal | null>(null);
   const [showDiceReveal, setShowDiceReveal] = useState(false);
 
+  // Histórico de partidas (capstone)
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
   const connect = useCallback(() => {
     if (reconnectTimer.current) {
       clearTimeout(reconnectTimer.current);
@@ -309,6 +322,10 @@ export function useGameEngine() {
           console.log("[WS] 🎲 DICE REVEAL:", resp.data);
           setDiceReveal(resp.data);
           setShowDiceReveal(true);
+        }
+        if (resp.type === 'history') {
+          console.log("[WS] 📜 HISTORY:", resp.entries?.length, "entradas");
+          setHistory(resp.entries ?? []);
         }
         if (resp.type === 'trigger') {
           // Trigger 'show_doubt' e 'player_death' eram resíduos do modo demo
@@ -469,6 +486,10 @@ export function useGameEngine() {
     } catch (_) { /* no-op */ }
   }, [sendAction]);
 
+  const loadHistory = useCallback(() => {
+    sendAction({ action: "get_history" });
+  }, [sendAction]);
+
   const addBot = useCallback(() => {
     setRoomError(null);
     sendAction({ action: "add_bot" });
@@ -561,5 +582,8 @@ export function useGameEngine() {
     diceReveal,
     showDiceReveal,
     setShowDiceReveal,
+    // ─── Capstone: histórico ──
+    history,
+    loadHistory,
   };
 }
