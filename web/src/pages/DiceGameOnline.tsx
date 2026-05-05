@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, AlertCircle, Eye, X, WifiOff, Skull, Coins } from "lucide-react";
 import { DiceFace } from "../components/ui/DiceFace";
 import { OpponentDiceCard } from "../components/ui/OpponentDiceCard";
+import { GameLog } from "../components/ui/GameLog";
 import { useGameEngine } from "../hooks/useGameEngine";
 import { audioCues } from "../utils/audioCues";
 
@@ -24,6 +25,7 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
     wsStatus,
     roomState,
     playerId,
+    gameLog,
   } = engine;
 
   // ─── Identidade do cliente ─────────────────────────────────────────────
@@ -519,6 +521,11 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Capstone: log de jogadas — oculta durante telas de fim/reveal */}
+      {!victoryState && !showDiceReveal && (
+        <GameLog entries={gameLog} position="top-right" />
+      )}
     </div>
   );
 }

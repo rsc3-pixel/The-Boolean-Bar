@@ -68,16 +68,6 @@ export interface VictoryState {
   totalPlayers: number;
 }
 
-// ─── Histórico de partidas (Capstone) ────────────────────────────────────────
-export interface HistoryEntry {
-  timestamp: string;
-  roomId: string;
-  gameMode: 'logic' | 'dice';
-  players: { name: string; isBot: boolean }[];
-  winner: string;
-  totalPlayers: number;
-}
-
 // ─── Liar's Dice (modo dados) ────────────────────────────────────────────────
 
 /** Informações públicas de um jogador no modo Liar's Dice (visíveis a todos). */
@@ -148,6 +138,27 @@ export interface DiceReveal {
   eliminated: boolean;
   /** Todos os dados de todos os jogadores, revelados após o confronto. */
   allDice: number[][];
+}
+
+// ─── Log de jogadas (Capstone) ────────────────────────────────────────────────
+
+/** Categoria de evento no log de jogadas (define o ícone/cor na UI). */
+export type GameLogKind =
+  | 'info'
+  | 'doubt'
+  | 'roulette_safe'
+  | 'roulette_dead'
+  | 'bet'
+  | 'dice_doubt'
+  | 'reveal'
+  | 'victory';
+
+/** Entrada do log de jogadas, acumulado durante a partida. */
+export interface GameLogEntry {
+  id: string;
+  timestamp: number;
+  kind: GameLogKind;
+  text: string;
 }
 
 // ─── Multiplayer (Fase 2+) ────────────────────────────────────────────────────
@@ -222,8 +233,19 @@ export function useGameEngine() {
   const [diceReveal, setDiceReveal] = useState<DiceReveal | null>(null);
   const [showDiceReveal, setShowDiceReveal] = useState(false);
 
-  // Histórico de partidas (capstone)
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  // ─── Log de jogadas (Capstone) ───────────────────────────────────────────
+  const [gameLog, setGameLog] = useState<GameLogEntry[]>([]);
+  const logIdCounter = useRef(0);
+  const pushLog = useCallback((kind: GameLogKind, text: string) => {
+    setGameLog(prev => {
+      const id = `log-${++logIdCounter.current}`;
+      return [...prev, { id, timestamp: Date.now(), kind, text }];
+    });
+  }, []);
+  const clearGameLog = useCallback(() => {
+    setGameLog([]);
+    logIdCounter.current = 0;
+  }, []);
 
   const connect = useCallback(() => {
     if (reconnectTimer.current) {
@@ -282,12 +304,23 @@ export function useGameEngine() {
           console.log("[WS] ⚔️ DOUBT STATE RECEBIDO (aguardando ação do oponente)", resp.data);
           setDoubtState(resp.data);
         }
+        if (resp.type === 'doubt_state') {
+          // Log: alguém duvidou de uma carta declarada
+          const tipos = ['—', 'Tautologia', 'Contradição', 'Contingência'];
+          const declarado = tipos[resp.data?.bluff] ?? 'algo';
+          pushLog('doubt', `${resp.data.caller} duvidou de ${resp.data.target} (declarou ${declarado})`);
+        }
         if (resp.type === 'doubt_result') {
           // Alguém clicou DUVIDO. Agora sim disparamos a cascata de animação:
           // overlay "Dúvida chamada!" → TruthTable → Roleta.
           console.log("[WS] ⚖️ DOUBT RESULT RECEBIDO!", resp.data);
           setDoubtResult(resp.data);
           setShowDoubtOverlay(true); // dispara a cascata
+          const tiposReal = ['Tautologia', 'Contradição', 'Contingência'];
+          const realName = tiposReal[resp.data?.realType] ?? '?';
+          pushLog('doubt', resp.data?.bluffed
+            ? `${resp.data.loser} blefou (era ${realName}) → roleta russa`
+            : `${resp.data.loser} duvidou em vão (era ${realName}) → roleta russa`);
         }
         if (resp.type === 'roulette_result') {
           // Resultado real da roleta russa: dispara a tela da roleta agora
@@ -299,11 +332,17 @@ export function useGameEngine() {
           if (resp.data.survived === false && resp.data.player) {
             setEliminationOrder(prev => prev.includes(resp.data.player) ? prev : [...prev, resp.data.player]);
           }
+          if (resp.data?.survived) {
+            pushLog('roulette_safe', `${resp.data.player} sobreviveu à roleta (${resp.data.bullets} bala${resp.data.bullets === 1 ? '' : 's'})`);
+          } else {
+            pushLog('roulette_dead', `💀 ${resp.data.player} foi eliminado na roleta`);
+          }
         }
         if (resp.type === 'victory_state') {
           console.log("[WS] 🏆 VICTORY STATE RECEBIDO!", resp.data);
           setVictoryState(resp.data);
           setShowVictory(true);
+          pushLog('victory', `🏆 ${resp.data.winner} venceu a partida`);
         }
         // ─── Liar's Dice events ────────────────────────────────────────
         if (resp.type === 'dice_state') {
@@ -313,19 +352,24 @@ export function useGameEngine() {
         if (resp.type === 'dice_bet') {
           console.log("[WS] 🎲 DICE BET:", resp.data);
           setDiceBet(resp.data);
+          pushLog('bet', `${resp.data.caller} apostou ${resp.data.qt}× face ${resp.data.face}`);
         }
         if (resp.type === 'dice_doubt') {
           console.log("[WS] 🎲 DICE DOUBT:", resp.data);
           setDiceDoubt(resp.data);
+          pushLog('dice_doubt', `${resp.data.caller} duvidou da aposta`);
         }
         if (resp.type === 'dice_reveal') {
           console.log("[WS] 🎲 DICE REVEAL:", resp.data);
           setDiceReveal(resp.data);
           setShowDiceReveal(true);
-        }
-        if (resp.type === 'history') {
-          console.log("[WS] 📜 HISTORY:", resp.entries?.length, "entradas");
-          setHistory(resp.entries ?? []);
+          const verdict = resp.data?.betValid
+            ? `aposta válida (havia ${resp.data.totalReal}× face ${resp.data.betFace})`
+            : `mentira (só ${resp.data.totalReal}× face ${resp.data.betFace})`;
+          const tail = resp.data?.eliminated
+            ? `💀 ${resp.data.loser} eliminado`
+            : `${resp.data.loser} perdeu 1 dado (${resp.data.loserDiceCount} restantes)`;
+          pushLog('reveal', `${verdict} → ${tail}`);
         }
         if (resp.type === 'trigger') {
           // Trigger 'show_doubt' e 'player_death' eram resíduos do modo demo
@@ -408,6 +452,10 @@ export function useGameEngine() {
           console.log("[WS] 🚀 GAME STARTING (broadcast)");
           setGameStarting(true);
           setRoomState(resp.room);
+          // Reset do log a cada nova partida (capstone)
+          setGameLog([]);
+          logIdCounter.current = 0;
+          pushLog('info', '─── Partida iniciada ───');
         }
         if (resp.type === 'error') {
           console.warn("[WS] ⚠️ Error:", resp.code, resp.message);
@@ -484,10 +532,6 @@ export function useGameEngine() {
       sessionStorage.removeItem('booleanbar_playerId');
       sessionStorage.removeItem('booleanbar_roomId');
     } catch (_) { /* no-op */ }
-  }, [sendAction]);
-
-  const loadHistory = useCallback(() => {
-    sendAction({ action: "get_history" });
   }, [sendAction]);
 
   const addBot = useCallback(() => {
@@ -582,8 +626,8 @@ export function useGameEngine() {
     diceReveal,
     showDiceReveal,
     setShowDiceReveal,
-    // ─── Capstone: histórico ──
-    history,
-    loadHistory,
+    // ─── Capstone: log de jogadas ──
+    gameLog,
+    clearGameLog,
   };
 }
