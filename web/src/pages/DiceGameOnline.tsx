@@ -176,11 +176,11 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
           🎲 <span className="hidden sm:inline">LIAR'S DICE</span><span className="sm:hidden">DICE</span>
         </h1>
 
-        <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono">
+        <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono pr-11 sm:pr-0">
           {isMyTurn ? (
             <span className="text-emerald-400 animate-pulse">SUA VEZ</span>
           ) : (
-            <span className="text-yellow-400 truncate max-w-[80px] sm:max-w-none">VEZ DE {expectedPlayer?.name?.toUpperCase() ?? "?"}</span>
+            <span className="text-yellow-400 truncate max-w-[60px] sm:max-w-none">VEZ DE {expectedPlayer?.name?.toUpperCase() ?? "?"}</span>
           )}
           <span className="hidden sm:inline text-zinc-500">VIVOS: {aliveCount}/{diceState.totalPlayers}</span>
         </div>

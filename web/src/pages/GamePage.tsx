@@ -248,7 +248,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="relative z-20 h-14 sm:h-20 bg-zinc-950/80 backdrop-blur-xl border-b border-cyan-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
       >
-        <div className="h-full max-w-7xl mx-auto px-3 sm:px-8 flex items-center justify-between">
+        <div className="h-full max-w-7xl mx-auto pl-3 pr-12 sm:px-8 flex items-center justify-between">
           <h1 className="text-base sm:text-3xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-400 drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}>
             <span className="sm:hidden">BOOLEAN</span>
             <span className="hidden sm:inline">THE BOOLEAN BAR</span>
@@ -364,10 +364,10 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
             <span className="hidden sm:inline text-sm font-mono font-bold">BACK TO MENU</span>
           </motion.button>
 
-          {/* Botão Pause */}
+          {/* Botão Pause — deslocado em mobile pra não colidir com o botão flutuante do GameLog (top-3 right-3) */}
           <motion.button
             onClick={() => setIsPaused(!isPaused)}
-            className="absolute top-3 right-3 sm:top-8 sm:right-8 z-30 p-2 sm:p-3 bg-zinc-950/60 backdrop-blur-md border-2 border-zinc-600/40 rounded-xl text-zinc-400 hover:text-cyan-300 hover:bg-cyan-950/50 transition-all duration-300"
+            className="absolute top-3 right-16 sm:top-8 sm:right-8 z-30 p-2 sm:p-3 bg-zinc-950/60 backdrop-blur-md border-2 border-zinc-600/40 rounded-xl text-zinc-400 hover:text-cyan-300 hover:bg-cyan-950/50 transition-all duration-300"
           >
             <Pause className="w-6 h-6" strokeWidth={2.5} />
           </motion.button>

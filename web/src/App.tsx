@@ -257,19 +257,26 @@ export default function App() {
         onMusicToggle={setMusicEnabled}
       />
 
-      {/* Botão flutuante de áudio — canto inferior esquerdo, sempre visível */}
-      <button
-        onClick={() => setMusicEnabled(!musicEnabled)}
-        title={musicEnabled ? "Desligar som" : "Ligar som"}
-        aria-label={musicEnabled ? "Desligar som" : "Ligar som"}
-        className={`fixed bottom-4 left-4 z-[200] w-12 h-12 sm:w-14 sm:h-14 rounded-full backdrop-blur-md border-2 flex items-center justify-center transition-all duration-300 shadow-lg ${
-          musicEnabled
-            ? "bg-cyan-500/20 border-cyan-400/60 text-cyan-300 hover:bg-cyan-500/30 hover:scale-110 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
-            : "bg-zinc-900/80 border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:scale-110"
-        }`}
-      >
-        {musicEnabled ? <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" />}
-      </button>
+      {/* Botão flutuante de áudio — em mobile, esconde durante telas de jogo
+          pra não cobrir os botões de ação. Mute fica acessível via Settings. */}
+      {(() => {
+        const isInGame = currentScreen === "game" || currentScreen === "diceGame";
+        const hideOnMobile = isInGame ? "hidden sm:flex" : "flex";
+        return (
+          <button
+            onClick={() => setMusicEnabled(!musicEnabled)}
+            title={musicEnabled ? "Desligar som" : "Ligar som"}
+            aria-label={musicEnabled ? "Desligar som" : "Ligar som"}
+            className={`${hideOnMobile} fixed bottom-4 left-4 z-[200] w-12 h-12 sm:w-14 sm:h-14 rounded-full backdrop-blur-md border-2 items-center justify-center transition-all duration-300 shadow-lg ${
+              musicEnabled
+                ? "bg-cyan-500/20 border-cyan-400/60 text-cyan-300 hover:bg-cyan-500/30 hover:scale-110 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                : "bg-zinc-900/80 border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:scale-110"
+            }`}
+          >
+            {musicEnabled ? <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" />}
+          </button>
+        );
+      })()}
     </>
   );
 }
