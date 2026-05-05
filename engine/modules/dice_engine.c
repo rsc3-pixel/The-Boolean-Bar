@@ -20,10 +20,14 @@
 
 /* ═══════════════════════════ API pública ════════════════════════════════ */
 
-/*
- * criar_jogador()
- * Aloca e inicializa um Jogador com cópia interna do vetor de dados.
- * Retorna NULL em caso de falha de alocação.
+/**
+ * @brief Aloca e inicializa um Jogador com cópia interna do vetor de dados.
+ *
+ * @param nome      Nome do jogador (copiado internamente, máx. 31 chars).
+ * @param dados     Vetor com os valores das faces dos dados.
+ * @param num_dados Quantidade de dados no vetor.
+ * @return Ponteiro para o Jogador alocado, ou NULL em caso de falha.
+ *         O chamador deve liberar com liberar_jogador().
  */
 Jogador *criar_jogador(const char *nome, const int *dados, int num_dados)
 {
@@ -46,9 +50,10 @@ Jogador *criar_jogador(const char *nome, const int *dados, int num_dados)
     return j;
 }
 
-/*
- * liberar_jogador()
- * Libera toda a memória associada a um Jogador.
+/**
+ * @brief Libera toda a memória associada a um Jogador.
+ *
+ * @param j Ponteiro para o Jogador a ser liberado. NULL é tratado com segurança.
  */
 void liberar_jogador(Jogador *j)
 {
@@ -57,16 +62,17 @@ void liberar_jogador(Jogador *j)
     free(j);
 }
 
-/*
- * avaliar_aposta()
- * Percorre os dados de todos os jogadores e aplica a regra do curinga.
+/**
+ * @brief Avalia se uma aposta é verdadeira contando os dados de todos os jogadores.
  *
- * Parâmetros:
- *   aposta       – ponteiro para a aposta (quantidade + face)
- *   jogadores    – array de ponteiros para os jogadores
- *   num_jogadores– número de jogadores
+ * Aplica a regra do curinga: o valor 1 conta para qualquer face apostada,
+ * exceto quando a aposta é na própria face 1 (evita dupla contagem).
+ * A aposta é VERDADEIRA se total_contado >= aposta->quantidade.
  *
- * Retorna um ResultadoAvaliacao preenchido.
+ * @param aposta        Ponteiro para a aposta a ser avaliada.
+ * @param jogadores     Array de ponteiros para os jogadores participantes.
+ * @param num_jogadores Número de jogadores no array.
+ * @return ResultadoAvaliacao com contagens detalhadas e o veredicto final.
  */
 ResultadoAvaliacao avaliar_aposta(const Aposta        *aposta,
                                   Jogador * const     *jogadores,
@@ -98,9 +104,11 @@ ResultadoAvaliacao avaliar_aposta(const Aposta        *aposta,
     return res;
 }
 
-/*
- * imprimir_resultado()
- * Exibe no stdout um resumo detalhado da avaliação da aposta.
+/**
+ * @brief Exibe no stdout um resumo detalhado da avaliação da aposta.
+ *
+ * @param res    Ponteiro para o resultado da avaliação.
+ * @param aposta Ponteiro para a aposta que foi avaliada.
  */
 void imprimir_resultado(const ResultadoAvaliacao *res, const Aposta *aposta)
 {
