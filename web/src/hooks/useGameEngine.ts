@@ -1,102 +1,184 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
+// ─── Boolean Bar (modo lógico) ───────────────────────────────────────────────
+
+/** Estado público de um jogador recebido via JSON_STATE do engine. */
 export interface PlayerState {
+  /** Nome do jogador. */
   name: string;
+  /** true enquanto o jogador estiver vivo na partida. */
   alive: boolean;
+  /** Quantidade de cartas na mão. */
   cards: number;
+  /** Vidas restantes (balas no tambor define o risco da roleta). */
   lives: number;
 }
 
+/** Snapshot completo do estado da mesa, emitido pelo engine a cada turno. */
 export interface GameState {
+  /** Lista de todos os jogadores e seus estados. */
   players: PlayerState[];
+  /** Cartas (fórmulas) na mão do jogador atual. */
   currentHand: string[];
+  /** Índice (0-based) do jogador cujo turno está ativo. */
   turn: number;
+  /** Número de balas no tambor da roleta. */
   bullets: number;
 }
 
+/** Dados do confronto lógico emitidos quando um jogador duvida de outro. */
 export interface DoubtState {
+  /** Nome do jogador que está duvidando. */
   caller: string;
+  /** Nome do jogador que jogou a carta. */
   target: string;
+  /** Fórmula da carta jogada. */
   card: string;
+  /** Tipo declarado pelo jogador alvo (1=TAUTOLOGIA, 2=CONTRADIÇÃO, 3=CONTINGÊNCIA). */
   bluff: number;
 }
 
+/** Resultado do confronto lógico após avaliação pelo logic_engine. */
 export interface DoubtResult {
-  loser: string;      // Nome de quem vai para a roleta
-  bluffed: boolean;   // true = loser blefou; false = oponente duvidou errado
-  realType: number;   // Tipo real avaliado pelo logic_engine (0=TAUTO, 1=CONTRA, 2=CONT)
+  /** Nome do jogador que perdeu o confronto e vai para a roleta. */
+  loser: string;
+  /** true = o loser blefou; false = o oponente duvidou sem razão. */
+  bluffed: boolean;
+  /** Tipo real da fórmula: 0=TAUTOLOGIA, 1=CONTRADIÇÃO, 2=CONTINGÊNCIA. */
+  realType: number;
 }
 
+/** Resultado da roleta russa após o confronto lógico. */
 export interface RouletteResult {
-  player: string;    // Nome de quem puxou o gatilho
-  survived: boolean; // true = sobreviveu; false = foi eliminado
-  lives: number;     // Vidas restantes
-  bullets: number;   // Balas no tambor após a roleta
+  /** Nome do jogador que puxou o gatilho. */
+  player: string;
+  /** true = sobreviveu ao tiro; false = foi eliminado. */
+  survived: boolean;
+  /** Vidas restantes após a roleta. */
+  lives: number;
+  /** Balas no tambor após o disparo (incrementa a cada sobrevivência). */
+  bullets: number;
 }
 
+/** Estado de vitória emitido quando restar apenas um jogador. */
 export interface VictoryState {
+  /** Nome do vencedor da partida. */
   winner: string;
+  /** Total de jogadores que participaram da partida. */
   totalPlayers: number;
 }
 
 // ─── Liar's Dice (modo dados) ────────────────────────────────────────────────
+
+/** Informações públicas de um jogador no modo Liar's Dice (visíveis a todos). */
 export interface DicePlayerInfo {
+  /** Nome do jogador. */
   name: string;
+  /** true enquanto o jogador estiver na partida. */
   alive: boolean;
+  /** Quantidade de dados que o jogador ainda possui. */
   dice_count: number;
 }
+
+/** Estado da mesa no modo Liar's Dice, emitido pelo server a cada turno. */
 export interface DiceState {
+  /** Lista de jogadores com informações públicas. */
   players: DicePlayerInfo[];
-  myDice: number[];        // Dados do PRÓPRIO cliente (server filtra)
+  /** Dados do próprio cliente (filtrados pelo server — os outros não veem). */
+  myDice: number[];
+  /** Quantidade apostada na aposta atual. */
   currentBetQty: number;
+  /** Face apostada na aposta atual (1–6). */
   currentBetFace: number;
+  /** ID do jogador que fez a última aposta. */
   lastBetPlayerId: number;
+  /** Índice (0-based) do jogador cujo turno está ativo. */
   turn: number;
+  /** Total de jogadores na partida. */
   totalPlayers: number;
 }
+
+/** Aposta feita por um jogador no modo Liar's Dice. */
 export interface DiceBet {
+  /** Nome do jogador que apostou. */
   caller: string;
+  /** Quantidade de dados apostada. */
   qt: number;
+  /** Face apostada (1–6). */
   face: number;
 }
+
+/** Evento de dúvida emitido quando um jogador questiona a aposta vigente. */
 export interface DiceDoubt {
+  /** Nome do jogador que duvidou. */
   caller: string;
+  /** ID (0-based) do jogador cuja aposta está sendo questionada. */
   target_id: number;
 }
+
+/** Resultado do confronto após uma dúvida, com todos os dados revelados. */
 export interface DiceReveal {
+  /** Nome do jogador que duvidou. */
   doubter: string;
+  /** Nome do jogador que fez a aposta questionada. */
   bettor: string;
+  /** Quantidade apostada. */
   betQty: number;
+  /** Face apostada. */
   betFace: number;
+  /** Total real de dados com a face apostada (incluindo curingas). */
   totalReal: number;
+  /** true = aposta era válida (doubter perde); false = era mentira (bettor perde). */
   betValid: boolean;
+  /** Nome do jogador que perdeu um dado nesta rodada. */
   loser: string;
+  /** Quantidade de dados que o loser tem após a penalidade. */
   loserDiceCount: number;
+  /** true se o loser foi eliminado da partida nesta rodada. */
   eliminated: boolean;
-  allDice: number[][];   // Aqui pode revelar todos — a roda já abriu
+  /** Todos os dados de todos os jogadores, revelados após o confronto. */
+  allDice: number[][];
 }
 
-// ─── Multiplayer (Phase 2) ────────────────────────────────────────────────────
+// ─── Multiplayer (Fase 2+) ────────────────────────────────────────────────────
+
+/** Representa um jogador dentro de uma sala multiplayer. */
 export interface RoomPlayer {
+  /** ID único do jogador na sessão WebSocket. */
   playerId: string;
+  /** Nome do jogador. */
   name: string;
+  /** Posição do jogador na mesa (slot 0-based). */
   slot: number;
+  /** true se este jogador é o dono da sala. */
   isHost: boolean;
-  connected: boolean;  // Phase 4
-  isBot: boolean;      // Phase 6
+  /** true se a conexão WebSocket do jogador está ativa. */
+  connected: boolean;
+  /** true se o jogador é um bot controlado pelo server. */
+  isBot: boolean;
 }
 
+/** Snapshot do estado de uma sala multiplayer, enviado a todos os membros. */
 export interface RoomSnapshot {
+  /** Código identificador da sala. */
   roomId: string;
+  /** ID do jogador que é o host. */
   hostId: string;
+  /** true quando a partida já foi iniciada pelo host. */
   gameStarted: boolean;
+  /** true quando apenas um jogador está na sala (modo solo com bots). */
   isSoloMode: boolean;
-  gameMode: 'logic' | 'dice';   // Phase 6: tipo de jogo (Boolean Bar ou Liar's Dice)
+  /** Modo de jogo escolhido: 'logic' (Boolean Bar) ou 'dice' (Liar's Dice). */
+  gameMode: 'logic' | 'dice';
+  /** Lista de jogadores atualmente na sala. */
   players: RoomPlayer[];
 }
 
+/** Erro retornado pelo server em operações de sala. */
 export interface RoomError {
+  /** Código de erro legível por máquina (ex: "ROOM_NOT_FOUND"). */
   code: string;
+  /** Mensagem de erro legível pelo usuário. */
   message: string;
 }
 

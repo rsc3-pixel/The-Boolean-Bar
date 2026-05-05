@@ -45,7 +45,14 @@ typedef struct {
 
 /* ═══════════════════════════ Funções auxiliares ══════════════════════════ */
 
-/* Retorna a precedência de um operador (maior = mais forte). */
+/**
+ * @brief Retorna a precedência de um operador lógico.
+ * Maior valor = maior prioridade de avaliação.
+ * Ordem: ~ (4) > & (3) > | (2) > -> (1) > <-> (0).
+ *
+ * @param op Tipo do token operador.
+ * @return Inteiro representando a precedência, ou -1 se não for operador.
+ */
 static int precedencia(TipoToken op)
 {
     switch (op) {
@@ -58,7 +65,13 @@ static int precedencia(TipoToken op)
     }
 }
 
-/* Retorna true se o operador é associativo à direita (apenas negação). */
+/**
+ * @brief Verifica se um operador é associativo à direita.
+ * Apenas a negação (~) é associativa à direita neste motor.
+ *
+ * @param op Tipo do token operador.
+ * @return true se associativo à direita; false caso contrário.
+ */
 static bool assoc_direita(TipoToken op)
 {
     return op == TOK_NEG;
@@ -66,12 +79,16 @@ static bool assoc_direita(TipoToken op)
 
 /* ═══════════════════════════ Tokenizador ═════════════════════════════════ */
 
-/*
- * tokenizar()
- * Converte a string de expressão em um vetor de tokens.
- * O chamador deve liberar o vetor retornado com free().
+/**
+ * @brief Converte a string de expressão em um vetor de tokens.
  *
- * Retorna NULL em caso de erro; *num_tokens é preenchido com o total.
+ * Reconhece variáveis (letras), operadores (~, &, |, ->, <->)
+ * e parênteses. Ignora espaços. O vetor retornado cresce dinamicamente.
+ *
+ * @param expr       String da expressão lógica.
+ * @param num_tokens Saída: número de tokens gerados.
+ * @return Vetor de Token alocado dinamicamente, ou NULL em caso de erro.
+ *         O chamador deve liberar com free().
  */
 static Token *tokenizar(const char *expr, int *num_tokens)
 {
@@ -132,11 +149,17 @@ static Token *tokenizar(const char *expr, int *num_tokens)
 
 /* ═══════════════════════════ Shunting-Yard ══════════════════════════════ */
 
-/*
- * infix_para_rpn()
- * Algoritmo de Shunting-Yard: converte tokens em ordem infixa para RPN.
- * O vetor rpn_out deve ter capacidade >= num_tokens.
- * Retorna o número de tokens na saída RPN, ou -1 em caso de erro.
+/**
+ * @brief Converte tokens em ordem infixa para Notação Polonesa Reversa (RPN).
+ *
+ * Implementa o algoritmo de Shunting-Yard de Dijkstra, respeitando
+ * precedência e associatividade dos operadores lógicos.
+ *
+ * @param tokens     Vetor de tokens em ordem infixa.
+ * @param num_tokens Quantidade de tokens no vetor.
+ * @param rpn_out    Buffer de saída (capacidade >= num_tokens).
+ * @return Número de tokens escritos em rpn_out, ou -1 em caso de erro
+ *         (parêntese desbalanceado ou falha de alocação).
  */
 static int infix_para_rpn(const Token *tokens, int num_tokens,
                            Token *rpn_out)
@@ -197,15 +220,18 @@ static int infix_para_rpn(const Token *tokens, int num_tokens,
 
 /* ═══════════════════════════ Avaliador de RPN ════════════════════════════ */
 
-/*
- * avaliar_rpn()
- * Avalia a expressão em RPN dado um mapeamento variável→valor.
+/**
+ * @brief Avalia uma expressão em RPN para uma atribuição de variáveis.
  *
- * vars[i]   : identificador da i-ésima variável (ex: 'p')
- * valores[i]: valor booleano atribuído a ela
- * num_vars  : número de variáveis
+ * Usa uma pilha de booleanos. Variáveis são substituídas pelo valor em
+ * @p valores; operadores consomem operandos e empilham o resultado.
  *
- * Retorna o resultado booleano, ou false em caso de erro interno.
+ * @param rpn      Vetor de tokens em ordem RPN.
+ * @param n_rpn    Quantidade de tokens em @p rpn.
+ * @param vars     Vetor com os identificadores das variáveis (ex: "pq").
+ * @param valores  Vetor de valores booleanos para cada variável.
+ * @param num_vars Número de variáveis em @p vars / @p valores.
+ * @return Resultado booleano da expressão, ou false em caso de erro interno.
  */
 static bool avaliar_rpn(const Token *rpn, int n_rpn,
                          const char *vars, const bool *valores, int num_vars)
@@ -253,11 +279,15 @@ static bool avaliar_rpn(const Token *rpn, int n_rpn,
 
 /* ═══════════════════════════ API pública ════════════════════════════════ */
 
-/*
- * extrair_variaveis()
- * Varre 'expr' e preenche 'vars_out' com as variáveis únicas encontradas,
- * em ordem de primeira aparição.
- * Retorna o número de variáveis únicas (≤ 26).
+/**
+ * @brief Extrai as variáveis únicas de uma expressão lógica.
+ *
+ * Varre @p expr e preenche @p vars_out com as variáveis únicas
+ * em ordem de primeira aparição, normalizadas para minúsculas.
+ *
+ * @param expr     String da expressão lógica.
+ * @param vars_out Buffer de saída (capacidade mínima: 26 chars).
+ * @return Número de variáveis únicas encontradas (0–26).
  */
 int extrair_variaveis(const char *expr, char *vars_out)
 {
@@ -278,10 +308,15 @@ int extrair_variaveis(const char *expr, char *vars_out)
     return count;
 }
 
-/*
- * gerar_tabela_verdade()
- * Cria e preenche a tabela verdade completa para a expressão.
- * Retorna NULL em caso de erro; o chamador deve liberar com liberar_tabela().
+/**
+ * @brief Cria e preenche a tabela verdade completa para uma expressão lógica.
+ *
+ * Pipeline interno: tokenização → Shunting-Yard (infix→RPN) → avaliação
+ * por linha → classificação final (TAUTOLOGIA / CONTRADICAO / CONTINGENCIA).
+ *
+ * @param expr String da expressão proposicional.
+ * @return Ponteiro para TabelaVerdade alocada, ou NULL em caso de erro.
+ *         O chamador deve liberar com liberar_tabela().
  */
 TabelaVerdade *gerar_tabela_verdade(const char *expr)
 {
@@ -364,7 +399,12 @@ TabelaVerdade *gerar_tabela_verdade(const char *expr)
     return tv;
 }
 
-/* Converte enum Classificacao para string legível. */
+/**
+ * @brief Converte um valor de Classificacao para string legível.
+ *
+ * @param c Classificação a converter.
+ * @return String estática: "TAUTOLOGIA", "CONTRADIÇÃO" ou "CONTINGÊNCIA".
+ */
 const char *classificacao_str(Classificacao c)
 {
     switch (c) {
@@ -374,7 +414,12 @@ const char *classificacao_str(Classificacao c)
     }
 }
 
-/* Imprime a tabela verdade formatada no stdout. */
+/**
+ * @brief Imprime a tabela verdade formatada no stdout.
+ *
+ * @param tv   Ponteiro para a tabela a ser impressa.
+ * @param expr String original da expressão (usada no cabeçalho).
+ */
 void imprimir_tabela(const TabelaVerdade *tv, const char *expr)
 {
     if (!tv) return;
@@ -402,7 +447,11 @@ void imprimir_tabela(const TabelaVerdade *tv, const char *expr)
     printf("\n  Classificação: %s\n\n", classificacao_str(tv->classificacao));
 }
 
-/* Libera todos os recursos alocados pela tabela verdade. */
+/**
+ * @brief Libera todos os recursos alocados por uma TabelaVerdade.
+ *
+ * @param tv Ponteiro para a tabela a ser liberada. NULL é tratado com segurança.
+ */
 void liberar_tabela(TabelaVerdade *tv)
 {
     if (!tv) return;
