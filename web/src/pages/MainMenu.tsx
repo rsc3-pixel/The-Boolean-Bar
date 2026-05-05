@@ -1,15 +1,13 @@
 import { motion } from "motion/react";
-import { BookOpen, DoorOpen, Users, Brain, History } from "lucide-react";
+import { BookOpen, DoorOpen, Users } from "lucide-react";
 
 interface MainMenuProps {
   onEnterOnline: () => void;
-  onOpenAnalyzer: () => void;
-  onOpenHistory: () => void;
   onOpenRules: () => void;
   onFlee: () => void;
 }
 
-export function MainMenu({ onEnterOnline, onOpenAnalyzer, onOpenHistory, onOpenRules, onFlee }: MainMenuProps) {
+export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) {
   return (
     <div className="size-full bg-black overflow-hidden relative flex items-center justify-center">
       {/* Deep black background */}
@@ -195,80 +193,6 @@ export function MainMenu({ onEnterOnline, onOpenAnalyzer, onOpenHistory, onOpenR
               style={{
                 boxShadow: '0 0 100px rgba(6, 182, 212, 1), 0 0 150px rgba(6, 182, 212, 0.8)'
               }}
-            />
-          </motion.button>
-
-          {/* 1.5 PURPLE BUTTON - "ANALISAR" (capstone: analisador de fórmulas) */}
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onOpenAnalyzer}
-            className="group relative w-[90vw] max-w-[600px] h-[70px] sm:h-[85px] bg-transparent backdrop-blur-sm border-2 border-purple-400/40 rounded-xl overflow-hidden transition-all duration-300 hover:border-purple-300/60"
-            style={{
-              background: 'rgba(168, 85, 247, 0.04)',
-              boxShadow: '0 0 30px rgba(168, 85, 247, 0.15), inset 0 0 30px rgba(168, 85, 247, 0.05)'
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/5" />
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-purple-400/20 to-purple-500/10"
-            />
-            <div className="relative h-full flex items-center justify-center gap-3 sm:gap-4 px-4 sm:px-8">
-              <Brain className="w-5 h-5 sm:w-7 sm:h-7 text-purple-300 shrink-0" strokeWidth={1.5} />
-              <div className="flex flex-col items-start gap-0.5">
-                <span className="text-xl sm:text-3xl tracking-[0.15em] sm:tracking-[0.2em] text-purple-200 font-sans" style={{ fontWeight: 700 }}>
-                  ANALISAR
-                </span>
-                <span className="text-[10px] sm:text-xs tracking-[0.2em] sm:tracking-[0.25em] text-purple-400/60 font-mono uppercase">
-                  Tabela-verdade de fórmulas
-                </span>
-              </div>
-            </div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              className="absolute inset-0 rounded-xl pointer-events-none"
-              style={{ boxShadow: '0 0 40px rgba(168, 85, 247, 0.4)' }}
-            />
-          </motion.button>
-
-          {/* 1.7 YELLOW BUTTON - "HISTÓRICO" (capstone: salvar/carregar partidas) */}
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onOpenHistory}
-            className="group relative w-[90vw] max-w-[600px] h-[70px] sm:h-[85px] bg-transparent backdrop-blur-sm border-2 border-yellow-400/40 rounded-xl overflow-hidden transition-all duration-300 hover:border-yellow-300/60"
-            style={{
-              background: 'rgba(234, 179, 8, 0.04)',
-              boxShadow: '0 0 30px rgba(234, 179, 8, 0.15), inset 0 0 30px rgba(234, 179, 8, 0.05)'
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/5" />
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 via-yellow-400/20 to-yellow-500/10"
-            />
-            <div className="relative h-full flex items-center justify-center gap-3 sm:gap-4 px-4 sm:px-8">
-              <History className="w-5 h-5 sm:w-7 sm:h-7 text-yellow-300 shrink-0" strokeWidth={1.5} />
-              <div className="flex flex-col items-start gap-0.5">
-                <span className="text-xl sm:text-3xl tracking-[0.15em] sm:tracking-[0.2em] text-yellow-200 font-sans" style={{ fontWeight: 700 }}>
-                  HISTÓRICO
-                </span>
-                <span className="text-[10px] sm:text-xs tracking-[0.2em] sm:tracking-[0.25em] text-yellow-400/60 font-mono uppercase">
-                  Partidas anteriores
-                </span>
-              </div>
-            </div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              className="absolute inset-0 rounded-xl pointer-events-none"
-              style={{ boxShadow: '0 0 40px rgba(234, 179, 8, 0.4)' }}
             />
           </motion.button>
 

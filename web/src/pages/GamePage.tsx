@@ -12,6 +12,7 @@ import { SurvivalReliefOverlay } from "../components/modals/SurvivalReliefOverla
 import { PlayerEliminatedScreen } from "../components/screens/PlayerEliminatedScreen";
 import { VictoryScreen } from "../components/screens/VictoryScreen";
 import { SettingsInstructionsPanel } from "../components/modals/SettingsInstructionsPanel";
+import { GameLog } from "../components/ui/GameLog";
 import { useGameEngine } from "../hooks/useGameEngine";
 
 interface GamePageProps {
@@ -37,6 +38,8 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     playerId,
     // Phase 5: ranking
     eliminationOrder,
+    // Capstone: log de jogadas
+    gameLog,
   } = engine;
 
   // ─── Phase 3: turn awareness ─────────────────────────────────────────────
@@ -555,6 +558,11 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
       />
 
       <SettingsInstructionsPanel isVisible={showSettings} onBack={() => setShowSettings(false)} />
+
+      {/* Capstone: log de jogadas — não renderiza durante telas de fim de partida */}
+      {!showVictory && !showRoulette && (
+        <GameLog entries={gameLog} position="top-right" />
+      )}
     </div>
   );
 }
