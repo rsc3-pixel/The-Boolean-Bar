@@ -9,62 +9,119 @@ import { useState, useCallback, useRef } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
+/** Representa um jogador no modo local do Liar's Dice (com ou sem bot). */
 export interface DicePlayer {
+  /** ID numérico único do jogador dentro da partida local. */
   id: number;
+  /** Nome exibido na interface. */
   name: string;
+  /** true se o jogador é controlado pela IA do frontend. */
   isBot: boolean;
-  dice: number[];        // Current dice values (hidden from others)
-  diceCount: number;     // Remaining dice (starts at 5)
+  /** Valores atuais dos dados do jogador (ocultos dos outros jogadores). */
+  dice: number[];
+  /** Quantidade de dados restantes (começa em 5, diminui ao perder rodadas). */
+  diceCount: number;
+  /** true quando o jogador perdeu todos os dados e saiu da partida. */
   isEliminated: boolean;
 }
 
+/** Representa uma aposta feita durante uma rodada do Liar's Dice. */
 export interface Bid {
+  /** ID do jogador que fez a aposta. */
   playerId: number;
+  /** Nome do jogador que fez a aposta. */
   playerName: string;
+  /** Quantidade de dados apostada com a face informada. */
   quantity: number;
-  face: number;          // 1-6
+  /** Face apostada (1–6). O valor 1 é curinga universal. */
+  face: number;
 }
 
+/** Resultado de um confronto após dúvida ou "exata" ao final da rodada. */
 export interface RevealResult {
+  /** Tipo do confronto: "challenge" = dúvida normal; "exact" = aposta exata. */
   type: "challenge" | "exact";
+  /** ID de quem iniciou o confronto. */
   challengerId: number;
+  /** Nome de quem iniciou o confronto. */
   challengerName: string;
+  /** ID de quem fez a aposta questionada. */
   bidderId: number;
+  /** Nome de quem fez a aposta questionada. */
   bidderName: string;
+  /** Aposta que foi questionada. */
   bid: Bid;
+  /** Todos os dados de todos os jogadores, revelados após o confronto. */
   allDice: { playerId: number; playerName: string; dice: number[] }[];
+  /** Total real de dados com a face apostada (contando curingas). */
   totalOfFace: number;
+  /** ID do jogador que perdeu um dado nesta rodada. */
   loserId: number;
+  /** Nome do jogador que perdeu um dado nesta rodada. */
   loserName: string;
-  exactWin?: boolean;     // Only for "exact" type
+  /** Presente apenas no tipo "exact": true se o apostador ganhou sem perda. */
+  exactWin?: boolean;
 }
 
+/**
+ * Fase atual do jogo no modo local Liar's Dice.
+ *
+ * - `waiting`   : lobby, aguardando início.
+ * - `rolling`   : dados sendo lançados (tempo de animação).
+ * - `bidding`   : jogadores fazendo apostas.
+ * - `revealing` : todos os dados revelados após confronto.
+ * - `roundEnd`  : pausa breve mostrando o resultado da rodada.
+ * - `gameOver`  : vencedor decidido, partida encerrada.
+ */
 export type GamePhase =
-  | "waiting"       // Lobby / not started
-  | "rolling"       // Dice are being rolled (animation time)
-  | "bidding"       // Players are making bids
-  | "revealing"     // All dice revealed after challenge
-  | "roundEnd"      // Brief pause showing result
-  | "gameOver";     // Winner decided
+  | "waiting"
+  | "rolling"
+  | "bidding"
+  | "revealing"
+  | "roundEnd"
+  | "gameOver";
 
+/** Estado completo de uma partida local de Liar's Dice. */
 export interface DiceGameState {
+  /** Lista de todos os jogadores na partida. */
   players: DicePlayer[];
+  /** Aposta vigente na rodada atual, ou null se nenhuma aposta foi feita ainda. */
   currentBid: Bid | null;
+  /** Índice (0-based) do jogador cujo turno está ativo. */
   currentTurnIndex: number;
+  /** Fase atual do fluxo de jogo. */
   phase: GamePhase;
+  /** Resultado do último confronto, ou null se não houve confronto ainda. */
   revealResult: RevealResult | null;
+  /** ID do vencedor da partida, ou null enquanto o jogo está em andamento. */
   winnerId: number | null;
+  /** Número da rodada atual (começa em 1). */
   roundNumber: number;
+  /** Índice do jogador que iniciou a rodada atual (começa uma nova aposta). */
   roundStarterIndex: number;
+  /** Log de ações da partida para exibição no histórico. */
   actionLog: string[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
+/**
+ * Gera um vetor de dados com valores aleatórios entre 1 e 6.
+ * @param count - Quantidade de dados a lançar.
+ * @returns Array com `count` valores inteiros no intervalo [1, 6].
+ */
 function rollDice(count: number): number[] {
   return Array.from({ length: count }, () => Math.floor(Math.random() * 6) + 1);
 }
 
+/**
+ * Encontra o índice do próximo jogador vivo a partir de uma posição.
+ * Percorre o array de forma circular, ignorando jogadores eliminados.
+ *
+ * @param players   - Lista de jogadores da partida.
+ * @param fromIndex - Índice do jogador atual (será pulado).
+ * @returns Índice do próximo jogador vivo.
+ */
 function getNextAliveIndex(players: DicePlayer[], fromIndex: number): number {
   const n = players.length;
   let idx = (fromIndex + 1) % n;
@@ -76,6 +133,11 @@ function getNextAliveIndex(players: DicePlayer[], fromIndex: number): number {
   return idx;
 }
 
+/**
+ * Conta quantos jogadores ainda estão vivos na partida.
+ * @param players - Lista de jogadores.
+ * @returns Número de jogadores com `isEliminated === false`.
+ */
 function countAlive(players: DicePlayer[]): number {
   return players.filter(p => !p.isEliminated).length;
 }

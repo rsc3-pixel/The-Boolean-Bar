@@ -13,7 +13,8 @@
 3. [Sprint 2 — Cerimônias em Ritmo e Desbloqueio de Dependências](#3-sprint-2)
 4. [Sprint 3 (Expansão) — Mediação do Escopo do "Liar's Dice"](#4-sprint-3)
 5. [Sprint 4 — Fechamento, Revisão Final e Defesa](#5-sprint-4)
-6. [Checklist](#6-checklist)
+6. [Entrega de Documentação Técnica (DocString)](#6-docstring)
+7. [Checklist](#7-checklist)
 
 ---
 
@@ -38,6 +39,7 @@ Seu primeiro passo é **deixar a casa em ordem antes da squad sentar para progra
 2. Conduzir a primeira **Sprint Planning** com a squad, fechando o escopo da Sprint 1.
 3. Refinar as tasks técnicas junto com o **Tech Lead (Renato)** antes de fechar o backlog — calibrar estimativas onde a complexidade não é óbvia.
 4. Estabelecer ritmo de daily 3×/semana assíncrona no Discord.
+5. **Iniciar a documentação por DocString do projeto** (alinhado com o Tech Lead Renato): definir o padrão (Doxygen para C, JSDoc para Node) e documentar todas as classes/structs e funções entregues na Sprint 1.
 
 ---
 
@@ -50,6 +52,7 @@ A taverna agora abre todo dia — sua função é **manter a porta funcionando s
 - Daily assíncrona com formato fixo: *o que fiz / o que vou fazer / o que tá me bloqueando*.
 - Tratamento de bloqueio em três níveis: marcar `Blocked` no Flux em <2h, chamar o owner da dependência em <24h, abrir reescopo em <48h.
 - Mediação da primeira dependência crítica: o frontend do **Luís** depende do servidor WebSocket do **Renato** estar de pé. Coordene o handoff.
+- **Continuar a documentação por DocString:** cobrir as funções e classes entregues na Sprint 2 (`logic_engine`, `deck_manager`, `web_server.js`, `predicates.c`), revisando junto com o Tech Lead.
 
 ---
 
@@ -62,6 +65,7 @@ Aqui o jogo muda — literalmente. A proposta de adicionar o **Modo Tradicional 
 2. **Discutir viabilidade técnica com o Tech Lead:** sentar com o Renato e validar se a integração C ↔ Node aguenta o novo payload `{"game_mode": "logical" | "dice"}` sem reescrever metade do servidor.
 3. **Negociar trade-off:** cortar duas features de polimento da Sprint 4 (sistema de save/load e animações ANSI extras) para abrir espaço.
 4. **Comunicar a decisão** em planning emergencial e registrar no canal `#decisions` do Discord para rastreabilidade.
+5. **Documentar via DocString as expansões do Liar's Dice:** struct expandida com `int dados[5]` (Cauã), avaliador aritmético com curinga (João Pedro), motor de turnos com monotonicidade (Matheus), `deck_roll_dice` (Fernando) — toda função/classe nova precisa entrar com DocString.
 
 > Como PO, esse tipo de decisão é diretamente seu papel: escutar a oportunidade, medir o impacto, negociar o que sai, e proteger o time da síndrome de "tudo cabe na sprint".
 
@@ -75,11 +79,69 @@ A taverna está fechando a noite. Sua função é **garantir que ninguém saia d
 - Conduzir a **Planning final** com a squad para fechar as últimas tasks do Liar's Dice e o polimento.
 - Conduzir a **Sprint Review** validando que cada owner entregou: dados rolando (Fernando), avaliador aritmético com coringa (João Pedro), monotonicidade da aposta (Matheus), struct expandida com `int dados[5]` (Cauã), toggle no Lobby + copo de dados (Luís), pipe do `game_mode` (Renato).
 - Revisar o backlog inteiro no Flux: zero issue em `In Progress` ou `In Review` antes da defesa.
+- **Fechar a documentação por DocString do projeto inteiro:** revisar 100% das classes/structs e funções (camadas `core`, `modules`, `functional`, `ui`, `web`), garantir consistência do padrão em todos os arquivos e validar a cobertura final junto com o Tech Lead Renato.
 - Fechar o documento `SCRUM_MASTER_GABRIEL.md` cobrindo decisões metodológicas, escolha do Flux, cerimônias adotadas, lições aprendidas.
 
 ---
 
-## 6. Checklist
+## 6. Entrega de Documentação Técnica (DocString)
+
+A pedido do **Tech Lead Renato**, conduzi a documentação técnica completa do projeto via **DocString**, cobrindo classes/structs e funções de toda a stack:
+
+- **Engine (C):** padrão **Doxygen** — formato `/** @brief ... @param ... @return ... */`
+- **Web (TypeScript):** padrão **JSDoc** — formato `/** ... @param ... @returns ... */`
+
+### 6.1 Engine — C (Doxygen)
+
+**`engine/modules/logic_engine.h`**
+- Documentado o enum `Classificacao` (`TAUTOLOGIA`, `CONTRADICAO`, `CONTINGENCIA`).
+- Documentado cada campo da struct `TabelaVerdade`.
+- Adicionado `@brief`, `@param` e `@return` nas **5 funções públicas**.
+
+**`engine/modules/logic_engine.c`**
+- Convertidos comentários simples para Doxygen completo em **9 funções**: `precedencia`, `assoc_direita`, `tokenizar`, `infix_para_rpn`, `avaliar_rpn`, `gerar_tabela_verdade`, `classificacao_str`, `imprimir_tabela`, `liberar_tabela`.
+
+**`engine/modules/dice_engine.h`**
+- Documentadas as **3 structs**: `Jogador`, `Aposta`, `ResultadoAvaliacao`.
+- Adicionado Doxygen nas **4 funções públicas**.
+
+**`engine/modules/dice_engine.c`**
+- Convertidos comentários para Doxygen nas **4 funções**: `criar_jogador`, `liberar_jogador`, `avaliar_aposta`, `imprimir_resultado`.
+
+**`engine/modules/dice_flow.h`**
+- Adicionado Doxygen na função `dice_game_start`.
+
+**`engine/core/types.h`**
+- Organizado em grupos por área via `@defgroup` (lógica, jogadores, mesa).
+- Documentados os **3 enums** e as **3 structs** principais do jogo, com todos os campos.
+
+**`engine/modules/game_flow.c`**
+- Adicionado Doxygen nas **4 funções estáticas**: `dar_cartas_iniciais`, `repor_carta`, `print_json_state`, `roleta_russa`.
+- Adicionado Doxygen na função pública `game_start`.
+
+### 6.2 Web — TypeScript (JSDoc)
+
+**`web/src/utils/audioCues.ts`**
+- Documentada a classe `AudioCues` e todos os métodos: `setEnabled`, `getCtx`, `resume`, `tone`, `yourTurn`, `bet`, `doubt`, `click`.
+
+**`web/src/hooks/useGameEngine.ts`**
+- Documentadas **13 interfaces**: `PlayerState`, `GameState`, `DoubtState`, `DoubtResult`, `RouletteResult`, `VictoryState`, `DicePlayerInfo`, `DiceState`, `DiceBet`, `DiceDoubt`, `DiceReveal`, `RoomPlayer`, `RoomSnapshot`, `RoomError`.
+
+**`web/src/hooks/useDiceGame.ts`**
+- Documentadas as **4 interfaces**: `DicePlayer`, `Bid`, `RevealResult`, `DiceGameState`.
+- Documentado o type `GamePhase` com descrição de cada fase.
+- Adicionado JSDoc nas **3 funções auxiliares**: `rollDice`, `getNextAliveIndex`, `countAlive`.
+
+### 6.3 Arquivos já documentados (não alterados)
+
+- `engine/core/memory.h`
+- `engine/core/input_handler.h`
+- `engine/modules/deck_manager.h`
+- `engine/modules/game_flow.h`
+
+---
+
+## 7. Checklist
 
 - [ ] Workspace Flux configurado com 4 cycles de 2 semanas e labels por camada.
 - [ ] Definition of Done escrita e acordada com a squad.
@@ -90,4 +152,5 @@ A taverna está fechando a noite. Sua função é **garantir que ninguém saia d
 - [ ] Nenhum bloqueio passou de 48h durante as 8 semanas.
 - [ ] Reescopo do Liar's Dice mediado entre Sprints 2 e 3, com trade-off documentado.
 - [ ] Backlog 100% limpo (sem issue pendente) antes da defesa.
+- [ ] Documentação por DocString completa em 100% das classes/structs e funções do projeto, validada pelo Tech Lead Renato.
 - [ ] `docs/SCRUM_MASTER_GABRIEL.md` finalizado e versionado no GitHub.
