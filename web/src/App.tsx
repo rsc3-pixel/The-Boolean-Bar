@@ -10,11 +10,12 @@ import { DiceGameOnline } from "./pages/DiceGameOnline";
 import { DiceLobby } from "./pages/DiceLobby";
 import { OnlineLobby, type GameModeKind } from "./pages/OnlineLobby";
 import { WaitingRoom } from "./pages/WaitingRoom";
+import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { SettingsInstructionsPanel } from "./components/modals/SettingsInstructionsPanel";
 import { useGameEngine } from "./hooks/useGameEngine";
 import { audioCues } from "./utils/audioCues";
 
-type GameScreen = "menu" | "lobby" | "matchLobby" | "game" | "diceLobby" | "diceGame" | "onlineLobby" | "waitingRoom";
+type GameScreen = "menu" | "lobby" | "matchLobby" | "game" | "diceLobby" | "diceGame" | "onlineLobby" | "waitingRoom" | "leaderboard";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<GameScreen>("menu");
@@ -135,8 +136,18 @@ export default function App() {
     screenContent = (
       <MainMenu
         onEnterOnline={() => setCurrentScreen("onlineLobby")}
+        onOpenLeaderboard={() => setCurrentScreen("leaderboard")}
         onOpenRules={() => setShowSettings(true)}
         onFlee={() => gameEngine.sendShutdown()}
+      />
+    );
+  } else if (currentScreen === "leaderboard") {
+    screenContent = (
+      <LeaderboardPage
+        entries={gameEngine.leaderboard}
+        onBack={() => setCurrentScreen("menu")}
+        onLoad={() => gameEngine.loadLeaderboard()}
+        wsStatus={gameEngine.wsStatus}
       />
     );
   } else if (currentScreen === "onlineLobby") {

@@ -1,13 +1,14 @@
 import { motion } from "motion/react";
-import { BookOpen, DoorOpen, Users } from "lucide-react";
+import { BookOpen, DoorOpen, Users, Trophy } from "lucide-react";
 
 interface MainMenuProps {
   onEnterOnline: () => void;
+  onOpenLeaderboard: () => void;
   onOpenRules: () => void;
   onFlee: () => void;
 }
 
-export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) {
+export function MainMenu({ onEnterOnline, onOpenLeaderboard, onOpenRules, onFlee }: MainMenuProps) {
   return (
     <div className="size-full bg-black overflow-hidden relative flex items-center justify-center">
       {/* Deep black background */}
@@ -193,6 +194,53 @@ export function MainMenu({ onEnterOnline, onOpenRules, onFlee }: MainMenuProps) 
               style={{
                 boxShadow: '0 0 100px rgba(6, 182, 212, 1), 0 0 150px rgba(6, 182, 212, 0.8)'
               }}
+            />
+          </motion.button>
+
+          {/* 1.5 ARCADE YELLOW BUTTON - "HIGH SCORES" (capstone: ranking persistido) */}
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onOpenLeaderboard}
+            className="group relative w-[90vw] max-w-[600px] h-[70px] sm:h-[85px] bg-transparent backdrop-blur-sm border-2 border-yellow-400/40 rounded-xl overflow-hidden transition-all duration-300 hover:border-yellow-300/70"
+            style={{
+              background: 'rgba(234, 179, 8, 0.04)',
+              boxShadow: '0 0 30px rgba(234, 179, 8, 0.18), inset 0 0 30px rgba(234, 179, 8, 0.05)'
+            }}
+          >
+            {/* Scanlines arcade */}
+            <div
+              className="absolute inset-0 opacity-[0.06] pointer-events-none"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(234,179,8,0.6) 2px, rgba(234,179,8,0.6) 3px)',
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileHover={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 via-yellow-400/20 to-yellow-500/10"
+            />
+            <div className="relative h-full flex items-center justify-center gap-3 sm:gap-4 px-4 sm:px-8">
+              <Trophy className="w-5 h-5 sm:w-7 sm:h-7 text-yellow-300 shrink-0" strokeWidth={1.8} />
+              <div className="flex flex-col items-start gap-0.5">
+                <span
+                  className="text-xl sm:text-3xl tracking-[0.18em] sm:tracking-[0.25em] text-yellow-200 font-sans"
+                  style={{ fontWeight: 800 }}
+                >
+                  HIGH SCORES
+                </span>
+                <span className="text-[10px] sm:text-xs tracking-[0.2em] sm:tracking-[0.3em] text-yellow-400/60 font-mono uppercase">
+                  Hall of Champions
+                </span>
+              </div>
+            </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileHover={{ opacity: 1 }}
+              className="absolute inset-0 rounded-xl pointer-events-none"
+              style={{ boxShadow: '0 0 40px rgba(234, 179, 8, 0.45)' }}
             />
           </motion.button>
 
