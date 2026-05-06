@@ -140,6 +140,20 @@ export interface DiceReveal {
   allDice: number[][];
 }
 
+// ─── Leaderboard de vencedores (Capstone) ────────────────────────────────────
+
+/** Entrada do leaderboard persistido pelo server. */
+export interface LeaderboardEntry {
+  /** Nome do jogador. */
+  name: string;
+  /** Total de vitórias. */
+  wins: number;
+  /** ISO timestamp da última vitória (desempate). */
+  lastWin: string | null;
+  /** Vitórias por modo. */
+  modes: { logic: number; dice: number };
+}
+
 // ─── Log de jogadas (Capstone) ────────────────────────────────────────────────
 
 /** Categoria de evento no log de jogadas (define o ícone/cor na UI). */
@@ -232,6 +246,9 @@ export function useGameEngine() {
   const [diceDoubt, setDiceDoubt] = useState<DiceDoubt | null>(null);
   const [diceReveal, setDiceReveal] = useState<DiceReveal | null>(null);
   const [showDiceReveal, setShowDiceReveal] = useState(false);
+
+  // ─── Leaderboard (Capstone) ──────────────────────────────────────────────
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   // ─── Log de jogadas (Capstone) ───────────────────────────────────────────
   const [gameLog, setGameLog] = useState<GameLogEntry[]>([]);
@@ -370,6 +387,10 @@ export function useGameEngine() {
             ? `💀 ${resp.data.loser} eliminado`
             : `${resp.data.loser} perdeu 1 dado (${resp.data.loserDiceCount} restantes)`;
           pushLog('reveal', `${verdict} → ${tail}`);
+        }
+        if (resp.type === 'leaderboard') {
+          console.log("[WS] 🏆 LEADERBOARD:", resp.entries?.length, "entradas");
+          setLeaderboard(resp.entries ?? []);
         }
         if (resp.type === 'trigger') {
           // Trigger 'show_doubt' e 'player_death' eram resíduos do modo demo
@@ -539,6 +560,10 @@ export function useGameEngine() {
     sendAction({ action: "add_bot" });
   }, [sendAction]);
 
+  const loadLeaderboard = useCallback(() => {
+    sendAction({ action: "get_leaderboard" });
+  }, [sendAction]);
+
   const removeBot = useCallback((botId: string) => {
     setRoomError(null);
     sendAction({ action: "remove_bot", botId });
@@ -629,5 +654,8 @@ export function useGameEngine() {
     // ─── Capstone: log de jogadas ──
     gameLog,
     clearGameLog,
+    // ─── Capstone: leaderboard ──
+    leaderboard,
+    loadLeaderboard,
   };
 }

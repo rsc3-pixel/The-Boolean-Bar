@@ -2,7 +2,7 @@ import { WebSocketServer } from 'ws';
 import { spawn, execSync } from 'child_process';
 import http from 'http';
 import path from 'path';
-import { existsSync, appendFileSync } from 'fs';
+import { existsSync, appendFileSync, readFileSync, writeFileSync } from 'fs';
 import { promises as fsp } from 'fs';
 import { fileURLToPath } from 'url';
 
@@ -34,6 +34,8 @@ const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem caracteres
 const DISCONNECT_GRACE_MS = 60_000;       // Phase 4: 60s pra reconectar antes de remover
 const HEARTBEAT_INTERVAL_MS = 30_000;     // Phase 4: ping a cada 30s
 const HEARTBEAT_TIMEOUT_MS = 10_000;      // se sem pong em 10s após ping → terminate
+const LEADERBOARD_FILE = path.resolve(__dirname, '..', 'leaderboard.json');  // ranking de vencedores
+const LEADERBOARD_TOP = 20;               // top N retornado pra UI
 
 // ─── Estado em memória ────────────────────────────────────────────────────────
 /**
@@ -90,6 +92,62 @@ function broadcast(room, msg) {
   for (const player of room.players.values()) {
     if (player.ws) send(player.ws, msg);  // pula players com ws null (desconectados)
   }
+}
+
+// ─── Leaderboard de vencedores (Capstone) ─────────────────────────────────────
+// Persiste em ../leaderboard.json. Estrutura: { [name]: { wins, lastWin, modes } }.
+// Bots NÃO são contabilizados — só vitórias humanas entram no ranking.
+function readLeaderboard() {
+  try {
+    if (!existsSync(LEADERBOARD_FILE)) return {};
+    const raw = readFileSync(LEADERBOARD_FILE, 'utf-8');
+    const obj = JSON.parse(raw);
+    return (obj && typeof obj === 'object') ? obj : {};
+  } catch (e) {
+    console.warn('[Leaderboard] Falha ao ler:', e.message);
+    return {};
+  }
+}
+
+function recordWin(winnerName, gameMode) {
+  if (!winnerName || typeof winnerName !== 'string') return;
+  try {
+    const data = readLeaderboard();
+    const key = winnerName.trim();
+    if (!key) return;
+    const entry = data[key] ?? { wins: 0, lastWin: null, modes: { logic: 0, dice: 0 } };
+    entry.wins = (entry.wins ?? 0) + 1;
+    entry.lastWin = new Date().toISOString();
+    entry.modes = entry.modes ?? { logic: 0, dice: 0 };
+    if (gameMode === 'logic' || gameMode === 'dice') {
+      entry.modes[gameMode] = (entry.modes[gameMode] ?? 0) + 1;
+    }
+    data[key] = entry;
+    writeFileSync(LEADERBOARD_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    console.log(`[Leaderboard] +1 win → ${key} (total: ${entry.wins}, modo: ${gameMode})`);
+  } catch (e) {
+    console.warn('[Leaderboard] Falha ao gravar:', e.message);
+  }
+}
+
+function getTopWinners(limit = LEADERBOARD_TOP) {
+  const data = readLeaderboard();
+  const entries = Object.entries(data).map(([name, v]) => ({
+    name,
+    wins: v.wins ?? 0,
+    lastWin: v.lastWin ?? null,
+    modes: v.modes ?? { logic: 0, dice: 0 },
+  }));
+  // Ordena por wins desc, desempata por lastWin mais recente
+  entries.sort((a, b) => {
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    return (b.lastWin ?? '').localeCompare(a.lastWin ?? '');
+  });
+  return entries.slice(0, limit);
+}
+
+function handleGetLeaderboard(ws) {
+  send(ws, { type: 'leaderboard', entries: getTopWinners() });
 }
 
 function getRoomSnapshot(room) {
@@ -215,7 +273,19 @@ function handleEngineStdout(room, chunk) {
       },
       { tag: 'JSON_DOUBT_RESULT:',    type: 'doubt_result' },
       { tag: 'JSON_ROULETTE_RESULT:', type: 'roulette_result' },
-      { tag: 'JSON_VICTORY:',         type: 'victory_state' },
+      {
+        tag: 'JSON_VICTORY:',
+        type: 'victory_state',
+        onParse: (data) => {
+          // Capstone: persiste vitória no leaderboard, ignorando bots
+          const winner = Array.from(room.players.values()).find(p => p.name === data.winner);
+          if (winner && !winner.isBot) {
+            recordWin(data.winner, room.gameMode);
+          } else if (winner && winner.isBot) {
+            console.log(`[Leaderboard] Skip bot win: ${data.winner}`);
+          }
+        },
+      },
       // ─── Liar's Dice (modo dados) ──
       {
         tag: 'JSON_DICE_STATE:',
@@ -807,8 +877,9 @@ wss.on('connection', (ws) => {
       case 'start_game':  return handleStartGame(ws, msg);
       case 'send_input':  return handleSendInput(ws, msg);
       case 'add_bot':     return handleAddBot(ws);
-      case 'remove_bot':  return handleRemoveBot(ws, msg);
-      case 'shutdown':    return handleShutdown(ws);
+      case 'remove_bot':       return handleRemoveBot(ws, msg);
+      case 'get_leaderboard':  return handleGetLeaderboard(ws);
+      case 'shutdown':         return handleShutdown(ws);
       default:
         return send(ws, { type: 'error', code: 'unknown_action', message: `Ação desconhecida: ${msg.action}` });
     }
