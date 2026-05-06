@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { audioCues } from "../utils/audioCues";
-import { Skull, Circle, Settings, ArrowLeft, Pause } from "lucide-react";
+import { Skull, Circle, Settings, ArrowLeft } from "lucide-react";
 import { LogicCard } from "../components/ui/LogicCard";
 import { OpponentCard } from "../components/ui/OpponentCard";
 import { BluffModal } from "../components/modals/BluffModal";
@@ -91,7 +91,6 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
   const [showSurvivalRelief, setShowSurvivalRelief] = useState(false);
   const [showEliminated, setShowEliminated] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
 
   // ─── Notificação "sua vez" (Phase 7) ───────────────────────────────────
   const prevMyTurnRef = useRef(false);
@@ -248,7 +247,21 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="relative z-20 h-14 sm:h-20 bg-zinc-950/80 backdrop-blur-xl border-b border-cyan-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
       >
-        <div className="h-full max-w-7xl mx-auto pl-3 pr-12 sm:px-8 flex items-center justify-between">
+        <div className="h-full max-w-7xl mx-auto pl-2 pr-12 sm:px-8 flex items-center justify-between">
+          {/* Botão Sair — estilo unificado com o modo Dice */}
+          <button
+            onClick={() => {
+              const msg = isMultiplayer
+                ? "Sair da partida? A sala será encerrada pra todos os jogadores."
+                : "Voltar ao menu?";
+              if (window.confirm(msg)) onExit();
+            }}
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 text-cyan-400 hover:text-cyan-200 font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Sair
+          </button>
+
           <h1 className="text-base sm:text-3xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-400 drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}>
             <span className="sm:hidden">BOOLEAN</span>
             <span className="hidden sm:inline">THE BOOLEAN BAR</span>
@@ -349,41 +362,6 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
           </div>
-
-          {/* Botão Back to Menu */}
-          <motion.button
-            onClick={() => {
-              const msg = isMultiplayer
-                ? "Sair da partida? A sala será encerrada pra todos os jogadores."
-                : "Voltar ao menu?";
-              if (window.confirm(msg)) onExit();
-            }}
-            className="absolute top-3 left-3 sm:top-8 sm:left-8 z-30 flex items-center gap-2 px-3 py-2 sm:px-5 sm:py-3 bg-cyan-950/50 backdrop-blur-md border-2 border-cyan-500/40 rounded-xl text-cyan-300 hover:text-cyan-100 hover:bg-cyan-900/60 transition-all duration-300"
-          >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline text-sm font-mono font-bold">BACK TO MENU</span>
-          </motion.button>
-
-          {/* Botão Pause — deslocado em mobile pra não colidir com o botão flutuante do GameLog (top-3 right-3) */}
-          <motion.button
-            onClick={() => setIsPaused(!isPaused)}
-            className="absolute top-3 right-16 sm:top-8 sm:right-8 z-30 p-2 sm:p-3 bg-zinc-950/60 backdrop-blur-md border-2 border-zinc-600/40 rounded-xl text-zinc-400 hover:text-cyan-300 hover:bg-cyan-950/50 transition-all duration-300"
-          >
-            <Pause className="w-6 h-6" strokeWidth={2.5} />
-          </motion.button>
-
-          {/* Tela de pausa */}
-          {isPaused && (
-            <div className="absolute inset-0 z-40 bg-black/80 backdrop-blur-lg flex items-center justify-center">
-              <div className="bg-zinc-950/90 border-2 border-cyan-500/30 rounded-2xl p-12 text-center text-cyan-400 font-mono">
-                <h2>PAUSADO</h2>
-                <div className="flex gap-4 mt-8">
-                  <button onClick={() => setIsPaused(false)} className="px-8 py-4 bg-cyan-600 text-white rounded">CONTINUAR</button>
-                  <button onClick={() => { setIsPaused(false); onExit(); }} className="px-8 py-4 bg-red-600 text-white rounded">SAIR</button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Oponentes */}
           <div className="relative mt-4 w-full z-10 max-w-6xl mx-auto px-2 sm:px-8 grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4 justify-items-center">
