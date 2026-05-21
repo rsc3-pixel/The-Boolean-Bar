@@ -111,7 +111,7 @@ int dice_game_start() {
             mem_free_mesa(game_table);
             return 1;
         }
-        game_table->players[i]->dice_count = 5; 
+        game_table->players[i]->dice_count = 3; 
         game_table->num_players_alive++;
     }
 
