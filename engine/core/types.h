@@ -1,77 +1,105 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <stdbool.h> // Para usar bool
+#include <stdbool.h>
 
-// --- Definições para Lógica Proposicional ---
+/** @defgroup LogicMode Lógica Proposicional
+ *  Tipos e estruturas usados no modo Boolean Bar (cartas + roleta).
+ *  @{
+ */
 
-// Enumeração para classificar o tipo de uma fórmula lógica
+/**
+ * @brief Classifica o tipo lógico de uma fórmula proposicional.
+ *
+ * Os valores são intencionalmente compatíveis por índice com o enum
+ * Classificacao de logic_engine.h (TAUTOLOGY=0, CONTRADICTION=1, CONTINGENCY=2).
+ */
 typedef enum {
-    TAUTOLOGY,      // Sempre verdadeira
-    CONTRADICTION,  // Sempre falsa
-    CONTINGENCY     // Pode ser verdadeira ou falsa dependendo da atribuição
+    TAUTOLOGY,     /**< Fórmula sempre verdadeira (tautologia). */
+    CONTRADICTION, /**< Fórmula sempre falsa (contradição). */
+    CONTINGENCY    /**< Fórmula que pode ser verdadeira ou falsa. */
 } FormulaType;
 
-// Estrutura para representar uma "carta" (fórmula lógica)
+/**
+ * @brief Representa uma carta do jogo: uma fórmula lógica proposicional.
+ */
 typedef struct {
-    char *formula_str;  // A representação da fórmula como string (ex: "(P AND NOT P)")
-    FormulaType type;   // O tipo da fórmula (Tautologia, Contradição, Contingência)
-    // Adicionar outros campos se necessário, como uma representação interna da AST
+    char *formula_str; /**< Fórmula como string (ex: "p & ~q"). Alocada dinamicamente. */
+    FormulaType type;  /**< Tipo real da fórmula, avaliado pelo logic_engine. */
 } Carta;
 
-// --- Definições para Jogadores ---
+/** @} */
 
-// Enumeração para modo de jogo
+/** @defgroup Players Jogadores e Modos
+ *  Tipos relacionados a jogadores e ao modo de jogo ativo.
+ *  @{
+ */
+
+/**
+ * @brief Modo de jogo ativo na sessão.
+ */
 typedef enum {
-    MODE_LOGIC,     // Jogo de Roleta C/ Verdade (Cartas)
-    MODE_DICE       // Liar's Dice
+    MODE_LOGIC, /**< Modo Boolean Bar: cartas lógicas + roleta russa. */
+    MODE_DICE   /**< Modo Liar's Dice: apostas com dados. */
 } GameMode;
 
-// Enumeração para o status de um jogador
+/**
+ * @brief Status atual de um jogador na partida.
+ */
 typedef enum {
-    ALIVE,
-    ELIMINATED
+    ALIVE,      /**< Jogador ainda está na partida. */
+    ELIMINATED  /**< Jogador foi eliminado. */
 } PlayerStatus;
 
-// Estrutura para representar um jogador
+/**
+ * @brief Representa um jogador, compatível com os dois modos de jogo.
+ */
 typedef struct {
-    int id;                 // ID único do jogador
-    char *name;             // Nome do jogador
-    PlayerStatus status;    // Status atual (vivo ou eliminado)
-    bool estaVivo;          // Campo para facilitar filtro booleano (UH7)
-    int score;              // Pontuação ou número de "vidas" restantes
-    
-    // Logic Mode
-    Carta *hand[5];         // Mão com até 5 cartas
-    int num_cards;          // Número atual de cartas na mão
+    int id;              /**< ID único do jogador (1-based). */
+    char *name;          /**< Nome do jogador. Alocado dinamicamente. */
+    PlayerStatus status; /**< Status atual: ALIVE ou ELIMINATED. */
+    bool estaVivo;       /**< Atalho booleano para filtros de jogador vivo. */
+    int score;           /**< Vidas restantes (Logic Mode) ou pontuação geral. */
 
-    // Dice Mode
-    int dice[5];            // Faces dos dados: valores de 1 a 6
-    int dice_count;         // Quantos dados sobraram a ele
+    /* Logic Mode */
+    Carta *hand[5];  /**< Mão do jogador: até 5 cartas lógicas. */
+    int num_cards;   /**< Número de cartas atualmente na mão (0–5). */
+
+    /* Dice Mode */
+    int dice[5];     /**< Faces dos dados do jogador (valores 1–6). */
+    int dice_count;  /**< Quantidade de dados ainda disponíveis. */
 } Jogador;
 
-// --- Definições para o Jogo (Mesa) ---
+/** @} */
 
-// Constantes do jogo
-#define MAX_PLAYERS 7
-#define MAX_FORMULA_LENGTH 256 // Tamanho máximo para a string da fórmula
+/** @defgroup Table Mesa de Jogo
+ *  Estruturas e constantes que representam o estado global da partida.
+ *  @{
+ */
 
-// Estrutura para representar o estado da mesa de jogo
+#define MAX_PLAYERS       7   /**< Máximo de jogadores suportados por mesa. */
+#define MAX_FORMULA_LENGTH 256 /**< Tamanho máximo da string de uma fórmula. */
+
+/**
+ * @brief Estado completo da mesa de jogo, compartilhado pelos dois modos.
+ */
 typedef struct {
-    GameMode mode;                 // Modo atual do jogo
-    Jogador *players[MAX_PLAYERS]; // Array de ponteiros para jogadores
-    int num_players_alive;         // Quantidade de jogadores ainda no jogo
-    int current_player_index;      // Índice do jogador atual no turno
-    bool game_over;                // Flag para indicar se o jogo terminou
+    GameMode mode;                  /**< Modo de jogo ativo (Logic ou Dice). */
+    Jogador *players[MAX_PLAYERS];  /**< Ponteiros para os jogadores; slots vazios são NULL. */
+    int num_players_alive;          /**< Quantidade de jogadores ainda na partida. */
+    int current_player_index;       /**< Índice do jogador cujo turno é o atual. */
+    bool game_over;                 /**< true quando a partida foi encerrada. */
 
-    // Logic Mode
-    Carta *current_card;           // A carta (fórmula) atualmente em jogo
-    int balas_no_tambor;           // Capacidade do tambor e probabilidade de tiro (UH9)
+    /* Logic Mode */
+    Carta *current_card;    /**< Carta em disputa no turno atual. */
+    int balas_no_tambor;    /**< Balas no tambor: define a probabilidade da roleta (1–6). */
 
-    // Dice Mode
-    int current_bet_quantity;      // Aposta Atual: Quantidade
-    int current_bet_face;          // Aposta Atual: Face do dado
-    int last_bet_player_id;        // Quem mandou a aposta vigente
+    /* Dice Mode */
+    int current_bet_quantity; /**< Quantidade apostada na rodada atual. */
+    int current_bet_face;     /**< Face apostada na rodada atual (1–6). */
+    int last_bet_player_id;   /**< ID do jogador que fez a aposta vigente. */
 } Mesa;
+
+/** @} */
 
 #endif // TYPES_H

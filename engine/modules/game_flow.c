@@ -17,6 +17,11 @@
 #include <time.h>
 #include <unistd.h>
 
+/**
+ * @brief Distribui 5 cartas aleatórias para um jogador no início da partida.
+ *
+ * @param p Ponteiro para o Jogador que receberá as cartas.
+ */
 static void dar_cartas_iniciais(Jogador *p) {
     while (p->num_cards < 5) {
         char *fstr = deck_generate_random_formula_string();
@@ -27,12 +32,26 @@ static void dar_cartas_iniciais(Jogador *p) {
     }
 }
 
+/**
+ * @brief Repõe uma carta na mão do jogador após ele descartar durante o turno.
+ *
+ * @param p Ponteiro para o Jogador que receberá a nova carta.
+ */
 static void repor_carta(Jogador *p) {
     char *fstr = deck_generate_random_formula_string();
     p->hand[p->num_cards] = mem_new_carta(fstr, CONTINGENCY);
     p->num_cards++;
 }
 
+/**
+ * @brief Emite o estado atual da mesa como JSON via stdout para o frontend.
+ *
+ * Serializa jogadores, mão do jogador atual, turno e balas no tambor
+ * no formato esperado pelo hook useGameEngine do frontend (JSON_STATE).
+ *
+ * @param m           Ponteiro para a mesa de jogo.
+ * @param num_players Número total de jogadores na partida.
+ */
 static void print_json_state(Mesa *m, int num_players) {
     printf("\nJSON_STATE: {");
     printf("\"players\": [");
@@ -63,6 +82,17 @@ static void print_json_state(Mesa *m, int num_players) {
     fflush(stdout);
 }
 
+/**
+ * @brief Executa a mecânica da roleta russa para o jogador que perdeu o confronto.
+ *
+ * Sorteia um número de 1 a 6 e compara com as balas no tambor.
+ * Se o número sorteado for <= balas, o jogador é eliminado.
+ * Se sobreviver, perde uma vida e o tambor incrementa (+1 bala para a próxima vez).
+ * Emite JSON_ROULETTE_RESULT via stdout para o frontend.
+ *
+ * @param m        Ponteiro para a mesa de jogo (atualiza balas e jogadores vivos).
+ * @param perdedor Ponteiro para o Jogador que vai puxar o gatilho.
+ */
 static void roleta_russa(Mesa *m, Jogador *perdedor) {
     // ─── Animated roulette spin ───
     ui_print_roulette_spin(perdedor->name, m->balas_no_tambor);
@@ -103,6 +133,15 @@ static void roleta_russa(Mesa *m, Jogador *perdedor) {
 }
 
 
+/**
+ * @brief Ponto de entrada do modo Boolean Bar: inicializa e executa a partida.
+ *
+ * Lê número de jogadores e nomes via stdin, distribui cartas, gerencia o loop
+ * de turnos (escolha de carta, blefe, dúvida, confronto lógico, roleta russa)
+ * e emite eventos JSON via stdout até restar um único sobrevivente.
+ *
+ * @return 0 se a partida terminou com sucesso, ou 1 em caso de erro de alocação.
+ */
 int game_start() {
     srand(time(NULL));
 
@@ -210,7 +249,12 @@ int game_start() {
             printf("\n");
             ui_print_box("CONFRONTO LOGICO", ANSI_BRIGHT_CYAN);
             printf("\n");
-            FormulaType real_type = logic_evaluate_formula(jogada->formula_str);
+            // Sprint 1 do Matheus refatorou a API: agora vai por gerar_tabela_verdade.
+            // Os enums FormulaType (types.h) e Classificacao (logic_engine.h) batem
+            // por índice (TAUTOLOGY=TAUTOLOGIA=0, CONTRADICTION=CONTRADICAO=1, etc.).
+            TabelaVerdade *tv = gerar_tabela_verdade(jogada->formula_str);
+            FormulaType real_type = (FormulaType) tv->classificacao;
+            liberar_tabela(tv);
             const char *type_names[] = {"TAUTOLOGIA", "CONTRADICAO", "CONTINGENCIA"};
             printf("  %sTipo Real:%s  %s%s%s\n",
                    ANSI_STEEL_GRAY, ANSI_COLOR_RESET,

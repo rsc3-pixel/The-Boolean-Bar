@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "motion/react";
-import { Skull, Circle, Settings, ArrowLeft, Pause } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { audioCues } from "../utils/audioCues";
+import { Skull, Circle, Settings, ArrowLeft } from "lucide-react";
 import { LogicCard } from "../components/ui/LogicCard";
 import { OpponentCard } from "../components/ui/OpponentCard";
 import { BluffModal } from "../components/modals/BluffModal";
@@ -11,6 +12,7 @@ import { SurvivalReliefOverlay } from "../components/modals/SurvivalReliefOverla
 import { PlayerEliminatedScreen } from "../components/screens/PlayerEliminatedScreen";
 import { VictoryScreen } from "../components/screens/VictoryScreen";
 import { SettingsInstructionsPanel } from "../components/modals/SettingsInstructionsPanel";
+import { GameLog } from "../components/ui/GameLog";
 import { useGameEngine } from "../hooks/useGameEngine";
 
 interface GamePageProps {
@@ -36,6 +38,8 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     playerId,
     // Phase 5: ranking
     eliminationOrder,
+    // Capstone: log de jogadas
+    gameLog,
   } = engine;
 
   // ─── Phase 3: turn awareness ─────────────────────────────────────────────
@@ -87,7 +91,23 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
   const [showSurvivalRelief, setShowSurvivalRelief] = useState(false);
   const [showEliminated, setShowEliminated] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+
+  // ─── Notificação "sua vez" (Phase 7) ───────────────────────────────────
+  const prevMyTurnRef = useRef(false);
+  const prevMyDoubtRef = useRef(false);
+  const [flashTurn, setFlashTurn] = useState(false);
+  useEffect(() => {
+    if (!isMultiplayer) return;
+    const becameMyTurn = (isMyTurn && !prevMyTurnRef.current) || (isMyDoubt && !prevMyDoubtRef.current);
+    prevMyTurnRef.current = isMyTurn;
+    prevMyDoubtRef.current = isMyDoubt;
+    if (becameMyTurn && gameState && !victoryState) {
+      audioCues.yourTurn();
+      setFlashTurn(true);
+      const t = setTimeout(() => setFlashTurn(false), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [isMyTurn, isMyDoubt, isMultiplayer, gameState, victoryState]);
 
   // Guarda o resultado do confronto e da roleta para usar ao final das animações
   const [pendingDoubtResult, setPendingDoubtResult] = useState<typeof doubtResult>(null);
@@ -205,42 +225,71 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     : "—";
 
   return (
-    <div className="size-full bg-black overflow-hidden flex flex-col font-sans">
+    <div className="size-full bg-black overflow-hidden flex flex-col font-sans relative">
+      {/* Flash overlay quando vira minha vez (Phase 7) */}
+      <AnimatePresence>
+        {flashTurn && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.5, 0, 0.4, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.2, times: [0, 0.15, 0.45, 0.6, 1] }}
+            className="fixed inset-0 z-[60] pointer-events-none bg-cyan-400"
+            style={{ mixBlendMode: 'screen' }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.header
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="relative z-20 h-20 bg-zinc-950/80 backdrop-blur-xl border-b border-cyan-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
+        className="relative z-20 h-14 sm:h-20 bg-zinc-950/80 backdrop-blur-xl border-b border-cyan-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
       >
-        <div className="h-full max-w-7xl mx-auto px-8 flex items-center justify-between">
-          <h1 className="text-3xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-400 drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}>
-            THE BOOLEAN BAR
+        <div className="h-full max-w-7xl mx-auto pl-2 pr-12 sm:px-8 flex items-center justify-between">
+          {/* Botão Sair — estilo unificado com o modo Dice */}
+          <button
+            onClick={() => {
+              const msg = isMultiplayer
+                ? "Sair da partida? A sala será encerrada pra todos os jogadores."
+                : "Voltar ao menu?";
+              if (window.confirm(msg)) onExit();
+            }}
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 text-cyan-400 hover:text-cyan-200 font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Sair
+          </button>
+
+          <h1 className="text-base sm:text-3xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-400 drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}>
+            <span className="sm:hidden">BOOLEAN</span>
+            <span className="hidden sm:inline">THE BOOLEAN BAR</span>
           </h1>
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-2 sm:gap-8">
             {/* Status WebSocket */}
-            <div className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full ${wsStatus === 'connected' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : wsStatus === 'connecting' ? 'bg-yellow-400 animate-pulse' : 'bg-red-500 animate-pulse'}`} />
-              <span className="text-xs font-mono tracking-wider" style={{ color: wsStatus === 'connected' ? '#34d399' : wsStatus === 'connecting' ? '#facc15' : '#ef4444' }}>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${wsStatus === 'connected' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : wsStatus === 'connecting' ? 'bg-yellow-400 animate-pulse' : 'bg-red-500 animate-pulse'}`} />
+              <span className="hidden sm:inline text-xs font-mono tracking-wider" style={{ color: wsStatus === 'connected' ? '#34d399' : wsStatus === 'connecting' ? '#facc15' : '#ef4444' }}>
                 {wsStatus === 'connected' ? 'C ENGINE ON' : wsStatus === 'connecting' ? 'CONECTANDO...' : 'OFFLINE'}
               </span>
             </div>
             {/* Indicador de turno (Phase 3) */}
             <div className="flex items-center gap-2">
               {!gameState ? (
-                <span className="text-xs font-mono text-zinc-600">AGUARDANDO...</span>
+                <span className="text-[10px] sm:text-xs font-mono text-zinc-600">AGUARDANDO...</span>
               ) : isMultiplayer ? (
                 isMyTurn || isMyDoubt ? (
-                  <span className="text-xs font-mono text-emerald-400 animate-pulse">SUA VEZ</span>
+                  <span className="text-[10px] sm:text-xs font-mono text-emerald-400 animate-pulse">SUA VEZ</span>
                 ) : (
-                  <span className="text-xs font-mono text-yellow-400">VEZ DE {expectedPlayerName?.toUpperCase() ?? '?'}</span>
+                  <span className="text-[10px] sm:text-xs font-mono text-yellow-400 truncate max-w-[80px] sm:max-w-none">VEZ DE {expectedPlayerName?.toUpperCase() ?? '?'}</span>
                 )
               ) : (
-                <span className="text-xs font-mono text-emerald-400">TURNO {gameState.turn}</span>
+                <span className="text-[10px] sm:text-xs font-mono text-emerald-400">TURNO {gameState.turn}</span>
               )}
             </div>
-            {/* Balas no cilindro */}
-            <div className="flex items-center gap-3">
+            {/* Balas no cilindro — esconder no mobile (info redundante) */}
+            <div className="hidden sm:flex items-center gap-3">
               <span className="text-xs tracking-widest text-zinc-400 font-mono">BALAS:</span>
               <div className="flex items-center gap-1">
                 {Array.from({ length: cylinderCapacity }).map((_, i) => (
@@ -250,18 +299,18 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
               <span className="text-sm font-mono text-red-400">{bulletsInCylinder}/{cylinderCapacity}</span>
             </div>
             {/* Jogadores vivos */}
-            <div className="flex items-center gap-2">
-              <Skull className="w-4 h-4 text-red-400" />
-              <span className="text-xs tracking-widest text-zinc-400 font-mono">VIVOS:</span>
-              <span className="text-sm font-mono text-emerald-400">{playersAlive}/{totalPlayers}</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Skull className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
+              <span className="hidden sm:inline text-xs tracking-widest text-zinc-400 font-mono">VIVOS:</span>
+              <span className="text-xs sm:text-sm font-mono text-emerald-400">{playersAlive}/{totalPlayers}</span>
             </div>
             <motion.button
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setShowSettings(true)}
-              className="p-2 bg-cyan-600/20 border border-cyan-500/30 rounded-lg hover:bg-cyan-600/40 hover:border-cyan-400/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all duration-300"
+              className="p-1.5 sm:p-2 bg-cyan-600/20 border border-cyan-500/30 rounded-lg hover:bg-cyan-600/40 hover:border-cyan-400/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all duration-300"
             >
-              <Settings className="w-5 h-5 text-cyan-400" />
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
             </motion.button>
           </div>
         </div>
@@ -314,43 +363,8 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
             <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
           </div>
 
-          {/* Botão Back to Menu */}
-          <motion.button
-            onClick={() => {
-              const msg = isMultiplayer
-                ? "Sair da partida? A sala será encerrada pra todos os jogadores."
-                : "Voltar ao menu?";
-              if (window.confirm(msg)) onExit();
-            }}
-            className="absolute top-8 left-8 z-30 flex items-center gap-2 px-5 py-3 bg-cyan-950/50 backdrop-blur-md border-2 border-cyan-500/40 rounded-xl text-cyan-300 hover:text-cyan-100 hover:bg-cyan-900/60 transition-all duration-300"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-mono font-bold">BACK TO MENU</span>
-          </motion.button>
-
-          {/* Botão Pause */}
-          <motion.button
-            onClick={() => setIsPaused(!isPaused)}
-            className="absolute top-8 right-8 z-30 p-3 bg-zinc-950/60 backdrop-blur-md border-2 border-zinc-600/40 rounded-xl text-zinc-400 hover:text-cyan-300 hover:bg-cyan-950/50 transition-all duration-300"
-          >
-            <Pause className="w-6 h-6" strokeWidth={2.5} />
-          </motion.button>
-
-          {/* Tela de pausa */}
-          {isPaused && (
-            <div className="absolute inset-0 z-40 bg-black/80 backdrop-blur-lg flex items-center justify-center">
-              <div className="bg-zinc-950/90 border-2 border-cyan-500/30 rounded-2xl p-12 text-center text-cyan-400 font-mono">
-                <h2>PAUSADO</h2>
-                <div className="flex gap-4 mt-8">
-                  <button onClick={() => setIsPaused(false)} className="px-8 py-4 bg-cyan-600 text-white rounded">CONTINUAR</button>
-                  <button onClick={() => { setIsPaused(false); onExit(); }} className="px-8 py-4 bg-red-600 text-white rounded">SAIR</button>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Oponentes */}
-          <div className="relative mt-4 w-full z-10 max-w-6xl mx-auto px-8 grid grid-cols-6 gap-4 justify-items-center">
+          <div className="relative mt-4 w-full z-10 max-w-6xl mx-auto px-2 sm:px-8 grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4 justify-items-center">
             {opponents.map((opponent) => <OpponentCard key={opponent.name} {...opponent} />)}
           </div>
 
@@ -377,6 +391,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                       disabled={!isMyDoubt}
                       onClick={() => {
                         if (!isMyDoubt) return;
+                        audioCues.doubt();
                         sendInput("1"); // 1 = duvidar — overlay aparece via doubt_result
                       }}
                       className="px-10 py-4 bg-red-700 text-white rounded-lg border-2 border-red-500 hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono tracking-wider"
@@ -450,6 +465,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         onConfirm={(bluffType) => {
           setIsModalOpen(false);
           if (!isMyTurn) return;
+          audioCues.bet();
           const cardIdx = (playerHand.indexOf(selectedCardFormula) + 1).toString();
           let blefeNum = "3"; // CONTINGÊNCIA
           if (bluffType === "TAUTOLOGIA") blefeNum = "1";
@@ -520,6 +536,11 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
       />
 
       <SettingsInstructionsPanel isVisible={showSettings} onBack={() => setShowSettings(false)} />
+
+      {/* Capstone: log de jogadas — não renderiza durante telas de fim de partida */}
+      {!showVictory && !showRoulette && (
+        <GameLog entries={gameLog} position="top-right" />
+      )}
     </div>
   );
 }

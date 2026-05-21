@@ -28,7 +28,7 @@ static int contar_dados_mesa(Mesa *m, int face_buscada) {
         Jogador *p = m->players[i];
         if (p && p->estaVivo) {
             for (int k = 0; k < p->dice_count; k++) {
-                if (p->dice[k] == face_buscada || p->dice[k] == 1) { // '1' é curinga na casa!
+                if (p->dice[k] == face_buscada) {
                     total++;
                 }
             }
@@ -50,12 +50,25 @@ static void print_json_dice_state(Mesa *m, int num_players) {
                p->name, p->estaVivo ? "true" : "false", p->dice_count);
     }
     printf("],");
-    // Emitimos a mão de dados só pro front (assumimos current = local/focado)
-    Jogador *atual = m->players[m->current_player_index];
-    printf("\"currentDice\": [");
-    for (int j = 0; j < atual->dice_count; j++) {
-        if (j > 0) printf(",");
-        printf("%d", atual->dice[j]);
+
+    // Emitimos os dados de TODOS os jogadores (array de arrays por slot).
+    // O servidor de ponte filtra por destinatário antes de broadcast — cada
+    // cliente só recebe os próprios dados (segredo do Liar's Dice). Em modo
+    // local (single-process), o cliente confia e exibe só os seus.
+    printf("\"allDice\": [");
+    for (int i = 0; i < num_players; i++) {
+        if (i > 0) printf(",");
+        Jogador *p = m->players[i];
+        if (!p || !p->estaVivo) {
+            printf("[]");
+            continue;
+        }
+        printf("[");
+        for (int j = 0; j < p->dice_count; j++) {
+            if (j > 0) printf(",");
+            printf("%d", p->dice[j]);
+        }
+        printf("]");
     }
     printf("],");
 
@@ -116,10 +129,10 @@ int dice_game_start() {
     }
 
     game_table->current_player_index = 0;
-    
+
     // Loop de Partida
     while (!game_table->game_over && game_table->num_players_alive > 1) {
-        
+
         // Setup de Rodada
         game_table->current_bet_quantity = 0;
         game_table->current_bet_face = 0;
@@ -127,7 +140,7 @@ int dice_game_start() {
         rolar_dados(game_table);
 
         int rodada_ativa = 1;
-        
+
         while (rodada_ativa) {
             ui_render_dice_board(game_table);
             print_json_dice_state(game_table, num_players);
@@ -147,7 +160,7 @@ int dice_game_start() {
                 // APOSTAR
                 if (op == 'A') {
                     int qt = get_safe_int("Nova Quantidade de Dados (> 0): ", 1, 99);
-                    int face = get_safe_int("Nova Face do Dado (2 a 6): ", 2, 6);
+                    int face = get_safe_int("Nova Face do Dado (1 a 6): ", 1, 6);
                     
                     if (qt > game_table->current_bet_quantity || 
                        (qt == game_table->current_bet_quantity && face > game_table->current_bet_face)) {
@@ -168,17 +181,19 @@ int dice_game_start() {
                     if (game_table->current_bet_quantity == 0) {
                         printf("A mesa esta vazia, voce deve abrir a primeira aposta!\n");
                     } else {
-                        printf("\nJSON_DVICE_DOUBT: {\"caller\": \"%s\", \"target_id\": %d}\n", atual->name, game_table->last_bet_player_id);
+                        printf("\nJSON_DICE_DOUBT: {\"caller\": \"%s\", \"target_id\": %d}\n", atual->name, game_table->last_bet_player_id);
                         fflush(stdout);
-                        
+
                         printf("\n>>> [%s] DUVIDOU DA APOSTA NA MESA! <<<\n", atual->name);
                         int total_reais = contar_dados_mesa(game_table, game_table->current_bet_face);
-                        
-                        printf("Abrindo os copos... havia %d dados de face [%d] (contando curingas '1')\n", total_reais, game_table->current_bet_face);
-                        
+
+                        printf("Abrindo os copos... havia %d dados de face [%d] na mesa\n", total_reais, game_table->current_bet_face);
+
                         Jogador *alvo = game_table->players[game_table->last_bet_player_id];
-                        
-                        if (total_reais >= game_table->current_bet_quantity) {
+                        bool bet_valid = total_reais >= game_table->current_bet_quantity;
+                        Jogador *perdedor = bet_valid ? atual : alvo;
+
+                        if (bet_valid) {
                             // Aposta era verdadeira ou maior. Duvidador perde!
                             printf("-> A aposta de %s cobriu! O desafiante [%s] perde um dado.\n", alvo->name, atual->name);
                             atual->dice_count--;
@@ -201,9 +216,36 @@ int dice_game_start() {
                             }
                             game_table->current_player_index = game_table->last_bet_player_id; // Perdedor começa proxima
                         }
-                        
+
+                        // Evento estruturado pro frontend animar revelação dos dados.
+                        // allDice é seguro aqui: a roda já terminou, expor é parte do show.
+                        printf("\nJSON_DICE_REVEAL: {");
+                        printf("\"doubter\": \"%s\",", atual->name);
+                        printf("\"bettor\": \"%s\",", alvo->name);
+                        printf("\"betQty\": %d,", game_table->current_bet_quantity);
+                        printf("\"betFace\": %d,", game_table->current_bet_face);
+                        printf("\"totalReal\": %d,", total_reais);
+                        printf("\"betValid\": %s,", bet_valid ? "true" : "false");
+                        printf("\"loser\": \"%s\",", perdedor->name);
+                        printf("\"loserDiceCount\": %d,", perdedor->dice_count);
+                        printf("\"eliminated\": %s,", perdedor->estaVivo ? "false" : "true");
+                        printf("\"allDice\": [");
+                        for (int i = 0; i < num_players; i++) {
+                            if (i > 0) printf(",");
+                            Jogador *p = game_table->players[i];
+                            if (!p) { printf("[]"); continue; }
+                            printf("[");
+                            for (int j = 0; j < p->dice_count; j++) {
+                                if (j > 0) printf(",");
+                                printf("%d", p->dice[j]);
+                            }
+                            printf("]");
+                        }
+                        printf("]}\n");
+                        fflush(stdout);
+
                         ui_sleep_ms(4000);
-                        
+
                         rodada_ativa = 0; // Finaliza loop pra reseta dados
                         entrada_valida = 1;
                     }
