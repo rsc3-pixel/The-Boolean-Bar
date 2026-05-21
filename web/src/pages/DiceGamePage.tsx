@@ -125,21 +125,6 @@ export function DiceGamePage({ playerConfigs, onExit }: DiceGamePageProps) {
           <span className="text-sm font-mono font-bold">VOLTAR</span>
         </motion.button>
 
-        {/* Action Log Widget */}
-        <div className="absolute top-8 right-8 z-30 w-[340px] max-h-[280px] overflow-y-auto bg-zinc-950/80 backdrop-blur-md border border-emerald-500/20 rounded-xl font-mono text-xs text-emerald-500/80 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-emerald-500/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-500/40 shadow-[0_0_30px_rgba(4,120,87,0.1)] transition-colors">
-          <div className="font-bold text-emerald-400 border-b border-emerald-500/20 px-5 py-3 sticky top-0 bg-zinc-950/95 backdrop-blur-md z-10 flex justify-between items-center">
-            <span>HISTÓRICO DA RODADA</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          </div>
-          <div className="flex flex-col gap-2.5 p-5 pt-3">
-            {state.actionLog.slice(-15).map((log, i) => (
-              <div key={i} className="leading-relaxed border-l-2 border-emerald-500/30 pl-3 opacity-90 transition-all hover:opacity-100 hover:border-emerald-400">
-                {log}
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Opponents Area */}
         <div className="relative mt-24 mb-4 z-10 w-full max-w-6xl mx-auto px-8 flex justify-center flex-wrap gap-8">
           {opponents.map((opponent) => (
@@ -393,6 +378,21 @@ export function DiceGamePage({ playerConfigs, onExit }: DiceGamePageProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Action Log Widget */}
+      <div className="absolute top-[100px] right-8 z-30 w-[550px] max-h-[500px] overflow-y-auto bg-zinc-950/80 backdrop-blur-md border border-emerald-500/20 rounded-xl font-mono text-sm text-emerald-500/80 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-emerald-500/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-emerald-500/40 shadow-[0_0_30px_rgba(4,120,87,0.1)] transition-colors">
+        <div className="font-bold text-emerald-400 border-b border-emerald-500/20 px-6 py-4 sticky top-0 bg-zinc-950/95 backdrop-blur-md z-10 flex justify-between items-center text-base">
+          <span>HISTÓRICO DA RODADA</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        </div>
+        <div className="flex flex-col gap-3 p-6 pt-4">
+          {state.actionLog.slice(-20).map((log, i) => (
+            <div key={i} className="leading-relaxed border-l-2 border-emerald-500/30 pl-4 opacity-90 transition-all hover:opacity-100 hover:border-emerald-400">
+              {log}
+            </div>
+          ))}
+        </div>
+      </div>
 
       <DiceRevealOverlay 
         isVisible={state.phase === "revealing"} 
