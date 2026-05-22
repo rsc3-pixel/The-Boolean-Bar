@@ -46,8 +46,8 @@ static void print_json_dice_state(Mesa *m, int num_players) {
         if (!p) continue;
         if (!first) printf(",");
         first = 0;
-        printf("{\"name\": \"%s\", \"alive\": %s, \"dice_count\": %d}",
-               p->name, p->estaVivo ? "true" : "false", p->dice_count);
+        printf("{\"name\": \"%s\", \"alive\": %s, \"dice_count\": %d, \"points\": %d}",
+               p->name, p->estaVivo ? "true" : "false", p->dice_count, p->points);
     }
     printf("],");
 
@@ -76,7 +76,8 @@ static void print_json_dice_state(Mesa *m, int num_players) {
     printf("\"currentBetFace\": %d,", m->current_bet_face);
     printf("\"lastBetPlayerId\": %d,", m->last_bet_player_id);
     printf("\"turn\": %d,", m->current_player_index);
-    printf("\"totalPlayers\": %d", num_players);
+    printf("\"totalPlayers\": %d,", num_players);
+    printf("\"totalRounds\": %d", m->total_rounds);
     printf("}\n");
     fflush(stdout);
 }
@@ -89,6 +90,7 @@ int dice_game_start() {
     Mesa *game_table = mem_new_mesa();
     if (game_table == NULL) return 1;
     game_table->mode = MODE_DICE;
+    game_table->total_rounds = 0;
 
     // Lê a configuração via Stdin (Quantidade e Nomes)
     char count_buf[16];
@@ -125,6 +127,7 @@ int dice_game_start() {
             return 1;
         }
         game_table->players[i]->dice_count = 3; 
+        game_table->players[i]->points = 0;
         game_table->num_players_alive++;
     }
 
@@ -134,6 +137,7 @@ int dice_game_start() {
     while (!game_table->game_over && game_table->num_players_alive > 1) {
 
         // Setup de Rodada
+        game_table->total_rounds++;
         game_table->current_bet_quantity = 0;
         game_table->current_bet_face = 0;
         game_table->last_bet_player_id = -1;
@@ -191,7 +195,21 @@ int dice_game_start() {
 
                         Jogador *alvo = game_table->players[game_table->last_bet_player_id];
                         bool bet_valid = total_reais >= game_table->current_bet_quantity;
-                        Jogador *perdedor = bet_valid ? atual : alvo;
+                        Jogador *vencedor_confronto = bet_valid ? alvo : atual;
+                        Jogador *perdedor_confronto = bet_valid ? atual : alvo;
+
+                        // Aplicar pontuação conforme SCORING.md
+                        vencedor_confronto->points += 20;
+                        perdedor_confronto->points -= 20;
+                        if (perdedor_confronto->points < 0) perdedor_confronto->points = 0; // Piso Zero
+
+                        // Sobrevivência: todos que ainda têm dados ganham +2
+                        for (int i = 0; i < num_players; i++) {
+                            Jogador *p = game_table->players[i];
+                            if (p && p->estaVivo) {
+                                p->points += 2;
+                            }
+                        }
 
                         if (bet_valid) {
                             // Aposta era verdadeira ou maior. Duvidador perde!
@@ -226,9 +244,9 @@ int dice_game_start() {
                         printf("\"betFace\": %d,", game_table->current_bet_face);
                         printf("\"totalReal\": %d,", total_reais);
                         printf("\"betValid\": %s,", bet_valid ? "true" : "false");
-                        printf("\"loser\": \"%s\",", perdedor->name);
-                        printf("\"loserDiceCount\": %d,", perdedor->dice_count);
-                        printf("\"eliminated\": %s,", perdedor->estaVivo ? "false" : "true");
+                        printf("\"loser\": \"%s\",", perdedor_confronto->name);
+                        printf("\"loserDiceCount\": %d,", perdedor_confronto->dice_count);
+                        printf("\"eliminated\": %s,", perdedor_confronto->estaVivo ? "false" : "true");
                         printf("\"allDice\": [");
                         for (int i = 0; i < num_players; i++) {
                             if (i > 0) printf(",");
