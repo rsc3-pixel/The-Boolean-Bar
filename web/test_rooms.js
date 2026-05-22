@@ -130,10 +130,10 @@ async function testLegacySolo() {
   await c.open();
   await c.waitFor('server_hello', 1000);
 
-  c.send({ action: 'start_game', playerNames: ['Eu', 'Bot1', 'Bot2', 'Bot3', 'Bot4', 'Bot5', 'Bot6'] });
+  c.send({ action: 'start_game', playerNames: ['Eu', 'Bot1', 'Bot2', 'Bot3', 'Bot4', 'Bot5', 'Bot6', 'Bot7'] });
   const state = await c.waitFor('game_state', 5000);
   console.log(`  ✓ Solo: game_state turn=${state.data.turn} totalPlayers=${state.data.totalPlayers}`);
-  if (state.data.totalPlayers !== 7) throw new Error('Esperava 7 players em solo');
+  if (state.data.totalPlayers !== 8) throw new Error('Esperava 8 players em solo');
 
   c.send({ action: 'leave_room' });
   await new Promise(r => setTimeout(r, 300));

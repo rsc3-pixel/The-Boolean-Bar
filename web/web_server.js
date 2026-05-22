@@ -27,7 +27,7 @@ if (IS_WIN && !IS_PROD) {
 
 // ─── Configuração ─────────────────────────────────────────────────────────────
 const PORT = Number(process.env.PORT) || 8080;
-const MAX_PLAYERS_PER_ROOM = 7;
+const MAX_PLAYERS_PER_ROOM = 8;
 const MIN_PLAYERS_PER_ROOM = 2;
 const ROOM_CODE_LENGTH = 4;
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem caracteres ambíguos (0/O, 1/I/L)

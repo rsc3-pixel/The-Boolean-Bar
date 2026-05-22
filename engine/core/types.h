@@ -53,7 +53,7 @@ typedef struct {
 // --- Definições para o Jogo (Mesa) ---
 
 // Constantes do jogo
-#define MAX_PLAYERS 7
+#define MAX_PLAYERS 8
 #define MAX_FORMULA_LENGTH 256 // Tamanho máximo para a string da fórmula
 
 // Estrutura para representar o estado da mesa de jogo
