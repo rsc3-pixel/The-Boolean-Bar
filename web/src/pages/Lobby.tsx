@@ -7,7 +7,7 @@ interface LobbyProps {
 }
 
 const avatarIcons = [User, Skull, Atom, Zap, Target, Eye, Lock];
-const MAX_PLAYERS = 7;
+const MAX_PLAYERS = 8;
 const MIN_HUMAN_PLAYERS = 2;
 
 type Seat = { type: "human"; name: string } | { type: "bot" } | { type: "empty" };

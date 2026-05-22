@@ -15,7 +15,7 @@ interface WaitingRoomProps {
 }
 
 const MIN_PLAYERS = 2;
-const MAX_PLAYERS = 7;
+const MAX_PLAYERS = 8;
 
 export function WaitingRoom({
   room,

@@ -36,7 +36,7 @@ export function MatchLobby({ onBackToMenu, onStartMatch }: MatchLobbyProps) {
   const [newPlayerName, setNewPlayerName] = useState("");
   const [newPlayerType, setNewPlayerType] = useState<"bot" | "human">("bot");
 
-  const maxPlayers = 7;
+  const maxPlayers = 8;
   const canAddMore = players.length < maxPlayers;
   const canStartMatch = players.length >= 2;
 
