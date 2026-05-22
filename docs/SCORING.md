@@ -1,92 +1,71 @@
-# 🎲 Tabela de Pontuação — Sprint Ranking & Pontuação
+# 🎲 Tabela de Pontuação — Modo Dados (Liar's Dice)
 
-> Item **3.1** do [SPRINT_RANKING.md](SPRINT_RANKING.md). É uma **proposta** do PM pra
-> o squad ratificar — os números são chute inicial calibrável, ajustar após playtest.
-> **Bloqueia 3.2** (engine dados) **e 3.3** (engine lógica).
+> Item **3.1** do cronograma. Documento focado exclusivamente na mecânica de **Dados**, conforme decisão do squad.
+> **Bloqueia 3.2** (implementação na engine de dados).
 
 ## Princípio
 
-O engine **só acumula** pontos durante a partida e **despeja tudo no `JSON_VICTORY`**
-(item 3.4). Não emite pontos por turno. Toda aritmética é inteira — sem `float` no C.
+O engine **só acumula** pontos durante a partida e **despeja o resultado final no `JSON_VICTORY`** ao fim do jogo. 
+A pontuação é baseada em performance individual e eficiência.
+A pontuação de qualquer jogador **nunca será inferior a 0**.
 
 ---
 
 ## 1. Pontos por ação (durante a partida)
 
-### Modo Lógica (Boolean Bar)
-
-| Evento | Pontos |
-|---|---|
-| Pegar um blefe — você duvidou e o oponente tinha mentido | **+15** |
-| Defender sua jogada — você foi honesto e o oponente duvidou injustamente | **+15** |
-| Sobreviver a um giro de roleta russa | **+10** |
-| Continuar vivo ao fim de uma rodada | **+2** |
-| ❌ Blefe desmascarado — mentiu e foi pego | **−20** |
-| ❌ Dúvida injusta — duvidou de quem falou a verdade | **−20** |
-
-### Modo Dados (Liar's Dice)
-
-| Evento | Pontos |
-|---|---|
-| Pegar uma mentira — você duvidou e a aposta era falsa | **+15** |
-| Aposta coberta — duvidaram de você e sua aposta era válida | **+15** |
-| Continuar com dados no copo ao fim de uma rodada | **+2** |
-| ❌ Perder um dado (qualquer motivo) | **−20** |
-
-> Em ambos os modos, **cada confronto (dúvida) gera exatamente um +15** (quem venceu)
-> **e um −20** (quem perdeu). A simetria deixa 3.2 e 3.3 com a mesma estrutura.
+| Evento | Pontos | Descrição |
+|---|---|---|
+| **Pegar uma mentira** | **+20** | Você duvidou e a aposta do oponente era falsa. |
+| **Aposta coberta** | **+20** | Duvidaram de você e sua aposta era válida (existiam os dados). |
+| **Sobrevivência** | **+2** | Continuar com ao menos um dado no copo ao fim de uma rodada de dúvida. |
+| ❌ **Perder um dado** | **−20** | Penalidade por aposta errada ou dúvida injusta. |
 
 ---
 
 ## 2. Bônus de fim de partida (só pro vencedor)
 
-| Bônus | Valor | Quando |
+| Bônus | Valor Base | Quando |
 |---|---|---|
-| Base de vitória | **+50** | sempre, pro vencedor |
-| Vitória limpa | **+40** | venceu sem perder nenhuma vida (Lógica) / nenhum dado (Dados) |
-| Vitória rápida | **multiplicador** ↓ | conforme nº de rodadas |
+| **Vitória Real** | **+50** | Concedido ao último jogador restante na mesa. |
+| **Vitória Limpa** | **+40** | Venceu a partida sem perder nenhum dos seus dados iniciais. |
 
-**Multiplicador de velocidade** — aplicado sobre o total final do vencedor:
+### Bônus de Eficiência (Multiplicador de Velocidade)
+O multiplicador incide **apenas sobre os +50 pontos da Vitória Real**, recompensando quem finaliza a mesa rapidamente sem diluir o mérito das ações acumuladas.
 
-| Rodadas até a vitória | Multiplicador |
-|---|---|
-| ≤ 6 | **×2** |
-| 7 – 12 | **×1,5** (`×3/2` em inteiro) |
-| 13 ou mais | **×1** |
+| Rodadas até a vitória | Multiplicador (sobre os +50 base) | Bônus Final de Vitória |
+|---|---|---|
+| ≤ 6 (Blitz) | **×2** | **100 pts** |
+| 7 – 12 (Padrão) | **×1,5** (arred. p/ baixo) | **75 pts** |
+| 13 ou mais (Resistência) | **×1** | **50 pts** |
 
 ---
 
-## 3. Fórmula final
+## 3. Cálculo Final
 
 ```
-# Não-vencedores:
-pontos_finais = max(0, pontos_acumulados)
+# Para TODOS os jogadores:
+pontos_base = pontos_acumulados durante a partida
+se (pontos_base < 0) pontos_base = 0
 
-# Vencedor:
-subtotal      = pontos_acumulados + 50 + (40 se vitória limpa)
-pontos_finais = subtotal × multiplicador_de_velocidade
+# Apenas para o Vencedor:
+bonus_vitoria = (50 × multiplicador_velocidade)
+bonus_limpo = (40 se vitória limpa, senão 0)
+
+total_vencedor = pontos_base + bonus_vitoria + bonus_limpo
 ```
 
 ---
 
-## 4. Decisões em aberto (squad bate o martelo)
+## 4. Definições Técnicas
 
-1. **O multiplicador aplica no total do vencedor ou só no bônus de vitória?**
-   → proposta: no total.
-2. **Pontuação pode ficar negativa?** → proposta: piso em 0.
-3. **O que conta como "1 rodada" no modo Lógica?** No Dados a rodada é clara (cada
-   ciclo até uma dúvida). No Lógica proponho: 1 rodada = 1 volta completa na mesa
-   (todos jogaram 1 turno). 3.3 confirma na implementação.
-4. Todos os números são calibráveis — rodar 2–3 playtests antes de travar.
+1. **Rodada:** Um ciclo completo que se inicia com a primeira aposta e termina com um "Doubt" (Duvido) ou "Exact" (Exato).
+2. **Piso Zero:** Se uma penalidade (-20) levar os pontos abaixo de zero no meio da partida, o valor é ajustado para 0 imediatamente para evitar saldos negativos.
+3. **Persistência:** Os pontos devem ser acumulados em uma nova variável `int points` na estrutura do jogador para não interferir em lógicas existentes.
 
 ---
 
-## 5. Notas de implementação (pra 3.2 / 3.3)
+## 5. Notas de implementação (Task 3.2 e 3.4)
 
-- ⚠️ O campo `score` do `Jogador` ([types.h:62](../engine/core/types.h#L62)) **é a vida
-  no modo Lógica** (a roleta russa decrementa ele). **Não reusar pra pontuação.**
-  Adicionar campo novo `int points;` no struct `Jogador` + `int rounds;` na `Mesa`.
-- ⚠️ Mexer em `types.h` exige **`make clean`** antes de rebuildar — pegadinha conhecida
-  (struct stale em runtime = segfault).
-- O engine acumula em silêncio; o breakdown completo (pontos, rodadas e bônus por
-  jogador) sai só no `JSON_VICTORY` estendido (item 3.4).
+- ⚠️ **Engine:** Criar `int points;` na struct `Jogador` e `int total_rounds;` na struct `Mesa` em `types.h`.
+- ⚠️ **Sincronização:** O acúmulo deve ocorrer no arquivo `engine/modules/dice_flow.c`.
+- ⚠️ **Rebuild:** É obrigatório realizar a limpeza da build (`make clean` ou manual) ao alterar as structs no `types.h` para evitar segfaults.
