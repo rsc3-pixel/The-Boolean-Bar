@@ -41,13 +41,21 @@ typedef struct {
     bool estaVivo;          // Campo para facilitar filtro booleano (UH7)
     int score;              // Pontuação ou número de "vidas" restantes
     
+    // Pontuação e bônus (para relatório final)
+    int final_score;        // Pontuação final ao término do jogo
+    int bonus_survival;     // Bônus por sobrevivência
+    int bonus_rounds;       // Bônus por rodadas jogadas
+    int bonus_accuracy;     // Bônus por acertos (dúvidas/acusações corretas)
+    
     // Logic Mode
     Carta *hand[5];         // Mão com até 5 cartas
     int num_cards;          // Número atual de cartas na mão
+    int correct_doubts;     // Quantas dúvidas corretas fez
 
     // Dice Mode
     int dice[5];            // Faces dos dados: valores de 1 a 6
     int dice_count;         // Quantos dados sobraram a ele
+    int correct_challenges; // Quantas dúvidas corretas fez no dice
 } Jogador;
 
 // --- Definições para o Jogo (Mesa) ---
@@ -63,6 +71,10 @@ typedef struct {
     int num_players_alive;         // Quantidade de jogadores ainda no jogo
     int current_player_index;      // Índice do jogador atual no turno
     bool game_over;                // Flag para indicar se o jogo terminou
+    
+    // Rastreamento de rodadas e pontuação
+    int num_rounds;                // Contador de rodadas do jogo
+    int num_players_initial;       // Total inicial de jogadores (para cálculos)
 
     // Logic Mode
     Carta *current_card;           // A carta (fórmula) atualmente em jogo

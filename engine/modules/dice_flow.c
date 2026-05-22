@@ -197,6 +197,7 @@ int dice_game_start() {
                             // Aposta era verdadeira ou maior. Duvidador perde!
                             printf("-> A aposta de %s cobriu! O desafiante [%s] perde um dado.\n", alvo->name, atual->name);
                             atual->dice_count--;
+                            atual->correct_challenges++;  // Rastreia dúvida correta (aposta cobriu)
                             if (atual->dice_count <= 0) {
                                 atual->estaVivo = false;
                                 atual->status = ELIMINATED;
@@ -208,6 +209,7 @@ int dice_game_start() {
                             // Aposta era falsa. Bettor perde!
                             printf("-> Faltaram dados!! A aposta de [%s] ruiu e ele perde um dado.\n", alvo->name);
                             alvo->dice_count--;
+                            atual->correct_challenges++;  // Rastreia dúvida correta (aposta falha)
                             if (alvo->dice_count <= 0) {
                                 alvo->estaVivo = false;
                                 alvo->status = ELIMINATED;
@@ -267,6 +269,9 @@ int dice_game_start() {
             // Avança turno garantidamente para um vivo apenas se NINGUEM dubidou (continua circulando a mesa)
             if (rodada_ativa) {
                 game_table->current_player_index = get_next_valid_player_index(game_table, game_table->current_player_index, is_alive);
+            } else {
+                // Incrementa rodada apenas quando uma dúvida foi resolvida ou sair
+                game_table->num_rounds++;
             }
             
         } // end loop rodada_ativa
@@ -278,6 +283,32 @@ int dice_game_start() {
 
     } // end loop partida
 
+    // Calcula bônus e pontuação final (Dice Mode)
+    for (int i = 0; i < num_players; i++) {
+        Jogador *p = game_table->players[i];
+        if (!p) continue;
+
+        // Bônus de sobrevivência: 100 pontos por dado restante
+        if (p->estaVivo) {
+            p->bonus_survival = p->dice_count * 50;
+        }
+
+        // Bônus por rodadas: 5 pontos por rodada que participou
+        if (p->estaVivo) {
+            p->bonus_rounds = game_table->num_rounds * 3;
+        }
+
+        // Bônus por acurácia: 30 pontos por dúvida correta
+        p->bonus_accuracy = p->correct_challenges * 30;
+
+        // Pontuação final = bônus totais + dados restantes * 20
+        if (p->estaVivo) {
+            p->final_score = p->bonus_survival + p->bonus_rounds + p->bonus_accuracy;
+        } else {
+            p->final_score = p->bonus_accuracy; // Eliminado só ganha bônus de acurácia
+        }
+    }
+
     ui_clear_screen();
     int win_idx = get_next_valid_player_index(game_table, 0, is_alive);
     if (win_idx != -1) {
@@ -285,7 +316,32 @@ int dice_game_start() {
        char win_msg[128];
        snprintf(win_msg, sizeof(win_msg), "🏆  %s GANHOU NA SINUCA DOS DADOS  🏆", game_table->players[win_idx]->name);
        ui_print_box(win_msg, ANSI_BRIGHT_CYAN);
-       printf("\nJSON_VICTORY: {\"winner\": \"%s\", \"totalPlayers\": %d}\n", game_table->players[win_idx]->name, num_players);
+       
+       // JSON_VICTORY estendido com pontuação, rodadas e breakdown de bônus (Dice Mode)
+       printf("\nJSON_VICTORY: {");
+       printf("\"winner\": \"%s\", ", game_table->players[win_idx]->name);
+       printf("\"totalPlayers\": %d, ", num_players);
+       printf("\"roundCount\": %d, ", game_table->num_rounds);
+       printf("\"gameMode\": \"dice\", ");
+       printf("\"players\": [");
+       
+       for (int i = 0; i < num_players; i++) {
+           Jogador *p = game_table->players[i];
+           if (!p) continue;
+           if (i > 0) printf(",");
+           printf("{");
+           printf("\"name\": \"%s\", ", p->name);
+           printf("\"alive\": %s, ", p->estaVivo ? "true" : "false");
+           printf("\"finalScore\": %d, ", p->final_score);
+           printf("\"bonusSurvival\": %d, ", p->bonus_survival);
+           printf("\"bonusRounds\": %d, ", p->bonus_rounds);
+           printf("\"bonusAccuracy\": %d, ", p->bonus_accuracy);
+           printf("\"correctChallenges\": %d, ", p->correct_challenges);
+           printf("\"diceRemaining\": %d", p->dice_count);
+           printf("}");
+       }
+       
+       printf("]}\n");
        fflush(stdout);
     }
 

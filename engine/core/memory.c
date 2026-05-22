@@ -55,6 +55,19 @@ Jogador* mem_new_jogador(int id, const char *name) {
     for (int i = 0; i < 5; i++) {
         new_player->hand[i] = NULL;
     }
+    
+    // Inicializar campos de pontuação e bônus
+    new_player->final_score = 0;
+    new_player->bonus_survival = 0;
+    new_player->bonus_rounds = 0;
+    new_player->bonus_accuracy = 0;
+    new_player->correct_doubts = 0;
+    new_player->correct_challenges = 0;
+    new_player->dice_count = 5;  // Começa com 5 dados no modo Dice
+    for (int i = 0; i < 5; i++) {
+        new_player->dice[i] = 0;
+    }
+    
     return new_player;
 }
 
@@ -76,6 +89,8 @@ Mesa* mem_new_mesa() {
     new_table->current_player_index = 0;
     new_table->balas_no_tambor = 1; // Risco global sempre aumenta na falha
     new_table->game_over = false;
+    new_table->num_rounds = 0;          // Contador de rodadas
+    new_table->num_players_initial = 0; // Total inicial
 
     return new_table;
 }

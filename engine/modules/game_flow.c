@@ -237,11 +237,13 @@ int game_start() {
                printf("\n  %s🚨 BLEFE DESMASCARADO!%s ", STYLE_BANG, ANSI_COLOR_RESET);
                printf("%s[%s] perde a aposta.%s\n", ANSI_BRIGHT_YELLOW, atual->name, ANSI_COLOR_RESET);
                ui_sleep_ms(800);
+               oponente->correct_doubts++;  // Rastreia dúvida correta
                roleta_russa(game_table, atual);
             } else {
                printf("\n  %s✓ ERA VERDADE!%s ", STYLE_SURVIVAL, ANSI_COLOR_RESET);
                printf("%s[%s] duvidou injustamente.%s\n", ANSI_BRIGHT_YELLOW, oponente->name, ANSI_COLOR_RESET);
                ui_sleep_ms(800);
+               atual->correct_doubts++;  // Rastreia acusação correta
                roleta_russa(game_table, oponente);
             }
             
@@ -254,8 +256,37 @@ int game_start() {
         mem_free_carta(jogada);
         repor_carta(atual);
 
+        // Incrementa rodada
+        game_table->num_rounds++;
+
         // Avança turno garantidamente para um vivo caso o proximo era oponente e continuou
         game_table->current_player_index = get_next_valid_player_index(game_table, game_table->current_player_index, is_alive);
+    }
+
+    // Calcula bônus e pontuação final
+    for (int i = 0; i < num_players; i++) {
+        Jogador *p = game_table->players[i];
+        if (!p) continue;
+
+        // Bônus de sobrevivência: 100 pontos por jogador eliminado (se vivo no final)
+        if (p->estaVivo) {
+            p->bonus_survival = (num_players - 1) * 50; // Baseado em ter eliminado n-1 adversários
+        }
+
+        // Bônus por rodadas: 10 pontos por rodada que participou (se vivo)
+        if (p->estaVivo) {
+            p->bonus_rounds = game_table->num_rounds * 5;
+        }
+
+        // Bônus por acurácia: 25 pontos por dúvida/acusação correta
+        p->bonus_accuracy = p->correct_doubts * 25;
+
+        // Pontuação final = bônus totais + vidas restantes * 10
+        if (p->estaVivo) {
+            p->final_score = p->bonus_survival + p->bonus_rounds + p->bonus_accuracy + (p->score * 10);
+        } else {
+            p->final_score = p->bonus_accuracy; // Eliminado só ganha bônus de acurácia
+        }
     }
 
     ui_clear_screen();
@@ -269,8 +300,30 @@ int game_start() {
        printf("\n  %sÚnico sobrevivente do Boolean Bar. A casa agradece!%s\n\n",
               STYLE_SURVIVAL, ANSI_COLOR_RESET);
 
-       printf("\nJSON_VICTORY: {\"winner\": \"%s\", \"totalPlayers\": %d}\n",
-              game_table->players[win_idx]->name, num_players);
+       // JSON_VICTORY estendido com pontuação, rodadas e breakdown de bônus
+       printf("\nJSON_VICTORY: {");
+       printf("\"winner\": \"%s\", ", game_table->players[win_idx]->name);
+       printf("\"totalPlayers\": %d, ", num_players);
+       printf("\"roundCount\": %d, ", game_table->num_rounds);
+       printf("\"players\": [");
+       
+       for (int i = 0; i < num_players; i++) {
+           Jogador *p = game_table->players[i];
+           if (!p) continue;
+           if (i > 0) printf(",");
+           printf("{");
+           printf("\"name\": \"%s\", ", p->name);
+           printf("\"alive\": %s, ", p->estaVivo ? "true" : "false");
+           printf("\"finalScore\": %d, ", p->final_score);
+           printf("\"bonusSurvival\": %d, ", p->bonus_survival);
+           printf("\"bonusRounds\": %d, ", p->bonus_rounds);
+           printf("\"bonusAccuracy\": %d, ", p->bonus_accuracy);
+           printf("\"correctDoubts\": %d, ", p->correct_doubts);
+           printf("\"livesRemaining\": %d", p->score);
+           printf("}");
+       }
+       
+       printf("]}\n");
        fflush(stdout);
     }
 
