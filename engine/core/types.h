@@ -77,7 +77,7 @@ typedef struct {
  *  @{
  */
 
-#define MAX_PLAYERS       7   /**< Máximo de jogadores suportados por mesa. */
+#define MAX_PLAYERS       8   /**< Máximo de jogadores suportados por mesa. */
 #define MAX_FORMULA_LENGTH 256 /**< Tamanho máximo da string de uma fórmula. */
 
 /**
