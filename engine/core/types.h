@@ -59,7 +59,8 @@ typedef struct {
     char *name;          /**< Nome do jogador. Alocado dinamicamente. */
     PlayerStatus status; /**< Status atual: ALIVE ou ELIMINATED. */
     bool estaVivo;       /**< Atalho booleano para filtros de jogador vivo. */
-    int score;           /**< Vidas restantes (Logic Mode) ou pontuação geral. */
+    int score;           /**< Vidas restantes (Logic Mode). NÃO REUSAR PARA PONTOS. */
+    int points;          /**< Pontuação acumulada do jogador (Modo Dados). */
 
     /* Logic Mode */
     Carta *hand[5];  /**< Mão do jogador: até 5 cartas lógicas. */
@@ -89,6 +90,7 @@ typedef struct {
     int num_players_alive;          /**< Quantidade de jogadores ainda na partida. */
     int current_player_index;       /**< Índice do jogador cujo turno é o atual. */
     bool game_over;                 /**< true quando a partida foi encerrada. */
+    int total_rounds;               /**< Contador de rodadas (Dice Mode). */
 
     /* Logic Mode */
     Carta *current_card;    /**< Carta em disputa no turno atual. */
