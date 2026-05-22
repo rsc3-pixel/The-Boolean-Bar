@@ -46,6 +46,7 @@ typedef struct {
     int bonus_survival;     // Bônus por sobrevivência
     int bonus_rounds;       // Bônus por rodadas jogadas
     int bonus_accuracy;     // Bônus por acertos (dúvidas/acusações corretas)
+    int bonus_victory;      // Bônus de vitória (com multiplicador de velocidade)
     
     // Logic Mode
     Carta *hand[5];         // Mão com até 5 cartas

@@ -283,29 +283,65 @@ int dice_game_start() {
 
     } // end loop partida
 
+    // Calcula multiplicador de velocidade baseado no número de rodadas
+    int multiplier_numerator = 1;   // numerador do multiplicador
+    int multiplier_denominator = 1; // denominador (para evitar float)
+    if (game_table->num_rounds <= 6) {
+        multiplier_numerator = 2;   // 2.0
+        multiplier_denominator = 1;
+    } else if (game_table->num_rounds >= 7 && game_table->num_rounds <= 12) {
+        multiplier_numerator = 3;   // 1.5 = 3/2
+        multiplier_denominator = 2;
+    } else {
+        multiplier_numerator = 1;   // 1.0
+        multiplier_denominator = 1;
+    }
+
     // Calcula bônus e pontuação final (Dice Mode)
     for (int i = 0; i < num_players; i++) {
         Jogador *p = game_table->players[i];
         if (!p) continue;
 
-        // Bônus de sobrevivência: 100 pontos por dado restante
+        // Inicializar todos os bônus a 0 (garantir estado limpo)
+        p->bonus_survival = 0;
+        p->bonus_rounds = 0;
+        p->bonus_accuracy = 0;
+        p->bonus_victory = 0;
+
+        // Bônus de sobrevivência: 50 pontos por dado restante (só se vivo)
         if (p->estaVivo) {
             p->bonus_survival = p->dice_count * 50;
         }
 
-        // Bônus por rodadas: 5 pontos por rodada que participou
+        // Bônus por rodadas: 3 pontos por rodada que participou (só se vivo)
         if (p->estaVivo) {
             p->bonus_rounds = game_table->num_rounds * 3;
         }
 
-        // Bônus por acurácia: 30 pontos por dúvida correta
+        // Bônus por acurácia: 30 pontos por dúvida correta (todos ganham)
         p->bonus_accuracy = p->correct_challenges * 30;
 
-        // Pontuação final = bônus totais + dados restantes * 20
+        // Bônus de vitória: aplica multiplicador de velocidade (só se vivo)
         if (p->estaVivo) {
-            p->final_score = p->bonus_survival + p->bonus_rounds + p->bonus_accuracy;
+            // Bônus base de vitória = 50, aplicar multiplicador
+            p->bonus_victory = (50 * multiplier_numerator) / multiplier_denominator;
+
+            // Vitória limpa: se restou 3 dados (+40 pontos adicionais)
+            if (p->dice_count == 3) {
+                p->bonus_victory += 40;
+            }
+        }
+
+        // Calcular pontuação final
+        if (p->estaVivo) {
+            p->final_score = p->bonus_survival + p->bonus_rounds + p->bonus_accuracy + p->bonus_victory;
         } else {
             p->final_score = p->bonus_accuracy; // Eliminado só ganha bônus de acurácia
+        }
+
+        // GARANTIA: nenhum jogador pode ter pontos negativos
+        if (p->final_score < 0) {
+            p->final_score = 0;
         }
     }
 
@@ -317,12 +353,11 @@ int dice_game_start() {
        snprintf(win_msg, sizeof(win_msg), "🏆  %s GANHOU NA SINUCA DOS DADOS  🏆", game_table->players[win_idx]->name);
        ui_print_box(win_msg, ANSI_BRIGHT_CYAN);
        
-       // JSON_VICTORY estendido com pontuação, rodadas e breakdown de bônus (Dice Mode)
+       // JSON_VICTORY estendido com multiplicador de velocidade e vitória limpa
        printf("\nJSON_VICTORY: {");
        printf("\"winner\": \"%s\", ", game_table->players[win_idx]->name);
-       printf("\"totalPlayers\": %d, ", num_players);
-       printf("\"roundCount\": %d, ", game_table->num_rounds);
-       printf("\"gameMode\": \"dice\", ");
+       printf("\"total_rounds\": %d, ", game_table->num_rounds);
+       printf("\"speedMultiplier\": \"%.1f\", ", (float)multiplier_numerator / multiplier_denominator);
        printf("\"players\": [");
        
        for (int i = 0; i < num_players; i++) {
@@ -331,13 +366,8 @@ int dice_game_start() {
            if (i > 0) printf(",");
            printf("{");
            printf("\"name\": \"%s\", ", p->name);
-           printf("\"alive\": %s, ", p->estaVivo ? "true" : "false");
-           printf("\"finalScore\": %d, ", p->final_score);
-           printf("\"bonusSurvival\": %d, ", p->bonus_survival);
-           printf("\"bonusRounds\": %d, ", p->bonus_rounds);
-           printf("\"bonusAccuracy\": %d, ", p->bonus_accuracy);
-           printf("\"correctChallenges\": %d, ", p->correct_challenges);
-           printf("\"diceRemaining\": %d", p->dice_count);
+           printf("\"final_points\": %d, ", p->final_score);
+           printf("\"is_winner\": %s", (i == win_idx) ? "true" : "false");
            printf("}");
        }
        

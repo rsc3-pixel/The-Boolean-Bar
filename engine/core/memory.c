@@ -61,6 +61,7 @@ Jogador* mem_new_jogador(int id, const char *name) {
     new_player->bonus_survival = 0;
     new_player->bonus_rounds = 0;
     new_player->bonus_accuracy = 0;
+    new_player->bonus_victory = 0;
     new_player->correct_doubts = 0;
     new_player->correct_challenges = 0;
     new_player->dice_count = 5;  // Começa com 5 dados no modo Dice
