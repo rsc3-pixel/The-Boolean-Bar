@@ -1,6 +1,24 @@
 import { motion } from "motion/react";
 import { BookOpen, DoorOpen, Users, Trophy } from "lucide-react";
 
+// ─── ANIMATION CONSTANTS ──────────────────────────────────────────────
+const HEARTBEAT_DURATION = 1.4;
+const HEARTBEAT_TIMING = [0, 0.08, 0.18, 0.26, 0.4, 1];
+const HEARTBEAT_OPACITY = [0.55, 1, 0.7, 1, 0.55, 0.55];
+const HEARTBEAT_SCALE = [1, 1.04, 1.01, 1.04, 1, 1];
+
+const HEARTBEAT_ANIMATION = {
+  opacity: HEARTBEAT_OPACITY,
+  scale: HEARTBEAT_SCALE,
+};
+
+const HEARTBEAT_TRANSITION = {
+  duration: HEARTBEAT_DURATION,
+  times: HEARTBEAT_TIMING,
+  repeat: Infinity,
+  ease: "easeInOut",
+};
+
 interface MainMenuProps {
   onEnterOnline: () => void;
   onOpenLeaderboard: () => void;
@@ -67,7 +85,7 @@ export function MainMenu({ onEnterOnline, onOpenLeaderboard, onOpenRules, onFlee
             }}
             transition={{
               width: { duration: 1.5, delay: 0.3 },
-              opacity: { duration: 1.4, times: [0, 0.08, 0.18, 0.26, 0.4, 1], repeat: Infinity, ease: 'easeInOut', delay: 1.5 },
+              opacity: { ...HEARTBEAT_TRANSITION, delay: 1.5 },
             }}
             className="h-[1px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"
           />
@@ -89,12 +107,7 @@ export function MainMenu({ onEnterOnline, onOpenLeaderboard, onOpenRules, onFlee
                 '0 0 30px rgba(6, 182, 212, 0.4), 0 0 50px rgba(6, 182, 212, 0.25)',   // pause longa
               ],
             }}
-            transition={{
-              duration: 1.4,
-              times: [0, 0.08, 0.18, 0.26, 0.4, 1],
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
+            transition={HEARTBEAT_TRANSITION}
           >
             THE BOOLEAN BAR
           </motion.h1>
@@ -118,7 +131,7 @@ export function MainMenu({ onEnterOnline, onOpenLeaderboard, onOpenRules, onFlee
             }}
             transition={{
               width: { duration: 1.5, delay: 0.3 },
-              opacity: { duration: 1.4, times: [0, 0.08, 0.18, 0.26, 0.4, 1], repeat: Infinity, ease: 'easeInOut', delay: 1.5 },
+              opacity: { ...HEARTBEAT_TRANSITION, delay: 1.5 },
             }}
             className="h-[1px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"
           />
@@ -143,16 +156,8 @@ export function MainMenu({ onEnterOnline, onOpenLeaderboard, onOpenRules, onFlee
           >
             {/* Heartbeat glow — sincronizado com o título (lub-dub ___ pause) */}
             <motion.div
-              animate={{
-                opacity: [0.55, 1, 0.7, 1, 0.55, 0.55],
-                scale: [1, 1.04, 1.01, 1.04, 1, 1],
-              }}
-              transition={{
-                duration: 1.4,
-                times: [0, 0.08, 0.18, 0.26, 0.4, 1],
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              animate={HEARTBEAT_ANIMATION}
+              transition={HEARTBEAT_TRANSITION}
               className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-400"
             />
 
