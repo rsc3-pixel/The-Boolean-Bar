@@ -33,6 +33,14 @@ O jogo procede em turnos, seguindo a ordem dos jogadores na mesa.
     -   **Se a afirmação do jogador estava CORRETA:** Os oponentes que duvidaram perdem 1 vida.
     -   **Se a afirmação do jogador estava INCORRETA (blefe):** O jogador que fez a afirmação incorreta é submetido à Roleta Russa.
 
+### Tabela de Confronto
+
+| Ação do Jogador | Reação do Oponente | Resultado da Verificação | Consequência |
+| :--- | :--- | :--- | :--- |
+| Afirma Classificação | Aceita (Silêncio) | Não verificado | Próximo turno (sem punição) |
+| Afirma Classificação | **Duvida** | **Fórmula == Afirmação** | Oponente perde 1 vida |
+| Afirma Classificação | **Duvida** | **Fórmula != Afirmação** | Jogador vai para Roleta Russa |
+
 ## 5. Roleta Russa
 
 Quando um jogador é submetido à Roleta Russa:
