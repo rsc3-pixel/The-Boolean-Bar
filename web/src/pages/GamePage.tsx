@@ -308,6 +308,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setShowSettings(true)}
+              aria-label="Configurações e Instruções"
               className="p-1.5 sm:p-2 bg-cyan-600/20 border border-cyan-500/30 rounded-lg hover:bg-cyan-600/40 hover:border-cyan-400/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all duration-300"
             >
               <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
@@ -394,6 +395,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                         audioCues.doubt();
                         sendInput("1"); // 1 = duvidar — overlay aparece via doubt_result
                       }}
+                      aria-label="Duvidar da declaração do oponente"
                       className="px-10 py-4 bg-red-700 text-white rounded-lg border-2 border-red-500 hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono tracking-wider"
                     >
                       🚨 DUVIDO
@@ -404,6 +406,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
                         if (!isMyDoubt) return;
                         sendInput("0"); // 0 = acreditar
                       }}
+                      aria-label="Acreditar na declaração do oponente"
                       className="px-10 py-3 bg-zinc-800 text-zinc-300 rounded-lg border-2 border-zinc-700 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-mono tracking-wider"
                     >
                       ACREDITO
