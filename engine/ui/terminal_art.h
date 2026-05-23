@@ -12,6 +12,9 @@
 // ─── RESET ────────────────────────────────────────────────────────────────
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+// ─── CURSOR CONTROL ──────────────────────────────────────────────────────
+#define ANSI_CURSOR_UP_3   "\x1b[3A"    // Move cursor up 3 lines
+
 // ─── STANDARD FOREGROUND COLORS (30–37) ──────────────────────────────────
 #define ANSI_COLOR_BLACK   "\x1b[30m"
 #define ANSI_COLOR_RED     "\x1b[31m"
@@ -83,6 +86,64 @@
 #define STYLE_HEADER    ANSI_STYLE_BOLD ANSI_BRIGHT_CYAN    // Headers
 #define STYLE_MUTED     ANSI_STYLE_DIM  ANSI_BRIGHT_BLACK   // Background text
 #define STYLE_DANGER_BG ANSI_STYLE_BOLD ANSI_BRIGHT_WHITE ANSI_BG_RED // Critical
+
+// ─── ASCII ART ASSETS ────────────────────────────────────────────────────
+// Roulette cylinder frames for spinning animation
+#define ROULETTE_CYLINDER_FRAMES \
+    (const char *[]) { \
+        "  [ ○ ○ ○ ○ ○ ● ]", \
+        "  [ ● ○ ○ ○ ○ ○ ]", \
+        "  [ ○ ● ○ ○ ○ ○ ]", \
+        "  [ ○ ○ ● ○ ○ ○ ]", \
+        "  [ ○ ○ ○ ● ○ ○ ]", \
+        "  [ ○ ○ ○ ○ ● ○ ]" \
+    }
+#define ROULETTE_FRAMES_COUNT 6
+
+// BANG ASCII art — death animation
+#define BANG_ASCII_ART \
+    (const char *[]) { \
+        "       ██████╗  █████╗ ███╗   ██╗ ██████╗ ██╗", \
+        "       ██╔══██╗██╔══██╗████╗  ██║██╔════╝ ██║", \
+        "       ██████╔╝███████║██╔██╗ ██║██║  ███╗██║", \
+        "       ██╔══██╗██╔══██║██║╚██╗██║██║   ██║╚═╝", \
+        "       ██████╔╝██║  ██║██║ ╚████║╚██████╔╝██╗", \
+        "       ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝" \
+    }
+#define BANG_ASCII_LINES 6
+
+// CLICK ASCII art — survival animation
+#define CLICK_ASCII_ART \
+    (const char *[]) { \
+        "      ██████╗██╗     ██╗ ██████╗██╗  ██╗", \
+        "     ██╔════╝██║     ██║██╔════╝██║ ██╔╝", \
+        "     ██║     ██║     ██║██║     █████╔╝ ", \
+        "     ██║     ██║     ██║██║     ██╔═██╗ ", \
+        "     ╚██████╗███████╗██║╚██████╗██║  ██╗", \
+        "      ╚═════╝╚══════╝╚═╝ ╚═════╝╚═╝  ╚═╝" \
+    }
+#define CLICK_ASCII_LINES 6
+
+// CLICK gradient colors
+#define CLICK_GRADIENT \
+    (const char *[]) { \
+        ANSI_MATRIX_GREEN, \
+        ANSI_MATRIX_GREEN, \
+        ANSI_COLOR_GREEN, \
+        ANSI_BRIGHT_GREEN, \
+        ANSI_BRIGHT_GREEN, \
+        ANSI_TOXIC_GREEN \
+    }
+#define CLICK_GRADIENT_COUNT 6
+
+// Dice face dot patterns (per die value 0-6)
+#define DICE_FACE_TOP \
+    (const char *[]) { "     ", "     ", "  •  ", "  •  ", " • • ", " • • ", " ••• " }
+#define DICE_FACE_MID \
+    (const char *[]) { "     ", "  •  ", "     ", "  •  ", "     ", "  •  ", "     " }
+#define DICE_FACE_BOT \
+    (const char *[]) { "     ", "     ", "  •  ", "  •  ", " • • ", " • • ", " ••• " }
+#define DICE_FACE_VALUES 7
 
 /* ═══════════════════════════════════════════════════════════════════════════
  *  FUNCTION DECLARATIONS — Core Utilities
