@@ -217,6 +217,46 @@ export interface RoomError {
   message: string;
 }
 
+/**
+ * Hook principal para gerenciar a lógica de jogo e comunicação via WebSocket.
+ * 
+ * Este hook encapsula toda a conexão com o backend (web_server.js), 
+ * gerencia os estados dos modos de jogo 'Boolean Bar' (lógica) e 'Liar's Dice' (dados),
+ * e controla as salas multiplayer.
+ * 
+ * @returns {Object} Um objeto contendo estados do jogo, estados da sala e funções de ação.
+ * @property {React.MutableRefObject<WebSocket | null>} wsRef - Referência para a conexão WebSocket ativa.
+ * @property {Function} startGame - Inicia uma nova partida (modo solo/legacy).
+ * @property {Function} sendInput - Envia entrada de texto diretamente para o engine C.
+ * @property {Function} sendShutdown - Fecha a conexão e tenta encerrar a aba do usuário (Flee).
+ * @property {string[]} cStdout - Histórico de mensagens recebidas da saída padrão do engine.
+ * @property {GameState | null} gameState - Estado atual da partida de lógica (Boolean Bar).
+ * @property {DoubtState | null} doubtState - Estado de uma dúvida pendente no modo lógica.
+ * @property {DoubtResult | null} doubtResult - Resultado do julgamento de uma dúvida.
+ * @property {RouletteResult | null} rouletteResult - Resultado de um disparo na roleta russa.
+ * @property {VictoryState | null} victoryState - Estado final de vitória/encerramento.
+ * @property {string} wsStatus - Status da conexão ("connecting", "connected", "disconnected").
+ * @property {boolean} showDoubtOverlay - Controla a exibição do modal de julgamento.
+ * @property {boolean} showRoulette - Controla a exibição do modal de roleta.
+ * @property {boolean} showVictory - Controla a exibição da tela de vitória.
+ * @property {RoomSnapshot | null} roomState - Dados da sala multiplayer atual.
+ * @property {string | null} playerId - Identificador único do jogador na sessão.
+ * @property {RoomError | null} roomError - Erro atual relacionado a operações de sala.
+ * @property {boolean} gameStarting - Indica se a partida está prestes a começar.
+ * @property {Function} createRoom - Cria uma nova sala multiplayer.
+ * @property {Function} joinRoom - Entra em uma sala existente via código.
+ * @property {Function} leaveRoom - Sai da sala atual e limpa a sessão.
+ * @property {Function} startRoomGame - Inicia a partida para todos os jogadores na sala.
+ * @property {Function} addBot - Adiciona um bot à sala (apenas host).
+ * @property {Function} removeBot - Remove um bot específico da sala (apenas host).
+ * @property {Function} clearRoomError - Limpa o estado de erro da sala.
+ * @property {string[]} eliminationOrder - Lista de jogadores eliminados na ordem em que ocorreram.
+ * @property {DiceState | null} diceState - Estado atual da partida de Liar's Dice.
+ * @property {DiceBet | null} diceBet - Informações da última aposta feita no modo dados.
+ * @property {DiceDoubt | null} diceDoubt - Informações de quem chamou a dúvida no modo dados.
+ * @property {DiceReveal | null} diceReveal - Resultado da revelação de dados após uma dúvida.
+ * @property {boolean} showDiceReveal - Controla a exibição do modal de revelação de dados.
+ */
 export function useGameEngine() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
