@@ -48,6 +48,8 @@ No modo recém aprovado, a visualização muda completamente as peças em cima d
 
 ## 5. Checklist
 
-- [ ] Biblioteca visual crua ANSI montada no `terminal_art.h`.
-- [ ] No FrontEnd React, a Home apresenta o Toggle Visível que despacha o JSON no modo certo.
-- [ ] O renderizador dos 5 dados (O próprio array de 1 a 6) funciona exibindo iconografia de matriz correspondente.
+- [x] Biblioteca visual crua ANSI montada no `terminal_art.h`.
+- [x] No FrontEnd React, a Home apresenta o Toggle Visível que despacha o JSON no modo certo.
+- [x] O renderizador dos 5 dados (O próprio array de 1 a 6) funciona exibindo iconografia de matriz correspondente.
+- [x] Interface de Aposta (Modal) e Ações (Duvidar/Acreditar) integradas.
+- [x] Acessibilidade (aria-labels) e Refatoração de Animações concluídas.

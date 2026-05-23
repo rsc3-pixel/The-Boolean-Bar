@@ -8,6 +8,12 @@
 /**
  * Gerencia os efeitos sonoros do jogo usando a Web Audio API.
  * Todos os sons são gerados por síntese de osciladores — nenhum arquivo de áudio é carregado.
+ * 
+ * NOTA SOBRE POLÍTICA DE USER GESTURE:
+ * Browsers modernos (Chrome, Safari, etc.) impedem que áudio seja reproduzido
+ * automaticamente sem uma interação prévia do usuário (clique, toque, etc.).
+ * O método `resume()` deve ser invocado em um evento disparado pelo usuário
+ * para garantir que o AudioContext saia do estado 'suspended'.
  */
 class AudioCues {
   private ctx: AudioContext | null = null;

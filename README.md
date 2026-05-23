@@ -74,16 +74,16 @@ O projeto adota uma estrutura de **Monorepo**, segregando responsabilidades em w
 
 ```text
 The-Boolean-Bar/
-├── apps/                        # Aplicações e Workspaces
-│   ├── engine/                  # 🧠 Game Engine Core (C11)
-│   │   ├── src/                 # Implementação (.c)
-│   │   ├── include/             # Interface Pública (.h)
-│   │   │   └── core/            # Namespaced Headers
-│   │   └── Makefile             # Build System Isolado
-│   └── web/                     # 🌐 Web Platform Scaffold
-│       └── src/                 # Domain-Driven Web UI
+├── engine/                      # 🧠 Game Engine Core (C11)
+│   ├── src/                     # Implementação (.c)
+│   ├── include/                 # Interface Pública (.h)
+│   │   └── core/                # Namespaced Headers
+│   └── Makefile                 # Build System Isolado
+├── web/                         # 🌐 Web Platform (React/Vite)
+│   └── src/                     # Domain-Driven Web UI
 ├── docs/                        # 📄 Documentação Centralizada
 │   └── architecture/            # ADRs (Architectural Decision Records)
+├── assets/                      # 🖼️ Assets (Imagens/Vídeos)
 ├── scripts/                     # 🛠️ Utilitários e Automação
 ├── Makefile                     # 🚀 Orquestrador Master (Root)
 └── README.md                    # Manifesto do Sistema
