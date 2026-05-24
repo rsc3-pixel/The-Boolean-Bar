@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <string.h>
 
 /**
  * @brief Distribui 5 cartas aleatórias para um jogador no início da partida.

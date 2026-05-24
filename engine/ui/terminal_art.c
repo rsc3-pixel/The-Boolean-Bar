@@ -1,7 +1,9 @@
-#include "terminal_art.h"
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "terminal_art.h"
 
 /* ═══════════════════════════════════════════════════════════════════════════
  *  Portability includes for ui_sleep_ms
@@ -9,6 +11,7 @@
 #ifdef _WIN32
     #include <windows.h>
 #else
+    #include <time.h>
     #include <unistd.h>
 #endif
 
@@ -20,7 +23,8 @@ void ui_sleep_ms(int ms) {
 #ifdef _WIN32
     Sleep(ms);
 #else
-    usleep(ms * 1000);
+    struct timespec ts = { ms / 1000, (ms % 1000) * 1000000L };
+    nanosleep(&ts, NULL);
 #endif
 }
 
