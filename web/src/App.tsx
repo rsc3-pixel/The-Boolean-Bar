@@ -22,8 +22,18 @@ export default function App() {
   const [playerNames, setPlayerNames] = useState<string[]>([]);
   const [dicePlayers, setDicePlayers] = useState<{name: string, isBot: boolean}[]>([]);
   const [showSettings, setShowSettings] = useState(false);
+
+  /**
+   * gameMode: Define qual motor de jogo será utilizado ao criar uma nova sala multiplayer.
+   * - 'logic': Boolean Bar (lógica proposicional)
+   * - 'dice': Liar's Dice (dados e blefe)
+   */
   const [gameMode, setGameMode] = useState<GameModeKind>("logic");
-  // Música de fundo (loop). Estado persistido em localStorage.
+
+  /**
+   * musicEnabled: Estado global que controla tanto a música de fundo quanto os efeitos sonoros.
+   * O valor é persistido no localStorage ('booleanbar_music').
+   */
   const [musicEnabled, setMusicEnabled] = useState<boolean>(() => {
     try { return localStorage.getItem("booleanbar_music") !== "off"; }
     catch { return true; }
