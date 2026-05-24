@@ -85,13 +85,35 @@ function generatePlayerId() {
 
 function send(ws, msg) {
   if (ws.readyState !== 1) return;
-  try { ws.send(JSON.stringify(msg)); } catch (_) {}
+  try { ws.send(JSON.stringify(msg)); } catch (_) { }
 }
 
 function broadcast(room, msg) {
   for (const player of room.players.values()) {
     if (player.ws) send(player.ws, msg);  // pula players com ws null (desconectados)
   }
+}
+// ─── Subscribers do leaderboard  ────────────────────────────────
+// Clientes que chamaram get_leaderboard ficam inscritos e recebem push automático
+// sempre que uma partida termina (evento JSON_VICTORY). Isso inclui telas de TV/
+// ranking abertas fora de qualquer sala.
+/** @type {Set<WebSocket>} */
+const leaderboardSubscribers = new Set();
+ 
+/**
+ * Faz push do leaderboard atualizado para todos os subscribers inscritos.
+ * WS mortos são removidos automaticamente do Set.
+ */
+function pushLeaderboard() {
+  const payload = JSON.stringify({ type: 'leaderboard', entries: getTopWinners() });
+  for (const ws of leaderboardSubscribers) {
+    if (ws.readyState === 1) {
+      try { ws.send(payload); } catch (_) { }
+    } else {
+      leaderboardSubscribers.delete(ws);
+    }
+  }
+  console.log(`[Leaderboard] Push automático → ${leaderboardSubscribers.size} subscriber(s)`);
 }
 
 // ─── Leaderboard de vencedores (Capstone) ─────────────────────────────────────
@@ -111,20 +133,26 @@ function readLeaderboard() {
 
 function recordWin(winnerName, gameMode) {
   if (!winnerName || typeof winnerName !== 'string') return;
+
   try {
     const data = readLeaderboard();
     const key = winnerName.trim();
     if (!key) return;
-    const entry = data[key] ?? { wins: 0, lastWin: null, modes: { logic: 0, dice: 0 } };
+
+    const entry = data[key] ?? { points: 0, wins: 0, lastWin: null, modes: { logic: 0, dice: 0 } };
     entry.wins = (entry.wins ?? 0) + 1;
+    entry.points = (entry.points ?? 0) + 10;
     entry.lastWin = new Date().toISOString();
     entry.modes = entry.modes ?? { logic: 0, dice: 0 };
     if (gameMode === 'logic' || gameMode === 'dice') {
       entry.modes[gameMode] = (entry.modes[gameMode] ?? 0) + 1;
     }
     data[key] = entry;
+
     writeFileSync(LEADERBOARD_FILE, JSON.stringify(data, null, 2), 'utf-8');
-    console.log(`[Leaderboard] +1 win → ${key} (total: ${entry.wins}, modo: ${gameMode})`);
+
+    console.log(`[Leaderboard] +1 win, +10 points → ${key} (total wins: ${entry.wins}, total points: ${entry.points}, modo: ${gameMode})`);
+
   } catch (e) {
     console.warn('[Leaderboard] Falha ao gravar:', e.message);
   }
@@ -134,15 +162,17 @@ function getTopWinners(limit = LEADERBOARD_TOP) {
   const data = readLeaderboard();
   const entries = Object.entries(data).map(([name, v]) => ({
     name,
+    points: v.points ?? 0, // Garantindo que os pontos sejam lidos (ou 0 se não existirem)
     wins: v.wins ?? 0,
     lastWin: v.lastWin ?? null,
     modes: v.modes ?? { logic: 0, dice: 0 },
   }));
-  // Ordena por wins desc, desempata por lastWin mais recente
+
   entries.sort((a, b) => {
-    if (b.wins !== a.wins) return b.wins - a.wins;
-    return (b.lastWin ?? '').localeCompare(a.lastWin ?? '');
+    if (b.points !== a.points) return b.points - a.points; // Ordena por pontos
+    return (b.lastWin ?? '').localeCompare(a.lastWin ?? ''); // Desempate mantido
   });
+
   return entries.slice(0, limit);
 }
 
@@ -172,7 +202,7 @@ function closeRoom(roomId, reason) {
   const room = rooms.get(roomId);
   if (!room) return;
   if (room.engine) {
-    try { room.engine.kill(); } catch (_) {}
+    try { room.engine.kill(); } catch (_) { }
     room.engine = null;
   }
   for (const player of room.players.values()) {
@@ -271,7 +301,7 @@ function handleEngineStdout(room, chunk) {
           room.expectedPlayerId = caller?.playerId ?? room.expectedPlayerId;
         },
       },
-      { tag: 'JSON_DOUBT_RESULT:',    type: 'doubt_result' },
+      { tag: 'JSON_DOUBT_RESULT:', type: 'doubt_result' },
       { tag: 'JSON_ROULETTE_RESULT:', type: 'roulette_result' },
       {
         tag: 'JSON_VICTORY:',
@@ -306,8 +336,8 @@ function handleEngineStdout(room, chunk) {
           room.expectedPlayerId = playersArr[data.turn]?.playerId ?? null;
         },
       },
-      { tag: 'JSON_DICE_BET:',    type: 'dice_bet' },
-      { tag: 'JSON_DICE_DOUBT:',  type: 'dice_doubt' },
+      { tag: 'JSON_DICE_BET:', type: 'dice_bet' },
+      { tag: 'JSON_DICE_DOUBT:', type: 'dice_doubt' },
       { tag: 'JSON_DICE_REVEAL:', type: 'dice_reveal' },
     ];
 
@@ -731,8 +761,10 @@ function handleStartGame(ws, msg) {
   }
   const connectedCount = Array.from(room.players.values()).filter(p => p.connected).length;
   if (connectedCount < MIN_PLAYERS_PER_ROOM) {
-    return send(ws, { type: 'error', code: 'not_enough_players',
-                     message: `Mínimo de ${MIN_PLAYERS_PER_ROOM} jogadores conectados pra começar` });
+    return send(ws, {
+      type: 'error', code: 'not_enough_players',
+      message: `Mínimo de ${MIN_PLAYERS_PER_ROOM} jogadores conectados pra começar`
+    });
   }
 
   room.gameStarted = true;
@@ -771,7 +803,7 @@ function handleShutdown(ws) {
   console.log('[Server] Shutdown solicitado');
   for (const room of rooms.values()) {
     if (room.engine) {
-      try { room.engine.kill(); } catch (_) {}
+      try { room.engine.kill(); } catch (_) { }
     }
   }
   send(ws, { type: 'shutdown_ack' });
@@ -786,25 +818,25 @@ function handleShutdown(ws) {
 const DIST_DIR = path.resolve(__dirname, 'dist');
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
-  '.js':   'application/javascript; charset=utf-8',
-  '.mjs':  'application/javascript; charset=utf-8',
-  '.css':  'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
-  '.svg':  'image/svg+xml',
-  '.png':  'image/png',
-  '.jpg':  'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
-  '.gif':  'image/gif',
+  '.gif': 'image/gif',
   '.webp': 'image/webp',
-  '.ico':  'image/x-icon',
+  '.ico': 'image/x-icon',
   '.woff': 'font/woff',
-  '.woff2':'font/woff2',
-  '.ttf':  'font/ttf',
-  '.otf':  'font/otf',
-  '.mp4':  'video/mp4',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.mp4': 'video/mp4',
   '.webm': 'video/webm',
-  '.txt':  'text/plain; charset=utf-8',
-  '.map':  'application/json',
+  '.txt': 'text/plain; charset=utf-8',
+  '.map': 'application/json',
 };
 
 async function serveStatic(req, res) {
@@ -871,15 +903,15 @@ wss.on('connection', (ws) => {
 
     switch (msg.action) {
       case 'create_room': return handleCreateRoom(ws, msg);
-      case 'join_room':   return handleJoinRoom(ws, msg);
-      case 'leave_room':  return handleLeaveRoom(ws);
-      case 'reconnect':   return handleReconnect(ws, msg);
-      case 'start_game':  return handleStartGame(ws, msg);
-      case 'send_input':  return handleSendInput(ws, msg);
-      case 'add_bot':     return handleAddBot(ws);
-      case 'remove_bot':       return handleRemoveBot(ws, msg);
-      case 'get_leaderboard':  return handleGetLeaderboard(ws);
-      case 'shutdown':         return handleShutdown(ws);
+      case 'join_room': return handleJoinRoom(ws, msg);
+      case 'leave_room': return handleLeaveRoom(ws);
+      case 'reconnect': return handleReconnect(ws, msg);
+      case 'start_game': return handleStartGame(ws, msg);
+      case 'send_input': return handleSendInput(ws, msg);
+      case 'add_bot': return handleAddBot(ws);
+      case 'remove_bot': return handleRemoveBot(ws, msg);
+      case 'get_leaderboard': return handleGetLeaderboard(ws);
+      case 'shutdown': return handleShutdown(ws);
       default:
         return send(ws, { type: 'error', code: 'unknown_action', message: `Ação desconhecida: ${msg.action}` });
     }
