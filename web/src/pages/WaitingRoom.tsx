@@ -17,6 +17,15 @@ interface WaitingRoomProps {
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 8;
 
+const BTN_TEXT = {
+  ADD_BOT: "Adicionar Bot",
+  LEAVE: "Sair",
+  MIN_PLAYERS: (min: number) => `Mínimo ${min} conectados`,
+  STARTING: "Iniciando...",
+  START_GAME: "Iniciar Partida",
+  WAITING_HOST: "Aguardando o host iniciar...",
+};
+
 export function WaitingRoom({
   room,
   myPlayerId,
@@ -168,7 +177,7 @@ export function WaitingRoom({
               className="flex items-center justify-center gap-2 px-4 py-2.5 border border-dashed border-purple-500/40 hover:border-purple-400/70 hover:bg-purple-500/10 rounded-md text-purple-300 font-mono uppercase tracking-widest text-xs transition-colors"
             >
               <UserPlus className="w-4 h-4" />
-              Adicionar Bot
+              {BTN_TEXT.ADD_BOT}
             </button>
           )}
         </motion.div>
@@ -179,7 +188,7 @@ export function WaitingRoom({
             className="flex items-center justify-center gap-2 px-6 h-14 border border-red-500/40 hover:border-red-400/70 hover:bg-red-950/20 rounded-md text-red-300 font-mono uppercase tracking-widest text-sm transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Sair
+            {BTN_TEXT.LEAVE}
           </button>
 
           {isHost ? (
@@ -191,12 +200,12 @@ export function WaitingRoom({
             >
               <Play className="w-5 h-5" />
               {connectedCount < MIN_PLAYERS
-                ? `Mínimo ${MIN_PLAYERS} conectados`
-                : room.gameStarted ? "Iniciando..." : "Iniciar Partida"}
+                ? BTN_TEXT.MIN_PLAYERS(MIN_PLAYERS)
+                : room.gameStarted ? BTN_TEXT.STARTING : BTN_TEXT.START_GAME}
             </button>
           ) : (
             <div className="flex-1 flex items-center justify-center h-14 border border-zinc-700 rounded-md text-zinc-500 font-mono uppercase tracking-widest text-sm">
-              Aguardando o host iniciar...
+              {BTN_TEXT.WAITING_HOST}
             </div>
           )}
         </div>
