@@ -93,6 +93,28 @@ function broadcast(room, msg) {
     if (player.ws) send(player.ws, msg);  // pula players com ws null (desconectados)
   }
 }
+// ─── Subscribers do leaderboard  ────────────────────────────────
+// Clientes que chamaram get_leaderboard ficam inscritos e recebem push automático
+// sempre que uma partida termina (evento JSON_VICTORY). Isso inclui telas de TV/
+// ranking abertas fora de qualquer sala.
+/** @type {Set<WebSocket>} */
+const leaderboardSubscribers = new Set();
+ 
+/**
+ * Faz push do leaderboard atualizado para todos os subscribers inscritos.
+ * WS mortos são removidos automaticamente do Set.
+ */
+function pushLeaderboard() {
+  const payload = JSON.stringify({ type: 'leaderboard', entries: getTopWinners() });
+  for (const ws of leaderboardSubscribers) {
+    if (ws.readyState === 1) {
+      try { ws.send(payload); } catch (_) { }
+    } else {
+      leaderboardSubscribers.delete(ws);
+    }
+  }
+  console.log(`[Leaderboard] Push automático → ${leaderboardSubscribers.size} subscriber(s)`);
+}
 
 // ─── Leaderboard de vencedores (Capstone) ─────────────────────────────────────
 // Persiste em ../leaderboard.json. Estrutura: { [name]: { wins, lastWin, modes } }.
