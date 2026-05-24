@@ -7,6 +7,10 @@ import { GameLog } from "../components/ui/GameLog";
 import { useGameEngine } from "../hooks/useGameEngine";
 import { audioCues } from "../utils/audioCues";
 
+// ─── CONSTANTS ──────────────────────────────────────────────────────────
+const FLASH_DURATION_MS = 1200;
+const BET_INPUT_DELAY_MS = 100;
+
 interface DiceGameOnlineProps {
   onExit: () => void;
   engine: ReturnType<typeof useGameEngine>;
@@ -67,8 +71,8 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
     audioCues.bet();
     // Sequência que o engine espera: 'A', então qty, então face
     sendInput("A");
-    setTimeout(() => sendInput(String(betQty)), 100);
-    setTimeout(() => sendInput(String(betFace)), 200);
+    setTimeout(() => sendInput(String(betQty)), BET_INPUT_DELAY_MS);
+    setTimeout(() => sendInput(String(betFace)), BET_INPUT_DELAY_MS * 2);
   };
   const handleDuvidar = () => {
     if (!isMyTurn || !diceState || diceState.currentBetQty === 0) return;
@@ -97,7 +101,7 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
     if (becameMyTurn && !elim && diceState && !victoryState) {
       audioCues.yourTurn();
       setFlashTurn(true);
-      const t = setTimeout(() => setFlashTurn(false), 1200);
+      const t = setTimeout(() => setFlashTurn(false), FLASH_DURATION_MS);
       return () => clearTimeout(t);
     }
   }, [isMyTurn, diceState, mySlot, victoryState]);
@@ -154,7 +158,7 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 0.5, 0, 0.4, 0] }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.2, times: [0, 0.15, 0.45, 0.6, 1] }}
+            transition={{ duration: FLASH_DURATION_MS / 1000, times: [0, 0.15, 0.45, 0.6, 1] }}
             className="fixed inset-0 z-[60] pointer-events-none bg-emerald-400"
             style={{ mixBlendMode: 'screen' }}
           />
