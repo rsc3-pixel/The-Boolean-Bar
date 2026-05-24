@@ -177,6 +177,7 @@ function getTopWinners(limit = LEADERBOARD_TOP) {
 }
 
 function handleGetLeaderboard(ws) {
+  leaderboardSubscribers.add(ws);
   send(ws, { type: 'leaderboard', entries: getTopWinners() });
 }
 
@@ -919,6 +920,7 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     console.log('=> Frontend desconectado');
+    leaderboardSubscribers.delete(ws);
     handleDisconnect(ws);  // Phase 4: grace window, não kicka direto
   });
 
