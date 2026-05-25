@@ -4,6 +4,7 @@ import { ArrowLeft, AlertCircle, Eye, X, WifiOff, Skull, Coins } from "lucide-re
 import { DiceFace } from "../components/ui/DiceFace";
 import { OpponentDiceCard } from "../components/ui/OpponentDiceCard";
 import { GameLog } from "../components/ui/GameLog";
+import { VictoryScreen } from "../components/screens/VictoryScreen";
 import { useGameEngine } from "../hooks/useGameEngine";
 import { audioCues } from "../utils/audioCues";
 
@@ -493,38 +494,17 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
         )}
       </AnimatePresence>
 
-      {/* Vitória */}
-      <AnimatePresence>
-        {victoryState && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed inset-0 z-40 bg-black/90 backdrop-blur-lg flex flex-col items-center justify-center"
-          >
-            <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: "spring", duration: 1 }}
-              className="text-center"
-            >
-              <div className="text-7xl mb-4">🏆</div>
-              <h2 className="text-4xl text-yellow-300 font-sans tracking-[0.2em] uppercase mb-2" style={{ fontWeight: 800 }}>
-                {victoryState.winner === myName ? "Você Venceu!" : "Fim de Partida"}
-              </h2>
-              <p className="text-emerald-400 font-mono text-lg">
-                Vencedor: {victoryState.winner}
-              </p>
-              <button
-                onClick={onExit}
-                className="mt-8 px-8 py-3 bg-emerald-500 hover:bg-emerald-400 rounded-xl text-black font-sans uppercase tracking-widest"
-                style={{ fontWeight: 700 }}
-              >
-                Voltar ao Menu
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Vitória — Task 3.5: relatório com breakdown de pontuação */}
+      <VictoryScreen
+        isVisible={!!victoryState}
+        playerName={victoryState?.winner ?? "JOGADOR"}
+        opponentsDefeated={victoryState ? victoryState.totalPlayers - 1 : 0}
+        triggersPulled={0}
+        bluffsSuccessful={0}
+        doubtsWon={0}
+        victoryData={victoryState}
+        onLeaveBar={onExit}
+      />
 
       {/* Capstone: log de jogadas — oculta durante telas de fim/reveal */}
       {!victoryState && !showDiceReveal && (
