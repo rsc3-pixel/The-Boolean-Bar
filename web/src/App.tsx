@@ -11,14 +11,25 @@ import { DiceLobby } from "./pages/DiceLobby";
 import { OnlineLobby, type GameModeKind } from "./pages/OnlineLobby";
 import { WaitingRoom } from "./pages/WaitingRoom";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
+import { TvPage } from "./pages/TvPage";
 import { SettingsInstructionsPanel } from "./components/modals/SettingsInstructionsPanel";
 import { useGameEngine } from "./hooks/useGameEngine";
 import { audioCues } from "./utils/audioCues";
 
-type GameScreen = "menu" | "lobby" | "matchLobby" | "game" | "diceLobby" | "diceGame" | "onlineLobby" | "waitingRoom" | "leaderboard";
+type GameScreen = "menu" | "lobby" | "matchLobby" | "game" | "diceLobby" | "diceGame" | "onlineLobby" | "waitingRoom" | "leaderboard" | "tv";
+
+/* Modo TV é "stateless" do ponto de vista do jogador: rota /tv (ou hash #tv)
+ * boota direto na tela cheia do ranking, sem menu nem inputs. Pensada pra
+ * monitor de bar/sala — recebe push do server quando partidas acabam. */
+function detectInitialScreen(): GameScreen {
+  if (typeof window === "undefined") return "menu";
+  const path = window.location.pathname.replace(/\/+$/, "");
+  if (path === "/tv" || window.location.hash === "#tv") return "tv";
+  return "menu";
+}
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<GameScreen>("menu");
+  const [currentScreen, setCurrentScreen] = useState<GameScreen>(detectInitialScreen);
   const [playerNames, setPlayerNames] = useState<string[]>([]);
   const [dicePlayers, setDicePlayers] = useState<{name: string, isBot: boolean}[]>([]);
   const [showSettings, setShowSettings] = useState(false);
@@ -156,6 +167,14 @@ export default function App() {
       <LeaderboardPage
         entries={gameEngine.leaderboard}
         onBack={() => setCurrentScreen("menu")}
+        onLoad={() => gameEngine.loadLeaderboard()}
+        wsStatus={gameEngine.wsStatus}
+      />
+    );
+  } else if (currentScreen === "tv") {
+    screenContent = (
+      <TvPage
+        entries={gameEngine.leaderboard}
         onLoad={() => gameEngine.loadLeaderboard()}
         wsStatus={gameEngine.wsStatus}
       />

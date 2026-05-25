@@ -60,12 +60,40 @@ export interface RouletteResult {
   bullets: number;
 }
 
+/** Breakdown de pontuação de um jogador no fim da partida. */
+export interface VictoryPlayerScore {
+  /** Nome do jogador. */
+  name: string;
+  /** Pontuação total final (basePoints + bônus, com piso zero). */
+  points: number;
+  /** Pontos acumulados durante a partida, antes dos bônus de vitória. */
+  basePoints: number;
+  /** Bônus de vitória aplicado (0 para não-vencedores). */
+  bonusVitoria: number;
+  /** Bônus de vitória limpa (0 se perdeu vida/dado, 40 se manteve tudo). */
+  bonusLimpo: number;
+  /** Multiplicador de velocidade usado (×100): 200=blitz, 150=padrão, 100=resistência. */
+  multiplier: number;
+  /** Vidas restantes (modo Lógica). */
+  livesLeft?: number;
+  /** Dados restantes (modo Dice). */
+  diceLeft?: number;
+  /** true se este jogador venceu a partida. */
+  isWinner: boolean;
+}
+
 /** Estado de vitória emitido quando restar apenas um jogador. */
 export interface VictoryState {
   /** Nome do vencedor da partida. */
   winner: string;
   /** Total de jogadores que participaram da partida. */
   totalPlayers: number;
+  /** Total de rodadas jogadas (usado pro multiplicador de velocidade). */
+  totalRounds?: number;
+  /** Modo de jogo: "logic" (Boolean Bar) ou "dice" (Liar's Dice). */
+  mode?: "logic" | "dice";
+  /** Pontuação final por jogador, com breakdown de bônus. */
+  players?: VictoryPlayerScore[];
 }
 
 // ─── Liar's Dice (modo dados) ────────────────────────────────────────────────
