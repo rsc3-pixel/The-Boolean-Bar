@@ -145,7 +145,7 @@ function readLeaderboard() {
   }
 }
 
-function recordWin(winnerName, gameMode) {
+function recordWin(winnerName, gameMode, enginePoints = 10) {
   if (!winnerName || typeof winnerName !== 'string') return;
 
   try {
@@ -155,7 +155,7 @@ function recordWin(winnerName, gameMode) {
 
     const entry = data[key] ?? { points: 0, wins: 0, lastWin: null, modes: { logic: 0, dice: 0 } };
     entry.wins = (entry.wins ?? 0) + 1;
-    entry.points = (entry.points ?? 0) + 10;
+    entry.points = (entry.points ?? 0) + enginePoints;
     entry.lastWin = new Date().toISOString();
     entry.modes = entry.modes ?? { logic: 0, dice: 0 };
     if (gameMode === 'logic' || gameMode === 'dice') {
@@ -356,7 +356,8 @@ function handleEngineStdout(room, chunk) {
           // Capstone: persiste vitória no leaderboard, ignorando bots
           const winner = Array.from(room.players.values()).find(p => p.name === data.winner);
           if (winner && !winner.isBot) {
-            recordWin(data.winner, room.gameMode);
+            const enginePoints = data.players?.find(p => p.isWinner)?.points ?? 10;
+            recordWin(data.winner, room.gameMode, enginePoints);
             // Push pra TVs/painéis de ranking abertos receberem o update sem refresh
             pushLeaderboard();
           } else if (winner && winner.isBot) {

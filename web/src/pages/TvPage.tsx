@@ -111,11 +111,12 @@ export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) 
         {/* Tabela grande */}
         {display.length > 0 && (
           <div className="flex-1 flex flex-col bg-zinc-950/85 border-4 border-yellow-500/40 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(234,179,8,0.25)]">
-            <div className="bg-gradient-to-r from-yellow-900/40 via-yellow-700/30 to-yellow-900/40 border-b-4 border-yellow-500/40 px-6 sm:px-10 py-4 grid grid-cols-[5rem_1fr_auto_8rem] sm:grid-cols-[7rem_1fr_auto_12rem] gap-4 sm:gap-8 text-base sm:text-2xl uppercase tracking-[0.3em] text-yellow-300/90" style={{ fontWeight: 700 }}>
+            <div className="bg-gradient-to-r from-yellow-900/40 via-yellow-700/30 to-yellow-900/40 border-b-4 border-yellow-500/40 px-6 sm:px-10 py-4 grid grid-cols-[5rem_1fr_auto_6rem_6rem] sm:grid-cols-[7rem_1fr_auto_10rem_10rem] gap-4 sm:gap-8 text-base sm:text-2xl uppercase tracking-[0.3em] text-yellow-300/90" style={{ fontWeight: 700 }}>
               <div>RNK</div>
               <div>JOGADOR</div>
               <div className="text-center hidden sm:block">MODOS</div>
-              <div className="text-right">VITÓRIAS</div>
+              <div className="text-right">PTS</div>
+              <div className="text-right">WINS</div>
             </div>
 
             <div className="flex-1 divide-y-2 divide-yellow-500/15 overflow-hidden">
@@ -131,7 +132,7 @@ export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) 
                     initial={{ opacity: 0, x: -40 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.06, duration: 0.4 }}
-                    className={`grid grid-cols-[5rem_1fr_auto_8rem] sm:grid-cols-[7rem_1fr_auto_12rem] gap-4 sm:gap-8 px-6 sm:px-10 py-3 sm:py-5 items-center ${
+                    className={`grid grid-cols-[5rem_1fr_auto_6rem_6rem] sm:grid-cols-[7rem_1fr_auto_10rem_10rem] gap-4 sm:gap-8 px-6 sm:px-10 py-3 sm:py-5 items-center ${
                       isPodium ? "bg-yellow-950/20" : ""
                     }`}
                   >
@@ -162,9 +163,17 @@ export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) 
                     </div>
                     <div
                       className={`text-right text-3xl sm:text-5xl tabular-nums ${
-                        isPodium ? "text-yellow-200" : "text-yellow-400/85"
+                        isPodium ? "text-cyan-200" : "text-cyan-400/85"
                       }`}
                       style={{ fontWeight: 900 }}
+                    >
+                      {entry.points ?? 0}
+                    </div>
+                    <div
+                      className={`text-right text-2xl sm:text-4xl tabular-nums ${
+                        isPodium ? "text-yellow-200/70" : "text-yellow-400/50"
+                      }`}
+                      style={{ fontWeight: 700 }}
                     >
                       {String(entry.wins).padStart(3, "0")}
                     </div>
