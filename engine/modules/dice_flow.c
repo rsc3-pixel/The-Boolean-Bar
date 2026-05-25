@@ -9,6 +9,35 @@
 #include <unistd.h>
 #include <string.h>
 
+/* SCORING.md — bônus finais. Mesmos thresholds do modo Lógica. */
+#define DICE_INITIAL_DIE_COUNT  3
+#define DICE_BONUS_VITORIA_BASE 50
+#define DICE_BONUS_LIMPA        40
+
+static int dice_speed_multiplier_x100(int rounds) {
+    if (rounds <= 6)  return 200;
+    if (rounds <= 12) return 150;
+    return 100;
+}
+
+/* Escapa string pra valor JSON. dst precisa caber 2*len(src)+1 (worst case). */
+static void dice_json_escape(const char *src, char *dst, size_t dst_size) {
+    size_t i = 0;
+    if (!dst || dst_size == 0) return;
+    for (const char *p = src ? src : ""; *p && i + 2 < dst_size; p++) {
+        unsigned char c = (unsigned char)*p;
+        if (c == '"' || c == '\\') {
+            if (i + 3 >= dst_size) break;
+            dst[i++] = '\\'; dst[i++] = (char)c;
+        } else if (c < 0x20 || c == 0x7F) {
+            continue;
+        } else {
+            dst[i++] = (char)c;
+        }
+    }
+    dst[i] = '\0';
+}
+
 // ─── LÓGICAS INTERNAS ───────────────────────────────────────────────────────
 
 static void rolar_dados(Mesa *m) {
@@ -299,11 +328,47 @@ int dice_game_start() {
     ui_clear_screen();
     int win_idx = get_next_valid_player_index(game_table, 0, is_alive);
     if (win_idx != -1) {
+       Jogador *vencedor = game_table->players[win_idx];
+
+       // Bônus de vitória (SCORING.md): aplicado SOMENTE no vencedor.
+       int mult_x100 = dice_speed_multiplier_x100(game_table->total_rounds);
+       int bonus_vitoria = (DICE_BONUS_VITORIA_BASE * mult_x100) / 100;
+       int bonus_limpo = (vencedor->dice_count >= DICE_INITIAL_DIE_COUNT) ? DICE_BONUS_LIMPA : 0;
+       vencedor->points += bonus_vitoria + bonus_limpo;
+
        printf("\n");
        char win_msg[128];
-       snprintf(win_msg, sizeof(win_msg), "🏆  %s GANHOU NA SINUCA DOS DADOS  🏆", game_table->players[win_idx]->name);
+       snprintf(win_msg, sizeof(win_msg), "🏆  %s GANHOU NA SINUCA DOS DADOS  🏆", vencedor->name);
        ui_print_box(win_msg, ANSI_BRIGHT_CYAN);
-       printf("\nJSON_VICTORY: {\"winner\": \"%s\", \"totalPlayers\": %d}\n", game_table->players[win_idx]->name, num_players);
+
+       char esc[130];
+       dice_json_escape(vencedor->name, esc, sizeof(esc));
+       printf("\nJSON_VICTORY: {");
+       printf("\"winner\": \"%s\",", esc);
+       printf("\"totalPlayers\": %d,", num_players);
+       printf("\"totalRounds\": %d,", game_table->total_rounds);
+       printf("\"mode\": \"dice\",");
+       printf("\"players\": [");
+       int first = 1;
+       for (int i = 0; i < num_players; i++) {
+           Jogador *p = game_table->players[i];
+           if (!p) continue;
+           if (!first) printf(",");
+           first = 0;
+           int is_winner = (i == win_idx) ? 1 : 0;
+           int p_bonus_vitoria = is_winner ? bonus_vitoria : 0;
+           int p_bonus_limpo   = is_winner ? bonus_limpo   : 0;
+           int p_base = p->points - p_bonus_vitoria - p_bonus_limpo;
+           if (p_base < 0) p_base = 0;
+           dice_json_escape(p->name, esc, sizeof(esc));
+           printf("{\"name\": \"%s\", \"points\": %d, \"basePoints\": %d, "
+                  "\"bonusVitoria\": %d, \"bonusLimpo\": %d, \"multiplier\": %d, "
+                  "\"diceLeft\": %d, \"isWinner\": %s}",
+                  esc, p->points, p_base,
+                  p_bonus_vitoria, p_bonus_limpo, mult_x100,
+                  p->dice_count, is_winner ? "true" : "false");
+       }
+       printf("]}\n");
        fflush(stdout);
     }
 
