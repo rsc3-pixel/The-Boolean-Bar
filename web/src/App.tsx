@@ -175,6 +175,7 @@ export default function App() {
     screenContent = (
       <TvPage
         entries={gameEngine.leaderboard}
+        activeRooms={gameEngine.activeRooms}
         onLoad={() => gameEngine.loadLeaderboard()}
         wsStatus={gameEngine.wsStatus}
       />

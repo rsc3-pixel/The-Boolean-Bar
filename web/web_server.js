@@ -195,6 +195,34 @@ function handleGetLeaderboard(ws) {
   // (TV mode, painel de ranking aberto durante partidas, etc).
   leaderboardSubscribers.add(ws);
   send(ws, { type: 'leaderboard', entries: getTopWinners() });
+  // Também envia salas ativas pro painel de TV
+  send(ws, { type: 'active_rooms', rooms: getActiveRooms() });
+}
+
+// ─── Painel de salas ativas (Task 4.4) ────────────────────────────────────────
+function getActiveRooms() {
+  const list = [];
+  for (const room of rooms.values()) {
+    if (room.isSoloMode) continue;
+    const humans = Array.from(room.players.values()).filter(p => !p.isBot && p.connected).length;
+    if (humans === 0) continue;
+    list.push({
+      roomId: room.roomId,
+      gameMode: room.gameMode,
+      playerCount: room.players.size,
+      gameStarted: room.gameStarted,
+    });
+  }
+  return list;
+}
+
+function pushActiveRooms() {
+  const payload = JSON.stringify({ type: 'active_rooms', rooms: getActiveRooms() });
+  for (const ws of leaderboardSubscribers) {
+    if (ws.readyState === 1) {
+      try { ws.send(payload); } catch (_) { }
+    }
+  }
 }
 
 function getRoomSnapshot(room) {
@@ -234,6 +262,7 @@ function closeRoom(roomId, reason) {
   }
   rooms.delete(roomId);
   console.log(`[Server] Sala ${roomId} fechada (${reason})`);
+  pushActiveRooms();
 }
 
 // ─── Engine spawn + output handling ───────────────────────────────────────────
@@ -429,6 +458,7 @@ function handleCreateRoom(ws, msg) {
 
   send(ws, { type: 'room_created', roomId, playerId, room: getRoomSnapshot(room) });
   console.log(`[Server] Sala ${roomId} criada por ${playerName} (${playerId}) — modo ${gameMode}`);
+  pushActiveRooms();
 }
 
 function handleJoinRoom(ws, msg) {
@@ -455,6 +485,7 @@ function handleJoinRoom(ws, msg) {
   send(ws, { type: 'room_joined', roomId, playerId, room: getRoomSnapshot(room) });
   broadcast(room, { type: 'room_state', room: getRoomSnapshot(room) });
   console.log(`[Server/${roomId}] ${playerName} (${playerId}) entrou. Total: ${room.players.size}`);
+  pushActiveRooms();
 }
 
 // Saída intencional: remove já. Se for host, transfere se houver alguém conectado, senão fecha.
@@ -793,8 +824,10 @@ function handleStartGame(ws, msg) {
 
   room.gameStarted = true;
   broadcast(room, { type: 'game_starting', room: getRoomSnapshot(room) });
+  pushActiveRooms();
   if (!spawnEngineForRoom(room)) {
     room.gameStarted = false;
+    pushActiveRooms();
     broadcast(room, { type: 'error', code: 'engine_failed', message: 'Falha ao iniciar engine' });
   }
 }
