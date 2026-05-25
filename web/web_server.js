@@ -88,6 +88,20 @@ function send(ws, msg) {
   try { ws.send(JSON.stringify(msg)); } catch (_) { }
 }
 
+/**
+ * Normaliza nome de jogador vindo do cliente. Remove caracteres de controle
+ * (\r, \n, \0) que poderiam injetar linhas extras no stdin do engine,
+ * descalibrando o protocolo de leitura linha-a-linha. Trunca em 32.
+ */
+function sanitizePlayerName(raw, fallback = 'Player') {
+  const s = (raw ?? '').toString()
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\r\n\x00\x1f]/g, '')
+    .trim()
+    .slice(0, 32);
+  return s.length > 0 ? s : fallback;
+}
+
 function broadcast(room, msg) {
   for (const player of room.players.values()) {
     if (player.ws) send(player.ws, msg);  // pula players com ws null (desconectados)
@@ -177,6 +191,9 @@ function getTopWinners(limit = LEADERBOARD_TOP) {
 }
 
 function handleGetLeaderboard(ws) {
+  // Quem pede o leaderboard também se inscreve pra receber pushes ao vivo
+  // (TV mode, painel de ranking aberto durante partidas, etc).
+  leaderboardSubscribers.add(ws);
   send(ws, { type: 'leaderboard', entries: getTopWinners() });
 }
 
@@ -311,6 +328,8 @@ function handleEngineStdout(room, chunk) {
           const winner = Array.from(room.players.values()).find(p => p.name === data.winner);
           if (winner && !winner.isBot) {
             recordWin(data.winner, room.gameMode);
+            // Push pra TVs/painéis de ranking abertos receberem o update sem refresh
+            pushLeaderboard();
           } else if (winner && winner.isBot) {
             console.log(`[Leaderboard] Skip bot win: ${data.winner}`);
           }
@@ -385,7 +404,7 @@ function handleCreateRoom(ws, msg) {
   if (wsToRoom.has(ws)) {
     return send(ws, { type: 'error', code: 'already_in_room', message: 'Você já está em uma sala' });
   }
-  const playerName = (msg.playerName || 'Host').toString().slice(0, 32);
+  const playerName = sanitizePlayerName(msg.playerName, 'Host');
   const roomId = generateRoomCode();
   const playerId = generatePlayerId();
   const gameMode = msg.gameMode === 'dice' ? 'dice' : 'logic';   // default = logic
@@ -429,7 +448,7 @@ function handleJoinRoom(ws, msg) {
   }
 
   const playerId = generatePlayerId();
-  const playerName = (msg.playerName || `Player${room.players.size + 1}`).toString().slice(0, 32);
+  const playerName = sanitizePlayerName(msg.playerName, `Player${room.players.size + 1}`);
   room.players.set(playerId, { playerId, name: playerName, ws, connected: true, disconnectTimer: null, isBot: false });
   wsToRoom.set(ws, { roomId, playerId });
 
@@ -720,7 +739,12 @@ function handleStartGame(ws, msg) {
 
   // ─── Modo legado (backwards compat com `make dev` antigo) ───
   if (!ctx) {
-    const playerNames = Array.isArray(msg.playerNames) ? msg.playerNames : [];
+    const rawNames = Array.isArray(msg.playerNames) ? msg.playerNames : [];
+    // Sanitiza nomes: stdin do engine é line-oriented, então \n no nome
+    // injetaria entradas extras e descalibrava a leitura.
+    const playerNames = rawNames
+      .map((n, i) => sanitizePlayerName(n, `Jogador ${i + 1}`))
+      .slice(0, MAX_PLAYERS_PER_ROOM);
     if (playerNames.length === 0) {
       return send(ws, { type: 'error', code: 'no_players', message: 'Nenhum nome de jogador fornecido' });
     }
@@ -919,6 +943,7 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     console.log('=> Frontend desconectado');
+    leaderboardSubscribers.delete(ws);  // limpa subscriber de TV/ranking se houver
     handleDisconnect(ws);  // Phase 4: grace window, não kicka direto
   });
 
