@@ -51,9 +51,12 @@ Jogador* mem_new_jogador(int id, const char *name) {
     new_player->status = ALIVE; // Jogador começa vivo
     new_player->estaVivo = true;
     new_player->score = 3;      // Exemplo: 3 vidas iniciais
+    new_player->points = 0;     // Pontuação inicia zerada (SCORING.md)
     new_player->num_cards = 0;
+    new_player->dice_count = 0;
     for (int i = 0; i < 5; i++) {
         new_player->hand[i] = NULL;
+        new_player->dice[i] = 0;
     }
     return new_player;
 }
@@ -71,11 +74,16 @@ Mesa* mem_new_mesa() {
     for (int i = 0; i < MAX_PLAYERS; i++) {
         new_table->players[i] = NULL; // Inicializa ponteiros de jogadores como NULL
     }
+    new_table->mode = MODE_LOGIC;   // default; dice_flow troca pra MODE_DICE
     new_table->num_players_alive = 0;
     new_table->current_card = NULL;
     new_table->current_player_index = 0;
     new_table->balas_no_tambor = 1; // Risco global sempre aumenta na falha
     new_table->game_over = false;
+    new_table->total_rounds = 0;
+    new_table->current_bet_quantity = 0;
+    new_table->current_bet_face = 0;
+    new_table->last_bet_player_id = -1;
 
     return new_table;
 }
