@@ -535,6 +535,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
         bluffsSuccessful={0}
         doubtsWon={0}
         ranking={isMultiplayer && finalRanking.length > 0 ? finalRanking : undefined}
+        victoryData={victoryState}
         onLeaveBar={() => { setShowVictory(false); onExit(); }}
       />
 

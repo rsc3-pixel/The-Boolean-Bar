@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
 import { Circle, ArrowLeft, Trophy } from "lucide-react";
+import type { VictoryState } from "../../hooks/useGameEngine";
 
 interface VictoryScreenProps {
   isVisible: boolean;
@@ -9,6 +10,7 @@ interface VictoryScreenProps {
   bluffsSuccessful: number;
   doubtsWon: number;
   ranking?: string[];   // Phase 5: 1º vencedor + ordem reversa de eliminação
+  victoryData?: VictoryState | null; // Task 3.5: breakdown de pontuação
   onLeaveBar: () => void;
 }
 
@@ -20,6 +22,7 @@ export function VictoryScreen({
   bluffsSuccessful,
   doubtsWon,
   ranking,
+  victoryData,
   onLeaveBar
 }: VictoryScreenProps) {
   return (
@@ -296,113 +299,162 @@ export function VictoryScreen({
                   className="w-3/4 h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent"
                 />
 
-                {/* Post-game stats - 2 columns, perfectly centered */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.5 }}
-                  className="w-full grid grid-cols-2 gap-x-8 gap-y-4 mb-4"
-                >
-                  {/* Left column */}
-                  <motion.div
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 1.6 }}
-                    className="flex items-center justify-between px-4 py-3 bg-cyan-950/20 border border-cyan-500/20 rounded-lg"
-                  >
-                    <span className="text-sm tracking-wider text-cyan-300/80 font-mono">Oponentes Derrotados:</span>
-                    <motion.span
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 2, repeat: Infinity, delay: 1.8 }}
-                      className="text-2xl font-mono text-cyan-400"
-                      style={{ fontWeight: 900 }}
-                    >
-                      {opponentsDefeated}
-                    </motion.span>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ x: 20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 1.7 }}
-                    className="flex items-center justify-between px-4 py-3 bg-cyan-950/20 border border-cyan-500/20 rounded-lg"
-                  >
-                    <span className="text-sm tracking-wider text-cyan-300/80 font-mono">Blefes Bem-Sucedidos:</span>
-                    <motion.span
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 2, repeat: Infinity, delay: 1.9 }}
-                      className="text-2xl font-mono text-cyan-400"
-                      style={{ fontWeight: 900 }}
-                    >
-                      {bluffsSuccessful}
-                    </motion.span>
-                  </motion.div>
-
-                  {/* Right column */}
-                  <motion.div
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 1.8 }}
-                    className="flex items-center justify-between px-4 py-3 bg-cyan-950/20 border border-cyan-500/20 rounded-lg"
-                  >
-                    <span className="text-sm tracking-wider text-cyan-300/80 font-mono">Dúvidas Ganhas:</span>
-                    <motion.span
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 2, repeat: Infinity, delay: 2.0 }}
-                      className="text-2xl font-mono text-cyan-400"
-                      style={{ fontWeight: 900 }}
-                    >
-                      {doubtsWon}
-                    </motion.span>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ x: 20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 1.9 }}
-                    className="flex items-center justify-between px-4 py-3 bg-cyan-950/20 border border-cyan-500/20 rounded-lg"
-                  >
-                    <span className="text-sm tracking-wider text-cyan-300/80 font-mono">Gatilhos Puxados:</span>
-                    <motion.span
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 2, repeat: Infinity, delay: 2.1 }}
-                      className="text-2xl font-mono text-cyan-400"
-                      style={{ fontWeight: 900 }}
-                    >
-                      {triggersPulled}
-                    </motion.span>
-                  </motion.div>
-                </motion.div>
-
-                {/* Phase 5: ranking final */}
-                {ranking && ranking.length > 0 && (
+                {/* Task 3.5: relatório final com breakdown de pontuação */}
+                {victoryData?.players && victoryData.players.length > 0 ? (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.9 }}
-                    className="w-full mt-2"
+                    transition={{ delay: 1.5 }}
+                    className="w-full flex flex-col gap-3 mb-4"
                   >
-                    <div className="text-xs uppercase tracking-[0.3em] text-cyan-300/70 font-mono mb-3 text-center">Ranking Final</div>
-                    <ol className="space-y-1.5">
-                      {ranking.map((name, idx) => {
-                        const pos = idx + 1;
-                        const isWinner = pos === 1;
-                        return (
-                          <li
-                            key={name}
-                            className={`flex items-center gap-3 px-4 py-2 rounded-md font-mono ${
-                              isWinner ? "bg-cyan-500/15 border border-cyan-400/40" : "bg-zinc-900/40 border border-zinc-800"
-                            }`}
-                          >
-                            <span className={`w-6 text-right ${isWinner ? "text-yellow-400" : "text-zinc-500"}`} style={{ fontWeight: 700 }}>
-                              {isWinner ? "🏆" : `${pos}º`}
-                            </span>
-                            <span className={isWinner ? "text-cyan-200" : "text-zinc-400"}>{name}</span>
-                          </li>
-                        );
-                      })}
-                    </ol>
+                    {/* Header: rodadas + modo + multiplicador */}
+                    <div className="flex items-center justify-center gap-6 text-xs uppercase tracking-[0.3em] text-cyan-300/70 font-mono">
+                      <span>{victoryData.mode === "dice" ? "Liar's Dice" : "Boolean Bar"}</span>
+                      <span className="text-cyan-500/40">|</span>
+                      <span>{victoryData.totalRounds ?? "?"} rodadas</span>
+                      {victoryData.players[0]?.multiplier != null && (
+                        <>
+                          <span className="text-cyan-500/40">|</span>
+                          <span>velocidade {(victoryData.players[0].multiplier / 100).toFixed(1)}x</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Tabela de ranking com pontuação */}
+                    <div className="text-xs uppercase tracking-[0.2em] text-cyan-300/60 font-mono text-center mt-1">Relatório Final</div>
+                    <div className="space-y-1.5">
+                      {[...victoryData.players]
+                        .sort((a, b) => b.points - a.points)
+                        .map((p, idx) => {
+                          const pos = idx + 1;
+                          const isDice = victoryData.mode === "dice";
+                          const remainLabel = isDice
+                            ? (p.diceLeft != null ? `${p.diceLeft} dado${p.diceLeft !== 1 ? "s" : ""}` : null)
+                            : (p.livesLeft != null ? `${p.livesLeft} vida${p.livesLeft !== 1 ? "s" : ""}` : null);
+                          return (
+                            <motion.div
+                              key={p.name}
+                              initial={{ x: pos % 2 === 0 ? 20 : -20, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ delay: 1.6 + idx * 0.1 }}
+                              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg font-mono ${
+                                p.isWinner
+                                  ? "bg-cyan-500/15 border border-cyan-400/40"
+                                  : "bg-zinc-900/40 border border-zinc-800"
+                              }`}
+                            >
+                              {/* Posição */}
+                              <span className={`w-6 text-right shrink-0 ${p.isWinner ? "text-yellow-400" : "text-zinc-500"}`} style={{ fontWeight: 700 }}>
+                                {p.isWinner ? "🏆" : `${pos}º`}
+                              </span>
+
+                              {/* Nome */}
+                              <span className={`flex-1 truncate ${p.isWinner ? "text-cyan-200" : "text-zinc-400"}`}>
+                                {p.name}
+                              </span>
+
+                              {/* Breakdown compacto */}
+                              <div className="flex items-center gap-2 text-xs shrink-0">
+                                {remainLabel && (
+                                  <span className="text-zinc-500">{remainLabel}</span>
+                                )}
+                                {p.bonusVitoria > 0 && (
+                                  <span className="text-emerald-400/80" title="Bônus vitória">+{p.bonusVitoria}</span>
+                                )}
+                                {p.bonusLimpo > 0 && (
+                                  <span className="text-yellow-400/80" title="Vitória limpa">+{p.bonusLimpo}</span>
+                                )}
+                              </div>
+
+                              {/* Pontuação total */}
+                              <motion.span
+                                animate={p.isWinner ? { scale: [1, 1.08, 1] } : {}}
+                                transition={{ duration: 2, repeat: Infinity }}
+                                className={`text-lg tabular-nums ${p.isWinner ? "text-cyan-400" : "text-zinc-500"}`}
+                                style={{ fontWeight: 800, minWidth: "3ch", textAlign: "right" }}
+                              >
+                                {p.points}
+                              </motion.span>
+                            </motion.div>
+                          );
+                        })}
+                    </div>
                   </motion.div>
+                ) : (
+                  <>
+                    {/* Fallback: stats legados quando não há breakdown do engine */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.5 }}
+                      className="w-full grid grid-cols-2 gap-x-8 gap-y-4 mb-4"
+                    >
+                      <motion.div
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 1.6 }}
+                        className="flex items-center justify-between px-4 py-3 bg-cyan-950/20 border border-cyan-500/20 rounded-lg"
+                      >
+                        <span className="text-sm tracking-wider text-cyan-300/80 font-mono">Oponentes Derrotados:</span>
+                        <motion.span
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity, delay: 1.8 }}
+                          className="text-2xl font-mono text-cyan-400"
+                          style={{ fontWeight: 900 }}
+                        >
+                          {opponentsDefeated}
+                        </motion.span>
+                      </motion.div>
+
+                      <motion.div
+                        initial={{ x: 20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 1.7 }}
+                        className="flex items-center justify-between px-4 py-3 bg-cyan-950/20 border border-cyan-500/20 rounded-lg"
+                      >
+                        <span className="text-sm tracking-wider text-cyan-300/80 font-mono">Gatilhos Puxados:</span>
+                        <motion.span
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity, delay: 1.9 }}
+                          className="text-2xl font-mono text-cyan-400"
+                          style={{ fontWeight: 900 }}
+                        >
+                          {triggersPulled}
+                        </motion.span>
+                      </motion.div>
+                    </motion.div>
+
+                    {/* Phase 5: ranking final (fallback sem pontuação) */}
+                    {ranking && ranking.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 1.9 }}
+                        className="w-full mt-2"
+                      >
+                        <div className="text-xs uppercase tracking-[0.3em] text-cyan-300/70 font-mono mb-3 text-center">Ranking Final</div>
+                        <ol className="space-y-1.5">
+                          {ranking.map((name, idx) => {
+                            const pos = idx + 1;
+                            const isWinner = pos === 1;
+                            return (
+                              <li
+                                key={name}
+                                className={`flex items-center gap-3 px-4 py-2 rounded-md font-mono ${
+                                  isWinner ? "bg-cyan-500/15 border border-cyan-400/40" : "bg-zinc-900/40 border border-zinc-800"
+                                }`}
+                              >
+                                <span className={`w-6 text-right ${isWinner ? "text-yellow-400" : "text-zinc-500"}`} style={{ fontWeight: 700 }}>
+                                  {isWinner ? "🏆" : `${pos}º`}
+                                </span>
+                                <span className={isWinner ? "text-cyan-200" : "text-zinc-400"}>{name}</span>
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      </motion.div>
+                    )}
+                  </>
                 )}
               </div>
 
