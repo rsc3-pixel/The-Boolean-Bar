@@ -1,14 +1,16 @@
 import { useEffect, useMemo } from "react";
 import { motion } from "motion/react";
-import { Trophy, Brain, Dices, Radio } from "lucide-react";
-import type { LeaderboardEntry } from "../hooks/useGameEngine";
+import { Trophy, Brain, Dices, Radio, Users } from "lucide-react";
+import type { LeaderboardEntry, ActiveRoom } from "../hooks/useGameEngine";
 
 /* Modo TV: rota /tv. Layout grande, sem inputs, leitura à distância.
  * Auto-update: o server faz push pelo `pushLeaderboard()` toda vez que
- * uma partida termina (subscribers entram via `get_leaderboard`). */
+ * uma partida termina (subscribers entram via `get_leaderboard`).
+ * Task 4.4: painel de salas ativas em tempo real. */
 
 interface TvPageProps {
   entries: LeaderboardEntry[];
+  activeRooms: ActiveRoom[];
   onLoad: () => void;
   wsStatus: "connecting" | "connected" | "disconnected";
 }
@@ -16,7 +18,7 @@ interface TvPageProps {
 const ROW_LIMIT = 10;
 const RANK_BADGE = ["🥇", "🥈", "🥉"];
 
-export function TvPage({ entries, onLoad, wsStatus }: TvPageProps) {
+export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) {
   useEffect(() => {
     if (wsStatus === "connected") onLoad();
   }, [wsStatus, onLoad]);
@@ -171,6 +173,51 @@ export function TvPage({ entries, onLoad, wsStatus }: TvPageProps) {
               })}
             </div>
           </div>
+        )}
+
+        {/* Task 4.4: Painel de salas ativas */}
+        {activeRooms.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mt-4 sm:mt-6"
+          >
+            <div className="text-sm sm:text-lg tracking-[0.4em] text-cyan-300/60 uppercase text-center mb-3">
+              ★ SALAS ATIVAS ★
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
+              {activeRooms.map((room) => (
+                <motion.div
+                  key={room.roomId}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-2 sm:py-3 bg-zinc-950/80 border-2 border-cyan-500/30 rounded-xl"
+                >
+                  <span className="text-lg sm:text-2xl text-cyan-200 tracking-[0.2em]" style={{ fontWeight: 800 }}>
+                    {room.roomId}
+                  </span>
+                  <span className="text-cyan-500/40">|</span>
+                  {room.gameMode === "logic"
+                    ? <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400" />
+                    : <Dices className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
+                  }
+                  <span className="text-cyan-500/40">|</span>
+                  <span className="flex items-center gap-1 text-sm sm:text-base text-zinc-300">
+                    <Users className="w-4 h-4" /> {room.playerCount}
+                  </span>
+                  <span className={`text-xs sm:text-sm tracking-wider px-2 py-0.5 rounded-md ${
+                    room.gameStarted
+                      ? "bg-red-500/20 border border-red-500/40 text-red-300"
+                      : "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300"
+                  }`} style={{ fontWeight: 700 }}>
+                    {room.gameStarted ? "JOGANDO" : "AGUARDANDO"}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         )}
 
         {/* Rodapé */}

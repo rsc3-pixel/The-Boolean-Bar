@@ -182,6 +182,15 @@ export interface LeaderboardEntry {
   modes: { logic: number; dice: number };
 }
 
+// ─── Salas ativas (Task 4.4) ──────────────────────────────────────────────────
+
+export interface ActiveRoom {
+  roomId: string;
+  gameMode: "logic" | "dice";
+  playerCount: number;
+  gameStarted: boolean;
+}
+
 // ─── Log de jogadas (Capstone) ────────────────────────────────────────────────
 
 /** Categoria de evento no log de jogadas (define o ícone/cor na UI). */
@@ -317,6 +326,9 @@ export function useGameEngine() {
 
   // ─── Leaderboard (Capstone) ──────────────────────────────────────────────
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+
+  // ─── Salas ativas (Task 4.4) ────────────────────────────────────────────
+  const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([]);
 
   // ─── Log de jogadas (Capstone) ───────────────────────────────────────────
   const [gameLog, setGameLog] = useState<GameLogEntry[]>([]);
@@ -459,6 +471,9 @@ export function useGameEngine() {
         if (resp.type === 'leaderboard') {
           console.log("[WS] 🏆 LEADERBOARD:", resp.entries?.length, "entradas");
           setLeaderboard(resp.entries ?? []);
+        }
+        if (resp.type === 'active_rooms') {
+          setActiveRooms(resp.rooms ?? []);
         }
         if (resp.type === 'trigger') {
           // Trigger 'show_doubt' e 'player_death' eram resíduos do modo demo
@@ -725,5 +740,7 @@ export function useGameEngine() {
     // ─── Capstone: leaderboard ──
     leaderboard,
     loadLeaderboard,
+    // ─── Task 4.4: salas ativas ──
+    activeRooms,
   };
 }
