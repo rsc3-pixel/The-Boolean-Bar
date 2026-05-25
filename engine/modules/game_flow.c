@@ -14,8 +14,48 @@
 #include "logic_engine.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
+
+/* SCORING.md — mesma tabela aplicada no modo Lógica.
+ * +20 pegar mentira / aposta coberta; +2 sobrevivência por rodada de dúvida;
+ * -20 perder vida; piso zero. Bônus de vitória multiplicado por velocidade. */
+#define LOGIC_INITIAL_LIVES 3
+#define PTS_WIN_CONFRONTO   20
+#define PTS_SURVIVAL        2
+#define PTS_LOSE_LIFE       (-20)
+#define BONUS_VITORIA_BASE  50
+#define BONUS_VITORIA_LIMPA 40
+
+static inline void points_clamp_floor(Jogador *p) {
+    if (p->points < 0) p->points = 0;
+}
+
+static int compute_speed_multiplier_x100(int rounds) {
+    if (rounds <= 6)  return 200; /* x2  -> 100 pts */
+    if (rounds <= 12) return 150; /* x1.5 -> 75 pts (floor automático na divisão por 100) */
+    return 100;                   /* x1  -> 50 pts */
+}
+
+/* Escapa string pra valor JSON. dst precisa caber 2*len(src)+1 (worst case). */
+static void json_escape(const char *src, char *dst, size_t dst_size) {
+    size_t i = 0;
+    if (!dst || dst_size == 0) return;
+    for (const char *p = src ? src : ""; *p && i + 2 < dst_size; p++) {
+        unsigned char c = (unsigned char)*p;
+        if (c == '"' || c == '\\') {
+            if (i + 3 >= dst_size) break;
+            dst[i++] = '\\'; dst[i++] = (char)c;
+        } else if (c < 0x20 || c == 0x7F) {
+            // descarta controles (newlines, DEL etc): JSON quebraria
+            continue;
+        } else {
+            dst[i++] = (char)c;
+        }
+    }
+    dst[i] = '\0';
+}
 
 /**
  * @brief Distribui 5 cartas aleatórias para um jogador no início da partida.
@@ -103,11 +143,15 @@ static void roleta_russa(Mesa *m, Jogador *perdedor) {
         perdedor->estaVivo = false;
         perdedor->status = ELIMINATED;
         perdedor->score = 0;
+        perdedor->points += PTS_LOSE_LIFE;  // BANG = penalidade equivalente a perder vida
+        points_clamp_floor(perdedor);
         m->num_players_alive--;
         m->balas_no_tambor = 1; // Reseta risco na morte
     } else {
         ui_print_survival_art(perdedor->name);
         perdedor->score--;
+        perdedor->points += PTS_LOSE_LIFE;  // -20 por perder uma vida (SCORING.md)
+        points_clamp_floor(perdedor);
         m->balas_no_tambor++; // Incrementa risco
         if (perdedor->score <= 0) {
             perdedor->estaVivo = false;
@@ -190,6 +234,7 @@ int game_start() {
 
     // Loop principal
     while (!game_table->game_over && game_table->num_players_alive > 1) {
+        game_table->total_rounds++;   // cada turno = uma rodada (SCORING.md)
         ui_clear_screen();
         ui_draw_header("THE BOOLEAN BAR");
         ui_render_mesa(game_table);
@@ -264,6 +309,10 @@ int game_start() {
             bool mentiu = (real_type != afirmacao);
 
             Jogador *perdedor_confronto = mentiu ? atual : oponente;
+            Jogador *vencedor_confronto = mentiu ? oponente : atual;
+
+            // Pontuação do confronto: vencedor +20 (SCORING.md)
+            vencedor_confronto->points += PTS_WIN_CONFRONTO;
 
             // Emite quem perdeu o confronto lógico para o frontend
             printf("\nJSON_DOUBT_RESULT: {\"loser\": \"%s\", \"bluffed\": %s, \"realType\": %d}\n",
@@ -283,6 +332,13 @@ int game_start() {
                ui_sleep_ms(800);
                roleta_russa(game_table, oponente);
             }
+
+            // Sobrevivência: +2 a todos os jogadores que continuam vivos
+            // após a rodada de dúvida (SCORING.md).
+            for (int i = 0; i < num_players; i++) {
+                Jogador *p = game_table->players[i];
+                if (p && p->estaVivo) p->points += PTS_SURVIVAL;
+            }
             
             // Pausa antes de continuar — front envia \n para destravar
             printf("Pressione Enter para continuar...\n");
@@ -301,15 +357,50 @@ int game_start() {
     ui_draw_header("CONTA FECHADA");
     int win_idx = get_next_valid_player_index(game_table, 0, is_alive);
     if(win_idx != -1) {
+       Jogador *vencedor = game_table->players[win_idx];
+
+       // ─── Bônus de vitória (SCORING.md) ─────────────────────────────────
+       int mult_x100 = compute_speed_multiplier_x100(game_table->total_rounds);
+       int bonus_vitoria = (BONUS_VITORIA_BASE * mult_x100) / 100;
+       int bonus_limpo = (vencedor->score >= LOGIC_INITIAL_LIVES) ? BONUS_VITORIA_LIMPA : 0;
+       vencedor->points += bonus_vitoria + bonus_limpo;
+
        printf("\n");
        char win_msg[128];
-       snprintf(win_msg, sizeof(win_msg), "🏆  %s  🏆", game_table->players[win_idx]->name);
+       snprintf(win_msg, sizeof(win_msg), "🏆  %s  🏆", vencedor->name);
        ui_print_box(win_msg, ANSI_TOXIC_GREEN);
        printf("\n  %sÚnico sobrevivente do Boolean Bar. A casa agradece!%s\n\n",
               STYLE_SURVIVAL, ANSI_COLOR_RESET);
 
-       printf("\nJSON_VICTORY: {\"winner\": \"%s\", \"totalPlayers\": %d}\n",
-              game_table->players[win_idx]->name, num_players);
+       // ─── JSON_VICTORY estendido: rounds + breakdown por jogador ────────
+       char esc[130];
+       json_escape(vencedor->name, esc, sizeof(esc));
+       printf("\nJSON_VICTORY: {");
+       printf("\"winner\": \"%s\",", esc);
+       printf("\"totalPlayers\": %d,", num_players);
+       printf("\"totalRounds\": %d,", game_table->total_rounds);
+       printf("\"mode\": \"logic\",");
+       printf("\"players\": [");
+       int first = 1;
+       for (int i = 0; i < num_players; i++) {
+           Jogador *p = game_table->players[i];
+           if (!p) continue;
+           if (!first) printf(",");
+           first = 0;
+           int is_winner = (i == win_idx) ? 1 : 0;
+           int p_bonus_vitoria = is_winner ? bonus_vitoria : 0;
+           int p_bonus_limpo   = is_winner ? bonus_limpo   : 0;
+           int p_base = p->points - p_bonus_vitoria - p_bonus_limpo;
+           if (p_base < 0) p_base = 0;
+           json_escape(p->name, esc, sizeof(esc));
+           printf("{\"name\": \"%s\", \"points\": %d, \"basePoints\": %d, "
+                  "\"bonusVitoria\": %d, \"bonusLimpo\": %d, \"multiplier\": %d, "
+                  "\"livesLeft\": %d, \"isWinner\": %s}",
+                  esc, p->points, p_base,
+                  p_bonus_vitoria, p_bonus_limpo, mult_x100,
+                  p->score, is_winner ? "true" : "false");
+       }
+       printf("]}\n");
        fflush(stdout);
     }
 
