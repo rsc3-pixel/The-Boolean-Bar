@@ -12,9 +12,11 @@ import { SurvivalReliefOverlay } from "../components/modals/SurvivalReliefOverla
 import { PlayerEliminatedScreen } from "../components/screens/PlayerEliminatedScreen";
 import { VictoryScreen } from "../components/screens/VictoryScreen";
 import { SettingsInstructionsPanel } from "../components/modals/SettingsInstructionsPanel";
-import { GameLog } from \"../components/ui/GameLog\";
-import { TurnTimerBar } from \"../components/ui/TurnTimerBar\";
-import { useGameEngine } from \"../hooks/useGameEngine\";
+import { GameLog } from "../components/ui/GameLog";
+import { TurnTimerBar } from "../components/ui/TurnTimerBar";
+import { ReactionOverlay } from "../components/ui/ReactionOverlay";
+import { ReactionPicker } from "../components/ui/ReactionPicker";
+import { useGameEngine } from "../hooks/useGameEngine";
 
 interface GamePageProps {
   playerNames: string[];
@@ -43,6 +45,9 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     gameLog,
     // Phase 7: timer
     turnTimer,
+    // Imersão 2: Reações
+    reactions,
+    sendReaction,
   } = engine;
 
   // ─── Phase 3: turn awareness ─────────────────────────────────────────────
@@ -228,8 +233,9 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     : "—";
 
   return (
-    <div className=\"size-full bg-black overflow-hidden flex flex-col font-sans relative\">
+    <div className="size-full bg-black overflow-hidden flex flex-col font-sans relative">
       <TurnTimerBar {...turnTimer} />
+      <ReactionOverlay reactions={reactions} />
       {/* Flash overlay quando vira minha vez (Phase 7) */}
       <AnimatePresence>
         {flashTurn && (
@@ -308,6 +314,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
               <span className="hidden sm:inline text-xs tracking-widest text-zinc-400 font-mono">VIVOS:</span>
               <span className="text-xs sm:text-sm font-mono text-emerald-400">{playersAlive}/{totalPlayers}</span>
             </div>
+            <ReactionPicker onSelect={sendReaction} />
             <motion.button
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}

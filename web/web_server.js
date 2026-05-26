@@ -937,6 +937,35 @@ function handleSendInput(ws, msg) {
   }
 }
 
+function handleSendReaction(ws, msg) {
+  const ctx = wsToRoom.get(ws);
+  if (!ctx) return;
+  const room = rooms.get(ctx.roomId);
+  if (!room) return;
+
+  const player = room.players.get(ctx.playerId);
+  if (!player) return;
+
+  // Rate limit: 2 segundos
+  const now = Date.now();
+  if (player.lastReactionTime && (now - player.lastReactionTime < 2000)) {
+    return; // Ignora se enviou muito rápido
+  }
+  player.lastReactionTime = now;
+
+  const emoji = (msg.emoji || '').toString().slice(0, 4); // Limita tamanho
+  if (!emoji) return;
+
+  console.log(`[Server/${ctx.roomId}] Reação de ${player.name}: ${emoji}`);
+  
+  broadcast(room, {
+    type: 'reaction',
+    playerId: ctx.playerId,
+    playerName: player.name,
+    emoji: emoji
+  });
+}
+
 function handleShutdown(ws) {
   console.log('[Server] Shutdown solicitado');
   for (const room of rooms.values()) {
@@ -1049,6 +1078,7 @@ wss.on('connection', (ws) => {
       case 'add_bot': return handleAddBot(ws);
       case 'remove_bot': return handleRemoveBot(ws, msg);
       case 'get_leaderboard': return handleGetLeaderboard(ws);
+      case 'send_reaction': return handleSendReaction(ws, msg);
       case 'shutdown': return handleShutdown(ws);
       default:
         return send(ws, { type: 'error', code: 'unknown_action', message: `Ação desconhecida: ${msg.action}` });
