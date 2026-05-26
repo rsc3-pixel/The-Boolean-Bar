@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { AlertTriangle, Heart, Skull } from "lucide-react";
+import { audioCues } from "../../utils/audioCues";
 
 interface RouletteScreenProps {
   isVisible: boolean;
@@ -46,6 +47,7 @@ export function RouletteScreen({
   const handleTriggerPull = () => {
     setIsSpinning(true);
     onTriggerPull();
+    audioCues.rouletteSpin();
 
     // White flash on trigger pull
     setFlashOpacity(0.6);
@@ -70,10 +72,13 @@ export function RouletteScreen({
         setIsSpinning(false);
         setShowResult(true);
 
-        // Screen shake on death
+        // Som e feedback visual baseado no resultado
         if (!didSurvive) {
+          audioCues.rouletteBang();
           setIsShaking(true);
           setTimeout(() => setIsShaking(false), 600);
+        } else {
+          audioCues.rouletteClick();
         }
 
         // Call completion callback

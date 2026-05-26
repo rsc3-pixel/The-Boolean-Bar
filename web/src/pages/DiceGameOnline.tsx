@@ -2,11 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, AlertCircle, Eye, X, WifiOff, Skull, Coins } from "lucide-react";
 import { DiceFace } from "../components/ui/DiceFace";
-import { OpponentDiceCard } from "../components/ui/OpponentDiceCard";
-import { GameLog } from "../components/ui/GameLog";
-import { VictoryScreen } from "../components/screens/VictoryScreen";
-import { useGameEngine } from "../hooks/useGameEngine";
-import { audioCues } from "../utils/audioCues";
+import { OpponentDiceCard } from \"../components/ui/OpponentDiceCard\";
+import { GameLog } from \"../components/ui/GameLog\";
+import { TurnTimerBar } from \"../components/ui/TurnTimerBar\";
+import { ReactionOverlay } from \"../components/ui/ReactionOverlay\";
+import { ReactionPicker } from \"../components/ui/ReactionPicker\";
+import { VictoryScreen } from \"../components/screens/VictoryScreen\";
+import { useGameEngine } from \"../hooks/useGameEngine\";
+import { audioCues } from \"../utils/audioCues\";
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────
 const FLASH_DURATION_MS = 1200;
@@ -31,6 +34,10 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
     roomState,
     playerId,
     gameLog,
+    turnTimer,
+    // Imersão 2: Reações
+    reactions,
+    sendReaction,
   } = engine;
 
   // ─── Identidade do cliente ─────────────────────────────────────────────
@@ -150,8 +157,23 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
   const aliveCount = diceState.players.filter(p => p.alive).length;
   const expectedPlayer = diceState.players[diceState.turn];
 
+  // ─── Phase 7: Shake & Vibrate (Imersão 4) ────────────────────────────────
+  const [globalShake, setGlobalShake] = useState(false);
+  useEffect(() => {
+    if (diceReveal && diceReveal.eliminated) {
+      setGlobalShake(true);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(200);
+      }
+      const t = setTimeout(() => setGlobalShake(false), 500);
+      return () => clearTimeout(t);
+    }
+  }, [diceReveal]);
+
   return (
-    <div className="size-full bg-black overflow-hidden flex flex-col relative">
+    <div className={`size-full bg-black overflow-hidden flex flex-col relative ${globalShake ? 'animate-global-shake' : ''}`}>
+      <TurnTimerBar {...turnTimer} />
+      <ReactionOverlay reactions={reactions} />
       {/* Flash overlay quando vira minha vez (Phase 7) */}
       <AnimatePresence>
         {flashTurn && (
@@ -188,6 +210,9 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
             <span className="text-yellow-400 truncate max-w-[60px] sm:max-w-none">VEZ DE {expectedPlayer?.name?.toUpperCase() ?? "?"}</span>
           )}
           <span className="hidden sm:inline text-zinc-500">VIVOS: {aliveCount}/{diceState.totalPlayers}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <ReactionPicker onSelect={sendReaction} />
         </div>
       </header>
 

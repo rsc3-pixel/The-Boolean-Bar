@@ -13,6 +13,9 @@ import { PlayerEliminatedScreen } from "../components/screens/PlayerEliminatedSc
 import { VictoryScreen } from "../components/screens/VictoryScreen";
 import { SettingsInstructionsPanel } from "../components/modals/SettingsInstructionsPanel";
 import { GameLog } from "../components/ui/GameLog";
+import { TurnTimerBar } from "../components/ui/TurnTimerBar";
+import { ReactionOverlay } from "../components/ui/ReactionOverlay";
+import { ReactionPicker } from "../components/ui/ReactionPicker";
 import { useGameEngine } from "../hooks/useGameEngine";
 
 interface GamePageProps {
@@ -40,6 +43,11 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     eliminationOrder,
     // Capstone: log de jogadas
     gameLog,
+    // Phase 7: timer
+    turnTimer,
+    // Imersão 2: Reações
+    reactions,
+    sendReaction,
   } = engine;
 
   // ─── Phase 3: turn awareness ─────────────────────────────────────────────
@@ -224,8 +232,23 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     ? (doubtState.bluff === 1 ? "TAUTOLOGIA" : doubtState.bluff === 2 ? "CONTRADIÇÃO" : "CONTINGÊNCIA")
     : "—";
 
+  // ─── Phase 7: Shake & Vibrate (Imersão 4) ────────────────────────────────
+  const [globalShake, setGlobalShake] = useState(false);
+  useEffect(() => {
+    if (pendingRouletteResult && !pendingRouletteResult.survived) {
+      setGlobalShake(true);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(200);
+      }
+      const t = setTimeout(() => setGlobalShake(false), 500);
+      return () => clearTimeout(t);
+    }
+  }, [pendingRouletteResult]);
+
   return (
-    <div className="size-full bg-black overflow-hidden flex flex-col font-sans relative">
+    <div className={`size-full bg-black overflow-hidden flex flex-col font-sans relative ${globalShake ? 'animate-global-shake' : ''}`}>
+      <TurnTimerBar {...turnTimer} />
+      <ReactionOverlay reactions={reactions} />
       {/* Flash overlay quando vira minha vez (Phase 7) */}
       <AnimatePresence>
         {flashTurn && (
@@ -304,6 +327,7 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
               <span className="hidden sm:inline text-xs tracking-widest text-zinc-400 font-mono">VIVOS:</span>
               <span className="text-xs sm:text-sm font-mono text-emerald-400">{playersAlive}/{totalPlayers}</span>
             </div>
+            <ReactionPicker onSelect={sendReaction} />
             <motion.button
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
