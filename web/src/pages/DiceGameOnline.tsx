@@ -2,11 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, AlertCircle, Eye, X, WifiOff, Skull, Coins } from "lucide-react";
 import { DiceFace } from "../components/ui/DiceFace";
-import { OpponentDiceCard } from "../components/ui/OpponentDiceCard";
-import { GameLog } from "../components/ui/GameLog";
-import { VictoryScreen } from "../components/screens/VictoryScreen";
-import { useGameEngine } from "../hooks/useGameEngine";
-import { audioCues } from "../utils/audioCues";
+import { OpponentDiceCard } from \"../components/ui/OpponentDiceCard\";
+import { GameLog } from \"../components/ui/GameLog\";
+import { TurnTimerBar } from \"../components/ui/TurnTimerBar\";
+import { VictoryScreen } from \"../components/screens/VictoryScreen\";
+import { useGameEngine } from \"../hooks/useGameEngine\";
+import { audioCues } from \"../utils/audioCues\";
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────
 const FLASH_DURATION_MS = 1200;
@@ -31,6 +32,7 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
     roomState,
     playerId,
     gameLog,
+    turnTimer,
   } = engine;
 
   // ─── Identidade do cliente ─────────────────────────────────────────────
@@ -151,7 +153,8 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
   const expectedPlayer = diceState.players[diceState.turn];
 
   return (
-    <div className="size-full bg-black overflow-hidden flex flex-col relative">
+    <div className=\"size-full bg-black overflow-hidden flex flex-col relative\">
+      <TurnTimerBar {...turnTimer} />
       {/* Flash overlay quando vira minha vez (Phase 7) */}
       <AnimatePresence>
         {flashTurn && (

@@ -12,8 +12,9 @@ import { SurvivalReliefOverlay } from "../components/modals/SurvivalReliefOverla
 import { PlayerEliminatedScreen } from "../components/screens/PlayerEliminatedScreen";
 import { VictoryScreen } from "../components/screens/VictoryScreen";
 import { SettingsInstructionsPanel } from "../components/modals/SettingsInstructionsPanel";
-import { GameLog } from "../components/ui/GameLog";
-import { useGameEngine } from "../hooks/useGameEngine";
+import { GameLog } from \"../components/ui/GameLog\";
+import { TurnTimerBar } from \"../components/ui/TurnTimerBar\";
+import { useGameEngine } from \"../hooks/useGameEngine\";
 
 interface GamePageProps {
   playerNames: string[];
@@ -40,6 +41,8 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     eliminationOrder,
     // Capstone: log de jogadas
     gameLog,
+    // Phase 7: timer
+    turnTimer,
   } = engine;
 
   // ─── Phase 3: turn awareness ─────────────────────────────────────────────
@@ -225,7 +228,8 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     : "—";
 
   return (
-    <div className="size-full bg-black overflow-hidden flex flex-col font-sans relative">
+    <div className=\"size-full bg-black overflow-hidden flex flex-col font-sans relative\">
+      <TurnTimerBar {...turnTimer} />
       {/* Flash overlay quando vira minha vez (Phase 7) */}
       <AnimatePresence>
         {flashTurn && (
