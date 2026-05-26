@@ -250,6 +250,10 @@ function closeRoom(roomId, reason) {
     try { room.engine.kill(); } catch (_) { }
     room.engine = null;
   }
+  if (room.turnTimer) {
+    clearTimeout(room.turnTimer);
+    room.turnTimer = null;
+  }
   for (const player of room.players.values()) {
     if (player.disconnectTimer) {
       clearTimeout(player.disconnectTimer);
@@ -334,6 +338,7 @@ function handleEngineStdout(room, chunk) {
           // Espera input do jogador da vez (Phase 3)
           const playersArr = Array.from(room.players.values());
           room.expectedPlayerId = playersArr[data.turn]?.playerId ?? null;
+          startTurnTimer(room);
         },
       },
       {
@@ -345,6 +350,7 @@ function handleEngineStdout(room, chunk) {
           const playersArr = Array.from(room.players.values());
           const caller = playersArr.find(p => p.name === data.caller);
           room.expectedPlayerId = caller?.playerId ?? room.expectedPlayerId;
+          startTurnTimer(room);
         },
       },
       { tag: 'JSON_DOUBT_RESULT:', type: 'doubt_result' },
@@ -362,6 +368,11 @@ function handleEngineStdout(room, chunk) {
             pushLeaderboard();
           } else if (winner && winner.isBot) {
             console.log(`[Leaderboard] Skip bot win: ${data.winner}`);
+          }
+          // Para o timer na vitória
+          if (room.turnTimer) {
+            clearTimeout(room.turnTimer);
+            room.turnTimer = null;
           }
         },
       },
@@ -383,6 +394,7 @@ function handleEngineStdout(room, chunk) {
           // Em dice mode, o jogador da vez é quem decide (apostar/duvidar/sair)
           const playersArr = Array.from(room.players.values());
           room.expectedPlayerId = playersArr[data.turn]?.playerId ?? null;
+          startTurnTimer(room);
         },
       },
       { tag: 'JSON_DICE_BET:', type: 'dice_bet' },
@@ -453,6 +465,9 @@ function handleCreateRoom(ws, msg) {
     stdoutBuffer: '',
     lastGameState: null,
     lastDoubtState: null,
+    turnTimer: null,
+    turnStartTime: 0,
+    turnDuration: 30,
   };
   rooms.set(roomId, room);
   wsToRoom.set(ws, { roomId, playerId });
@@ -460,6 +475,66 @@ function handleCreateRoom(ws, msg) {
   send(ws, { type: 'room_created', roomId, playerId, room: getRoomSnapshot(room) });
   console.log(`[Server] Sala ${roomId} criada por ${playerName} (${playerId}) — modo ${gameMode}`);
   pushActiveRooms();
+}
+
+/**
+ * Inicia ou reinicia o timer de turno para uma sala.
+ * Se o tempo acabar, dispara uma ação automática (IA de fallback).
+ */
+function startTurnTimer(room) {
+  if (room.turnTimer) {
+    clearTimeout(room.turnTimer);
+    room.turnTimer = null;
+  }
+
+  // Não tem timer em solo mode (legado)
+  if (room.isSoloMode) return;
+
+  const DURATION = 30; // 30 segundos
+  room.turnStartTime = Date.now();
+  room.turnDuration = DURATION;
+
+  broadcast(room, {
+    type: 'turn_timer',
+    seconds: DURATION,
+    total: DURATION
+  });
+
+  room.turnTimer = setTimeout(() => {
+    handleTurnTimeout(room);
+  }, DURATION * 1000);
+}
+
+function handleTurnTimeout(room) {
+  room.turnTimer = null;
+  if (!room.engine || !room.expectedPlayerId) return;
+
+  const player = room.players.get(room.expectedPlayerId);
+  const name = player?.name ?? 'Jogador';
+
+  console.log(`[Server/${room.roomId}] ⏰ Tempo esgotado para ${name}. Executando jogada automática.`);
+
+  if (room.gameMode === 'dice') {
+    // No Dice Mode, se o tempo acabar, o jogador DUVIDA (mais seguro que aposta aleatória)
+    console.log(`[Server/${room.roomId}] 🤖 Auto-move: DUVIDAR`);
+    if (room.engine.stdin.writable) room.engine.stdin.write('D\n');
+  } else {
+    // No Logic Mode
+    if (room.lastDoubtState) {
+      // Fase de dúvida: o jogador acredita (0)
+      console.log(`[Server/${room.roomId}] 🤖 Auto-move: ACREDITAR`);
+      if (room.engine.stdin.writable) room.engine.stdin.write('0\n');
+    } else if (room.lastGameState) {
+      // Turno normal: joga a primeira carta como Tautologia
+      console.log(`[Server/${room.roomId}] 🤖 Auto-move: Jogar carta 1 como Tautologia`);
+      if (room.engine.stdin.writable) {
+        room.engine.stdin.write('1\n');
+        setTimeout(() => {
+          if (room.engine?.stdin?.writable) room.engine.stdin.write('1\n');
+        }, 200);
+      }
+    }
+  }
 }
 
 function handleJoinRoom(ws, msg) {
@@ -854,6 +929,11 @@ function handleSendInput(ws, msg) {
   if (room.engine.stdin.writable) {
     console.log(`[Server/${ctx.roomId}] input de ${ctx.playerId}: ${msg.data}`);
     room.engine.stdin.write(msg.data + '\n');
+    // Limpa o timer pois o jogador já agiu
+    if (room.turnTimer) {
+      clearTimeout(room.turnTimer);
+      room.turnTimer = null;
+    }
   }
 }
 

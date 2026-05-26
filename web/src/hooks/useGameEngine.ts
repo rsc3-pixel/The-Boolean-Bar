@@ -308,6 +308,10 @@ export function useGameEngine() {
   const [showVictory, setShowVictory] = useState(false);
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
 
+  // ─── Turn Timer (Phase 7) ──────────────────────────────────────────────────
+  const [turnTimer, setTurnTimer] = useState<{ seconds: number, total: number, active: boolean }>({ seconds: 0, total: 30, active: false });
+  const localTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // ─── Room state (Phase 2) ──────────────────────────────────────────────────
   const [roomState, setRoomState] = useState<RoomSnapshot | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -561,6 +565,21 @@ export function useGameEngine() {
           logIdCounter.current = 0;
           pushLog('info', '─── Partida iniciada ───');
         }
+        if (resp.type === 'turn_timer') {
+          console.log("[WS] ⏰ TURN TIMER:", resp.seconds);
+          setTurnTimer({ seconds: resp.seconds, total: resp.total, active: true });
+          
+          if (localTimerRef.current) clearInterval(localTimerRef.current);
+          localTimerRef.current = setInterval(() => {
+            setTurnTimer(prev => {
+              if (prev.seconds <= 0) {
+                if (localTimerRef.current) clearInterval(localTimerRef.current);
+                return { ...prev, seconds: 0, active: false };
+              }
+              return { ...prev, seconds: prev.seconds - 1 };
+            });
+          }, 1000);
+        }
         if (resp.type === 'error') {
           console.warn("[WS] ⚠️ Error:", resp.code, resp.message);
           setRoomError({ code: resp.code, message: resp.message });
@@ -742,5 +761,7 @@ export function useGameEngine() {
     loadLeaderboard,
     // ─── Task 4.4: salas ativas ──
     activeRooms,
+    // ─── Phase 7: Timer ──
+    turnTimer,
   };
 }
