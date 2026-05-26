@@ -157,8 +157,21 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
   const aliveCount = diceState.players.filter(p => p.alive).length;
   const expectedPlayer = diceState.players[diceState.turn];
 
+  // ─── Phase 7: Shake & Vibrate (Imersão 4) ────────────────────────────────
+  const [globalShake, setGlobalShake] = useState(false);
+  useEffect(() => {
+    if (diceReveal && diceReveal.eliminated) {
+      setGlobalShake(true);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(200);
+      }
+      const t = setTimeout(() => setGlobalShake(false), 500);
+      return () => clearTimeout(t);
+    }
+  }, [diceReveal]);
+
   return (
-    <div className="size-full bg-black overflow-hidden flex flex-col relative">
+    <div className={`size-full bg-black overflow-hidden flex flex-col relative ${globalShake ? 'animate-global-shake' : ''}`}>
       <TurnTimerBar {...turnTimer} />
       <ReactionOverlay reactions={reactions} />
       {/* Flash overlay quando vira minha vez (Phase 7) */}

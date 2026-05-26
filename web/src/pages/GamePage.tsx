@@ -232,8 +232,21 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     ? (doubtState.bluff === 1 ? "TAUTOLOGIA" : doubtState.bluff === 2 ? "CONTRADIÇÃO" : "CONTINGÊNCIA")
     : "—";
 
+  // ─── Phase 7: Shake & Vibrate (Imersão 4) ────────────────────────────────
+  const [globalShake, setGlobalShake] = useState(false);
+  useEffect(() => {
+    if (pendingRouletteResult && !pendingRouletteResult.survived) {
+      setGlobalShake(true);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(200);
+      }
+      const t = setTimeout(() => setGlobalShake(false), 500);
+      return () => clearTimeout(t);
+    }
+  }, [pendingRouletteResult]);
+
   return (
-    <div className="size-full bg-black overflow-hidden flex flex-col font-sans relative">
+    <div className={`size-full bg-black overflow-hidden flex flex-col font-sans relative ${globalShake ? 'animate-global-shake' : ''}`}>
       <TurnTimerBar {...turnTimer} />
       <ReactionOverlay reactions={reactions} />
       {/* Flash overlay quando vira minha vez (Phase 7) */}
