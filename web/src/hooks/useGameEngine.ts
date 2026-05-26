@@ -308,6 +308,13 @@ export function useGameEngine() {
   const [showVictory, setShowVictory] = useState(false);
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
 
+  // ─── Turn Timer (Phase 7) ──────────────────────────────────────────────────
+  const [turnTimer, setTurnTimer] = useState<{ seconds: number, total: number, active: boolean }>({ seconds: 0, total: 30, active: false });
+  const localTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ─── Reações (Imersão 2) ────────────────────────────────────────────────────
+  const [reactions, setReactions] = useState<{ id: string, emoji: string, playerName: string }[]>([]);
+
   // ─── Room state (Phase 2) ──────────────────────────────────────────────────
   const [roomState, setRoomState] = useState<RoomSnapshot | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -561,6 +568,30 @@ export function useGameEngine() {
           logIdCounter.current = 0;
           pushLog('info', '─── Partida iniciada ───');
         }
+        if (resp.type === 'turn_timer') {
+          console.log("[WS] ⏰ TURN TIMER:", resp.seconds);
+          setTurnTimer({ seconds: resp.seconds, total: resp.total, active: true });
+          
+          if (localTimerRef.current) clearInterval(localTimerRef.current);
+          localTimerRef.current = setInterval(() => {
+            setTurnTimer(prev => {
+              if (prev.seconds <= 0) {
+                if (localTimerRef.current) clearInterval(localTimerRef.current);
+                return { ...prev, seconds: 0, active: false };
+              }
+              return { ...prev, seconds: prev.seconds - 1 };
+            });
+          }, 1000);
+        }
+        if (resp.type === 'reaction') {
+          console.log("[WS] 😂 REACTION:", resp.emoji, "de", resp.playerName);
+          const id = `react-${Math.random().toString(36).slice(2, 9)}`;
+          setReactions(prev => [...prev, { id, emoji: resp.emoji, playerName: resp.playerName }]);
+          // Auto-remove após 2.5s
+          setTimeout(() => {
+            setReactions(prev => prev.filter(r => r.id !== id));
+          }, 2500);
+        }
         if (resp.type === 'error') {
           console.warn("[WS] ⚠️ Error:", resp.code, resp.message);
           setRoomError({ code: resp.code, message: resp.message });
@@ -667,6 +698,10 @@ export function useGameEngine() {
 
   const clearRoomError = useCallback(() => setRoomError(null), []);
 
+  const sendReaction = useCallback((emoji: string) => {
+    sendAction({ action: "send_reaction", emoji });
+  }, [sendAction]);
+
   const sendInput = useCallback((input: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       console.log(`[WS] ⌨️ Enviando input pro C: "${input}"`);
@@ -742,5 +777,10 @@ export function useGameEngine() {
     loadLeaderboard,
     // ─── Task 4.4: salas ativas ──
     activeRooms,
+    // ─── Phase 7: Timer ──
+    turnTimer,
+    // ─── Imersão 2: Reações ──
+    reactions,
+    sendReaction,
   };
 }
