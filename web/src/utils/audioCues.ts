@@ -124,6 +124,70 @@ class AudioCues {
   click() {
     this.tone({ freq: 600, duration: 0.08, type: "square", volume: 0.15 });
   }
+
+  /**
+   * Som de cilindro girando (sequência de ticks rápidos).
+   */
+  rouletteSpin() {
+    const ctx = this.getCtx();
+    if (!ctx) return;
+    for (let i = 0; i < 15; i++) {
+      this.tone({ 
+        freq: 1200 - (i * 40), 
+        duration: 0.03, 
+        type: "square", 
+        volume: 0.1, 
+        delayMs: i * 60 
+      });
+    }
+  }
+
+  /**
+   * Som de clique metálico seco (sobreviveu).
+   */
+  rouletteClick() {
+    this.tone({ freq: 150, duration: 0.05, type: "square", volume: 0.4 });
+    this.tone({ freq: 80, duration: 0.08, type: "sine", volume: 0.3, delayMs: 10 });
+  }
+
+  /**
+   * Som de bang de revólver (morreu).
+   * Ruído sintetizado + explosão de graves.
+   */
+  rouletteBang() {
+    const ctx = this.getCtx();
+    if (!ctx) return;
+    const start = ctx.currentTime;
+    
+    // Explosão inicial (ruído branco filtrado)
+    const bufferSize = ctx.sampleRate * 0.5;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = "lowpass";
+    noiseFilter.frequency.setValueAtTime(1200, start);
+    noiseFilter.frequency.exponentialRampToValueAtTime(100, start + 0.4);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.6, start);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start(start);
+
+    // Corpo do tiro (grave impactante)
+    this.tone({ freq: 100, duration: 0.5, type: "sawtooth", volume: 0.5, sweepTo: 20 });
+    this.tone({ freq: 40, duration: 0.8, type: "sine", volume: 0.8, delayMs: 20 });
+  }
 }
 
 /** Instância global de AudioCues, pronta para uso em qualquer componente. */
