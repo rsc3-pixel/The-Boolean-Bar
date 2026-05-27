@@ -97,17 +97,6 @@ export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) 
           </div>
         )}
 
-        {wsStatus === "connected" && display.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4">
-            <div className="text-yellow-200 text-3xl sm:text-5xl uppercase tracking-[0.4em]">
-              ✦ MESA VAZIA ✦
-            </div>
-            <div className="text-zinc-500 text-lg sm:text-2xl uppercase tracking-[0.3em]">
-              Nenhuma vitória registrada ainda
-            </div>
-          </div>
-        )}
-
         {/* Layout principal: QR code à esquerda + ranking à direita */}
         <div className="flex-1 flex flex-col lg:flex-row gap-6 sm:gap-8 min-h-0">
 
