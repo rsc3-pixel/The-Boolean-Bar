@@ -416,9 +416,6 @@ export function useGameEngine() {
           // se alguém clicar em DUVIDO (= doubt_result chegando).
           console.log("[WS] ⚔️ DOUBT STATE RECEBIDO (aguardando ação do oponente)", resp.data);
           setDoubtState(resp.data);
-        }
-        if (resp.type === 'doubt_state') {
-          // Log: alguém duvidou de uma carta declarada
           pushLog('doubt', narrate('doubt_logic', { caller: resp.data.caller, target: resp.data.target }));
         }
         if (resp.type === 'doubt_result') {

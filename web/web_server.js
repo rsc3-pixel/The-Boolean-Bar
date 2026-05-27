@@ -712,6 +712,7 @@ function handleLeaveRoom(ws) {
   }
   removePlayerHard(room, ctx.playerId);
   wsToRoom.delete(ws);
+  pushActiveRooms();
 }
 
 // Disconnect involuntário (WS close sem leave_room antes): grace window de 60s.
@@ -926,7 +927,7 @@ function handleSendInput(ws, msg) {
     });
   }
 
-  if (room.engine.stdin.writable) {
+  if (room.engine?.stdin?.writable) {
     console.log(`[Server/${ctx.roomId}] input de ${ctx.playerId}: ${msg.data}`);
     room.engine.stdin.write(msg.data + '\n');
     // Limpa o timer pois o jogador já agiu
