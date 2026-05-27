@@ -125,6 +125,26 @@ class AudioCues {
     this.tone({ freq: 600, duration: 0.08, type: "square", volume: 0.15 });
   }
 
+  /** Som de eliminação: tom grave descendente dramático. */
+  eliminate() {
+    this.tone({ freq: 400, duration: 0.15, type: "sawtooth", volume: 0.25, sweepTo: 100 });
+    this.tone({ freq: 100, duration: 0.5, type: "sine", volume: 0.2, delayMs: 150, sweepTo: 40 });
+  }
+
+  /** Fanfarra de vitória: 3 tons ascendentes rápidos. */
+  victory() {
+    this.tone({ freq: 523, duration: 0.15, type: "triangle", volume: 0.2 });
+    this.tone({ freq: 659, duration: 0.15, type: "triangle", volume: 0.2, delayMs: 150 });
+    this.tone({ freq: 784, duration: 0.3, type: "triangle", volume: 0.25, delayMs: 300 });
+  }
+
+  /** Som de dúvida dramática: acorde dissonante tenso. */
+  dramaticDoubt() {
+    this.tone({ freq: 200, duration: 0.3, type: "sawtooth", volume: 0.18 });
+    this.tone({ freq: 250, duration: 0.3, type: "sawtooth", volume: 0.15 });
+    this.tone({ freq: 150, duration: 0.4, type: "sawtooth", volume: 0.12, delayMs: 100 });
+  }
+
   /**
    * Som de cilindro girando (sequência de ticks rápidos).
    */

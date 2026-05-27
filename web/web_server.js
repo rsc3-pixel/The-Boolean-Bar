@@ -937,6 +937,28 @@ function handleSendInput(ws, msg) {
   }
 }
 
+// ─── Imersão 5: Chat rápido com frases prontas ──────────────────────────────
+const ALLOWED_PHRASES = ['Blefou!', 'Boa sorte!', 'Covarde!', 'Mentiroso!', 'Tô suando...', 'GG', 'Fácil', 'Misericórdia!'];
+
+function handleSendChat(ws, msg) {
+  const ctx = wsToRoom.get(ws);
+  if (!ctx) return;
+  const room = rooms.get(ctx.roomId);
+  if (!room) return;
+
+  const player = room.players.get(ctx.playerId);
+  if (!player) return;
+
+  const message = (msg.message || '').toString();
+  if (!ALLOWED_PHRASES.includes(message)) return;
+
+  const now = Date.now();
+  if (player.lastChatTime && (now - player.lastChatTime < 3000)) return;
+  player.lastChatTime = now;
+
+  broadcast(room, { type: 'chat_message', playerName: player.name, message });
+}
+
 function handleSendReaction(ws, msg) {
   const ctx = wsToRoom.get(ws);
   if (!ctx) return;
@@ -1079,6 +1101,7 @@ wss.on('connection', (ws) => {
       case 'remove_bot': return handleRemoveBot(ws, msg);
       case 'get_leaderboard': return handleGetLeaderboard(ws);
       case 'send_reaction': return handleSendReaction(ws, msg);
+      case 'send_chat': return handleSendChat(ws, msg);
       case 'shutdown': return handleShutdown(ws);
       default:
         return send(ws, { type: 'error', code: 'unknown_action', message: `Ação desconhecida: ${msg.action}` });

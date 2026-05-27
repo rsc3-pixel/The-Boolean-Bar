@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { audioCues } from "../utils/audioCues";
+import { narrate } from "../utils/narrator";
 
 // ─── Boolean Bar (modo lógico) ───────────────────────────────────────────────
 
@@ -337,6 +339,13 @@ export function useGameEngine() {
   // ─── Salas ativas (Task 4.4) ────────────────────────────────────────────
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([]);
 
+  // ─── Imersão 5: Chat rápido ───────────────────────────────────────────
+  const [chatMessages, setChatMessages] = useState<{ id: string; playerName: string; message: string }[]>([]);
+
+  // ─── Imersão 7: Streak/combo ──────────────────────────────────────────
+  const streaksRef = useRef<Record<string, number>>({});
+  const [currentStreak, setCurrentStreak] = useState<{ name: string; count: number } | null>(null);
+
   // ─── Log de jogadas (Capstone) ───────────────────────────────────────────
   const [gameLog, setGameLog] = useState<GameLogEntry[]>([]);
   const logIdCounter = useRef(0);
@@ -410,9 +419,7 @@ export function useGameEngine() {
         }
         if (resp.type === 'doubt_state') {
           // Log: alguém duvidou de uma carta declarada
-          const tipos = ['—', 'Tautologia', 'Contradição', 'Contingência'];
-          const declarado = tipos[resp.data?.bluff] ?? 'algo';
-          pushLog('doubt', `${resp.data.caller} duvidou de ${resp.data.target} (declarou ${declarado})`);
+          pushLog('doubt', narrate('doubt_logic', { caller: resp.data.caller, target: resp.data.target }));
         }
         if (resp.type === 'doubt_result') {
           // Alguém clicou DUVIDO. Agora sim disparamos a cascata de animação:
@@ -420,11 +427,20 @@ export function useGameEngine() {
           console.log("[WS] ⚖️ DOUBT RESULT RECEBIDO!", resp.data);
           setDoubtResult(resp.data);
           setShowDoubtOverlay(true); // dispara a cascata
-          const tiposReal = ['Tautologia', 'Contradição', 'Contingência'];
-          const realName = tiposReal[resp.data?.realType] ?? '?';
           pushLog('doubt', resp.data?.bluffed
-            ? `${resp.data.loser} blefou (era ${realName}) → roleta russa`
-            : `${resp.data.loser} duvidou em vão (era ${realName}) → roleta russa`);
+            ? narrate('doubt_correct', { loser: resp.data.loser })
+            : narrate('doubt_wrong', { loser: resp.data.loser }));
+          // Imersão 7: streak tracking (Logic)
+          const doubtWinner = resp.data?.winner ?? (resp.data?.bluffed ? resp.data?.caller : resp.data?.target);
+          const doubtLoser = resp.data?.loser;
+          if (doubtWinner && doubtLoser) {
+            streaksRef.current[doubtLoser] = 0;
+            streaksRef.current[doubtWinner] = (streaksRef.current[doubtWinner] ?? 0) + 1;
+            if (streaksRef.current[doubtWinner] >= 2) {
+              setCurrentStreak({ name: doubtWinner, count: streaksRef.current[doubtWinner] });
+              setTimeout(() => setCurrentStreak(null), 2500);
+            }
+          }
         }
         if (resp.type === 'roulette_result') {
           // Resultado real da roleta russa: dispara a tela da roleta agora
@@ -437,16 +453,18 @@ export function useGameEngine() {
             setEliminationOrder(prev => prev.includes(resp.data.player) ? prev : [...prev, resp.data.player]);
           }
           if (resp.data?.survived) {
-            pushLog('roulette_safe', `${resp.data.player} sobreviveu à roleta (${resp.data.bullets} bala${resp.data.bullets === 1 ? '' : 's'})`);
+            pushLog('roulette_safe', narrate('roulette_safe', { player: resp.data.player }));
           } else {
-            pushLog('roulette_dead', `💀 ${resp.data.player} foi eliminado na roleta`);
+            pushLog('roulette_dead', narrate('roulette_dead', { player: resp.data.player }));
+            audioCues.eliminate();
           }
         }
         if (resp.type === 'victory_state') {
           console.log("[WS] 🏆 VICTORY STATE RECEBIDO!", resp.data);
           setVictoryState(resp.data);
           setShowVictory(true);
-          pushLog('victory', `🏆 ${resp.data.winner} venceu a partida`);
+          pushLog('victory', narrate('victory', { winner: resp.data.winner }));
+          audioCues.victory();
         }
         // ─── Liar's Dice events ────────────────────────────────────────
         if (resp.type === 'dice_state') {
@@ -456,24 +474,38 @@ export function useGameEngine() {
         if (resp.type === 'dice_bet') {
           console.log("[WS] 🎲 DICE BET:", resp.data);
           setDiceBet(resp.data);
-          pushLog('bet', `${resp.data.caller} apostou ${resp.data.qt}× face ${resp.data.face}`);
+          pushLog('bet', narrate('bet', { player: resp.data.caller, qty: resp.data.qt, face: resp.data.face }));
         }
         if (resp.type === 'dice_doubt') {
           console.log("[WS] 🎲 DICE DOUBT:", resp.data);
           setDiceDoubt(resp.data);
-          pushLog('dice_doubt', `${resp.data.caller} duvidou da aposta`);
+          pushLog('dice_doubt', narrate('dice_doubt', { player: resp.data.caller }));
+          audioCues.dramaticDoubt();
         }
         if (resp.type === 'dice_reveal') {
           console.log("[WS] 🎲 DICE REVEAL:", resp.data);
           setDiceReveal(resp.data);
           setShowDiceReveal(true);
-          const verdict = resp.data?.betValid
-            ? `aposta válida (havia ${resp.data.totalReal}× face ${resp.data.betFace})`
-            : `mentira (só ${resp.data.totalReal}× face ${resp.data.betFace})`;
-          const tail = resp.data?.eliminated
-            ? `💀 ${resp.data.loser} eliminado`
-            : `${resp.data.loser} perdeu 1 dado (${resp.data.loserDiceCount} restantes)`;
-          pushLog('reveal', `${verdict} → ${tail}`);
+          if (resp.data?.betValid) {
+            pushLog('reveal', narrate('reveal_valid', { loser: resp.data.loser }));
+          } else {
+            pushLog('reveal', narrate('reveal_bluff', { loser: resp.data.loser }));
+          }
+          if (resp.data?.eliminated) {
+            pushLog('reveal', narrate('eliminate_dice', { loser: resp.data.loser }));
+            audioCues.eliminate();
+          }
+          // Imersão 7: streak tracking
+          const winner = resp.data?.winner ?? (resp.data?.betValid ? resp.data?.caller : resp.data?.doubter);
+          const loser = resp.data?.loser;
+          if (winner && loser) {
+            streaksRef.current[loser] = 0;
+            streaksRef.current[winner] = (streaksRef.current[winner] ?? 0) + 1;
+            if (streaksRef.current[winner] >= 2) {
+              setCurrentStreak({ name: winner, count: streaksRef.current[winner] });
+              setTimeout(() => setCurrentStreak(null), 2500);
+            }
+          }
         }
         if (resp.type === 'leaderboard') {
           console.log("[WS] 🏆 LEADERBOARD:", resp.entries?.length, "entradas");
@@ -481,6 +513,12 @@ export function useGameEngine() {
         }
         if (resp.type === 'active_rooms') {
           setActiveRooms(resp.rooms ?? []);
+        }
+        // ─── Imersão 5: Chat rápido ──
+        if (resp.type === 'chat_message') {
+          const id = `chat-${Date.now()}-${Math.random()}`;
+          setChatMessages(prev => [...prev, { id, playerName: resp.playerName, message: resp.message }]);
+          setTimeout(() => setChatMessages(prev => prev.filter(m => m.id !== id)), 4000);
         }
         if (resp.type === 'trigger') {
           // Trigger 'show_doubt' e 'player_death' eram resíduos do modo demo
@@ -702,6 +740,10 @@ export function useGameEngine() {
     sendAction({ action: "send_reaction", emoji });
   }, [sendAction]);
 
+  const sendChat = useCallback((message: string) => {
+    sendAction({ action: "send_chat", message });
+  }, [sendAction]);
+
   const sendInput = useCallback((input: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       console.log(`[WS] ⌨️ Enviando input pro C: "${input}"`);
@@ -782,5 +824,10 @@ export function useGameEngine() {
     // ─── Imersão 2: Reações ──
     reactions,
     sendReaction,
+    // ─── Imersão 5: Chat rápido ──
+    chatMessages,
+    sendChat,
+    // ─── Imersão 7: Streak ──
+    currentStreak,
   };
 }
