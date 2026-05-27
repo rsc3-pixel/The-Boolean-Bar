@@ -6,9 +6,10 @@ interface OpponentCardProps {
   lives: number;
   cardsInHand: number;
   isEliminated?: boolean;
+  isCurrentTurn?: boolean;
 }
 
-export function OpponentCard({ name, lives, cardsInHand, isEliminated = false }: OpponentCardProps) {
+export function OpponentCard({ name, lives, cardsInHand, isEliminated = false, isCurrentTurn = false }: OpponentCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.8 }}
@@ -17,10 +18,12 @@ export function OpponentCard({ name, lives, cardsInHand, isEliminated = false }:
         relative
         w-32 h-40
         rounded-lg
-        border
+        border-2
         ${isEliminated
           ? 'bg-red-950/20 border-red-500/50 shadow-[0_0_25px_rgba(239,68,68,0.4)]'
-          : 'bg-zinc-900/60 border-zinc-700/50 shadow-[0_0_15px_rgba(0,0,0,0.3)]'
+          : isCurrentTurn
+            ? 'bg-cyan-950/30 border-cyan-400/70 shadow-[0_0_30px_rgba(6,182,212,0.5)]'
+            : 'bg-zinc-900/60 border-zinc-700/50 shadow-[0_0_15px_rgba(0,0,0,0.3)]'
         }
         backdrop-blur-md
         flex flex-col items-center justify-center
@@ -28,6 +31,14 @@ export function OpponentCard({ name, lives, cardsInHand, isEliminated = false }:
         transition-all duration-500
       `}
     >
+      {/* Imersão 10: Active turn pulse ring */}
+      {isCurrentTurn && !isEliminated && (
+        <motion.div
+          animate={{ scale: [1, 1.08, 1], opacity: [0.6, 0.3, 0.6] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute inset-0 rounded-lg border-2 border-cyan-400/60"
+        />
+      )}
       {isEliminated && (
         <motion.div
           initial={{ scale: 0 }}

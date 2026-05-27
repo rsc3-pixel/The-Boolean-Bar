@@ -5,9 +5,10 @@ interface DiceFaceProps {
   value: number; // 1 to 6
   size?: 'sm' | 'md' | 'lg' | 'xl';
   glowColor?: 'cyan' | 'emerald' | 'zinc';
+  rolling?: boolean; // Imersão 6: animação 3D
 }
 
-export function DiceFace({ value, size = 'md', glowColor = 'cyan' }: DiceFaceProps) {
+export function DiceFace({ value, size = 'md', glowColor = 'cyan', rolling = false }: DiceFaceProps) {
   // Configurações de tamanho
   const sizeMap = {
     sm: "w-8 h-8 p-1.5 gap-0.5",
@@ -62,6 +63,17 @@ export function DiceFace({ value, size = 'md', glowColor = 'cyan' }: DiceFacePro
   };
 
   const pips = getPips(value);
+
+  if (rolling) {
+    const rollSize = { sm: 'w-8 h-8', md: 'w-12 h-12', lg: 'w-16 h-16', xl: 'w-24 h-24' }[size];
+    return (
+      <div className={`${rollSize} flex items-center justify-center`} style={{ perspective: '200px' }}>
+        <div className={`${rollSize} rounded-xl border-2 ${currentColors.bg} animate-dice-roll flex items-center justify-center`} style={{ transformStyle: 'preserve-3d' }}>
+          <span className="text-2xl">🎲</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div

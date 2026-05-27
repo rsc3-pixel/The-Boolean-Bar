@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { Circle, ArrowLeft, Trophy } from "lucide-react";
 import type { VictoryState } from "../../hooks/useGameEngine";
 
+const CONFETTI_COLORS = ['#06b6d4', '#facc15', '#ef4444', '#22c55e', '#a855f7', '#f97316'];
+
 interface VictoryScreenProps {
   isVisible: boolean;
   playerName: string;
@@ -512,6 +514,36 @@ export function VictoryScreen({
             <div className="absolute bottom-12 left-12 w-32 h-32 border-l-2 border-b-2 border-cyan-400/30" />
             <div className="absolute bottom-12 right-12 w-32 h-32 border-r-2 border-b-2 border-cyan-400/30" />
           </motion.div>
+
+          {/* Imersão 11: Confetti colorido */}
+          {Array.from({ length: 40 }).map((_, i) => (
+            <motion.div
+              key={`confetti-${i}`}
+              initial={{
+                opacity: 1,
+                x: window.innerWidth * (0.2 + Math.random() * 0.6),
+                y: -20,
+                rotate: Math.random() * 360,
+              }}
+              animate={{
+                y: window.innerHeight + 50,
+                rotate: Math.random() * 720,
+                opacity: [1, 1, 0],
+              }}
+              transition={{
+                duration: 3 + Math.random() * 2,
+                delay: 0.5 + i * 0.06,
+                ease: "easeIn",
+              }}
+              className="absolute pointer-events-none"
+              style={{
+                width: 8 + Math.random() * 8,
+                height: 4 + Math.random() * 4,
+                backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+                borderRadius: 2,
+              }}
+            />
+          ))}
 
           {/* Subtle particle burst from center */}
           {Array.from({ length: 24 }).map((_, i) => {

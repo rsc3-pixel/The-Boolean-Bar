@@ -16,6 +16,7 @@ import { GameLog } from "../components/ui/GameLog";
 import { TurnTimerBar } from "../components/ui/TurnTimerBar";
 import { ReactionOverlay } from "../components/ui/ReactionOverlay";
 import { ReactionPicker } from "../components/ui/ReactionPicker";
+import { GameIntro } from "../components/screens/GameIntro";
 import { useGameEngine } from "../hooks/useGameEngine";
 
 interface GamePageProps {
@@ -48,6 +49,13 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     // Imersão 2: Reações
     reactions,
     sendReaction,
+    // Imersão 5: Chat
+    chatMessages,
+    sendChat,
+    // Imersão 7: Streak
+    currentStreak,
+    // Imersão 8: Intro
+    gameStarting,
   } = engine;
 
   // ─── Phase 3: turn awareness ─────────────────────────────────────────────
@@ -191,17 +199,19 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
 
   // Estado derivado de gameState (sem mocks)
   const opponents = gameState
-    ? gameState.players.slice(0, 6).map((p) => ({
+    ? gameState.players.slice(0, 6).map((p, idx) => ({
         name: p.name,
         lives: p.lives,
         cardsInHand: p.cards,
-        isEliminated: !p.alive
+        isEliminated: !p.alive,
+        isCurrentTurn: gameState.turn === idx
       }))
     : playerNames.slice(0, 6).map((name) => ({
         name,
         lives: 3,
         cardsInHand: 5,
-        isEliminated: false
+        isEliminated: false,
+        isCurrentTurn: false
       }));
 
   // Usa a última mão válida do C — não some entre re-renders
@@ -232,6 +242,15 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
     ? (doubtState.bluff === 1 ? "TAUTOLOGIA" : doubtState.bluff === 2 ? "CONTRADIÇÃO" : "CONTINGÊNCIA")
     : "—";
 
+  // ─── Imersão 5: Chat rápido ────────────────────────────────────────────
+  const [showChatPanel, setShowChatPanel] = useState(false);
+  const PHRASES = ['Blefou!', 'Boa sorte!', 'Covarde!', 'Mentiroso!', 'Tô suando...', 'GG', 'Fácil', 'Misericórdia!'];
+
+  // ─── Imersão 8: Intro dramática ──────────────────────────────────────
+  const [introComplete, setIntroComplete] = useState(false);
+  const showIntro = gameStarting && !gameState && !introComplete;
+  useEffect(() => { setIntroComplete(false); }, [roomState?.roomId]);
+
   // ─── Phase 7: Shake & Vibrate (Imersão 4) ────────────────────────────────
   const [globalShake, setGlobalShake] = useState(false);
   useEffect(() => {
@@ -247,8 +266,51 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
 
   return (
     <div className={`size-full bg-black overflow-hidden flex flex-col font-sans relative ${globalShake ? 'animate-global-shake' : ''}`}>
+      {/* Imersão 8: Entrada dramática */}
+      {showIntro && (
+        <GameIntro
+          players={roomState?.players.map(p => ({ name: p.name, isBot: p.isBot })) ?? []}
+          gameMode={(roomState as unknown as { gameMode?: string })?.gameMode === "dice" ? "dice" : "logic"}
+          onComplete={() => setIntroComplete(true)}
+        />
+      )}
+
       <TurnTimerBar {...turnTimer} />
       <ReactionOverlay reactions={reactions} />
+
+      {/* Imersão 5: Chat balões flutuantes */}
+      {chatMessages.map(m => (
+        <motion.div
+          key={m.id}
+          initial={{ opacity: 0, y: 20, scale: 0.8 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none"
+        >
+          <div className="bg-zinc-900/90 border border-cyan-500/40 rounded-xl px-4 py-2 text-center">
+            <span className="text-xs text-cyan-400/60 font-mono">{m.playerName}</span>
+            <p className="text-lg text-cyan-200 font-mono" style={{ fontWeight: 700 }}>{m.message}</p>
+          </div>
+        </motion.div>
+      ))}
+
+      {/* Imersão 7: Streak overlay */}
+      <AnimatePresence>
+        {currentStreak && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            className="fixed top-1/3 left-1/2 -translate-x-1/2 z-50 pointer-events-none text-center"
+          >
+            <div className="text-6xl">🔥</div>
+            <p className="text-3xl text-orange-400 font-mono tracking-widest" style={{ fontWeight: 900 }}>
+              STREAK x{currentStreak.count}!
+            </p>
+            <p className="text-lg text-orange-300/80 font-mono">{currentStreak.name}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Flash overlay quando vira minha vez (Phase 7) */}
       <AnimatePresence>
         {flashTurn && (
@@ -328,6 +390,17 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
               <span className="text-xs sm:text-sm font-mono text-emerald-400">{playersAlive}/{totalPlayers}</span>
             </div>
             <ReactionPicker onSelect={sendReaction} />
+            {/* Imersão 5: Chat rápido */}
+            <div className="relative">
+              <button onClick={() => setShowChatPanel(!showChatPanel)} className="p-1.5 sm:p-2 bg-cyan-600/20 border border-cyan-500/30 rounded-lg hover:bg-cyan-600/40 transition-all text-sm">💬</button>
+              {showChatPanel && (
+                <div className="absolute right-0 top-full mt-1 z-50 bg-zinc-900/95 border border-zinc-700 rounded-xl p-2 flex flex-col gap-1 min-w-[160px]">
+                  {PHRASES.map(phrase => (
+                    <button key={phrase} onClick={() => { sendChat(phrase); setShowChatPanel(false); }} className="text-left px-3 py-1.5 text-sm text-cyan-200 hover:bg-cyan-950/50 rounded-lg font-mono whitespace-nowrap">{phrase}</button>
+                  ))}
+                </div>
+              )}
+            </div>
             <motion.button
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
