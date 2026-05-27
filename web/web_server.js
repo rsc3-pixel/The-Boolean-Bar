@@ -753,20 +753,39 @@ function handleDisconnect(ws) {
 
 function removePlayerHard(room, playerId) {
   if (!room.players.has(playerId)) return;
+  const player = room.players.get(playerId);
   const wasGameStarted = room.gameStarted;
+
+  // Se a partida está rolando, converte o jogador em bot em vez de fechar a sala.
+  // O maybeTriggerBot já cuida de jogar automaticamente quando for a vez dele.
+  if (wasGameStarted) {
+    const botPlayer = { playerId, name: player?.name ?? 'BOT', ws: null, connected: true, isBot: true, disconnectTimer: null };
+    room.players.set(playerId, botPlayer);
+    console.log(`[Server/${room.roomId}] ${botPlayer.name} saiu mid-game → convertido em bot`);
+    broadcast(room, { type: 'room_state', room: getRoomSnapshot(room) });
+
+    // Se era a vez dele, dispara bot input agora
+    if (room.expectedPlayerId === playerId) {
+      const lastState = room.gameMode === 'dice' ? room.lastDiceState : room.lastGameState;
+      const lastMsgType = room.gameMode === 'dice' ? 'dice_state'
+        : (room.lastDoubtState ? 'doubt_state' : 'game_state');
+      maybeTriggerBot(room, lastMsgType, lastState ?? {});
+    }
+
+    // Se sobrou só bots, fecha a sala
+    const humansLeft = Array.from(room.players.values()).filter(p => !p.isBot && p.connected);
+    if (humansLeft.length === 0) {
+      closeRoom(room.roomId, 'no_humans');
+    }
+    return;
+  }
+
+  // Lobby (partida não começou): remove o jogador de vez
   room.players.delete(playerId);
   console.log(`[Server/${room.roomId}] ${playerId} removido. Restam: ${room.players.size}`);
 
   if (room.players.size === 0) {
     closeRoom(room.roomId, 'empty');
-    return;
-  }
-
-  // Phase 5 fix: se a partida estava rolando, encerra a sala. O engine não
-  // sabe lidar com player ausente — fica zumbi esperando input. Mais simples
-  // e previsível: avisa todo mundo, mata engine, todos voltam pro lobby.
-  if (wasGameStarted) {
-    closeRoom(room.roomId, 'player_left_mid_game');
     return;
   }
 
