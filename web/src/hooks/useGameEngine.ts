@@ -591,8 +591,12 @@ export function useGameEngine() {
           setRoomState(null);
           setPlayerId(null);
           setGameStarting(false);
-          // Não setamos roomError aqui — falha de reconnect normalmente significa
-          // que a sala expirou; UI deve mostrar tela de lobby normal.
+          setGameState(null);
+          setDiceState(null);
+          setVictoryState(null);
+          setShowVictory(false);
+          // Seta roomError pra App.tsx detectar e voltar pro lobby
+          setRoomError({ code: 'room_closed', message: resp.message ?? 'Sala expirou' });
         }
         if (resp.type === 'game_starting') {
           console.log("[WS] 🚀 GAME STARTING (broadcast)");
