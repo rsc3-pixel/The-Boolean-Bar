@@ -140,10 +140,9 @@ export default function App() {
     }
   }, [gameEngine.gameStarting, gameEngine.roomState, currentScreen]);
 
-  // Sala foi fechada → volta pro lobby online com mensagem de erro.
+  // Sala foi fechada ou reconnect falhou → volta pro lobby online.
   useEffect(() => {
     if (!gameEngine.roomState && (currentScreen === "waitingRoom" || currentScreen === "game")) {
-      // Só faz fallback se estávamos numa sala multiplayer
       if (gameEngine.roomError?.code === "room_closed") {
         setCurrentScreen("onlineLobby");
       }
