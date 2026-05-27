@@ -199,34 +199,13 @@ export function OnlineLobby({
         )}
       </div>
 
-      {/* Toggle de modo de jogo — canto inferior direito */}
+      {/* Indicador de modo fixo — Logic desativado temporariamente */}
       <div className="absolute bottom-6 right-6 z-20 flex flex-col items-end gap-2">
-        <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-mono">Modo do Jogo</span>
         <div className="flex bg-black/60 border border-zinc-700 rounded-full p-1 backdrop-blur-md">
-          <button
-            onClick={() => onGameModeChange("dice")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs uppercase tracking-widest transition-all ${
-              gameMode === "dice"
-                ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(52,211,153,0.6)]"
-                : "text-zinc-400 hover:text-emerald-300"
-            }`}
-            style={gameMode === "dice" ? { fontWeight: 700 } : undefined}
-          >
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs uppercase tracking-widest bg-emerald-500 text-black shadow-[0_0_20px_rgba(52,211,153,0.6)]" style={{ fontWeight: 700 }}>
             <Dices className="w-4 h-4" />
             Liar's Dice
-          </button>
-          <button
-            onClick={() => onGameModeChange("logic")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs uppercase tracking-widest transition-all ${
-              gameMode === "logic"
-                ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.6)]"
-                : "text-zinc-400 hover:text-cyan-300"
-            }`}
-            style={gameMode === "logic" ? { fontWeight: 700 } : undefined}
-          >
-            <Brain className="w-4 h-4" />
-            Boolean Bar
-          </button>
+          </div>
         </div>
       </div>
     </div>
