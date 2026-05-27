@@ -14,13 +14,13 @@ function StepConfiguracao() {
   return (
     <div className="space-y-4">
       <p className="text-zinc-300 leading-relaxed text-sm">
-        O jogo começa com <span className="text-cyan-400 font-bold font-mono">7 jogadores</span> à mesa.
+        A mesa suporta até <span className="text-cyan-400 font-bold font-mono">8 jogadores</span> (humanos + bots).
         Cada um começa com <span className="text-emerald-400 font-bold font-mono">3 vidas</span>.
       </p>
       <div className="grid grid-cols-4 gap-2">
-        {["J1","J2","J3","J4","J5","J6","VOCÊ"].map((p, i) => (
-          <div key={i} className={`flex flex-col items-center gap-1 p-3 rounded-lg border ${i === 6 ? 'border-cyan-500 bg-cyan-950/30 text-cyan-300' : 'border-zinc-700 bg-zinc-900/40 text-zinc-400'} font-mono text-xs`}>
-            <span className="text-lg">{i === 6 ? '🫵' : '🎭'}</span>
+        {["J1","J2","J3","J4","VOCÊ"].map((p, i) => (
+          <div key={i} className={`flex flex-col items-center gap-1 p-3 rounded-lg border ${i === 4 ? 'border-cyan-500 bg-cyan-950/30 text-cyan-300' : 'border-zinc-700 bg-zinc-900/40 text-zinc-400'} font-mono text-xs`}>
+            <span className="text-lg">{i === 4 ? '🫵' : '🎭'}</span>
             <span>{p}</span>
             <span className="text-emerald-400">❤️❤️❤️</span>
           </div>
@@ -208,7 +208,7 @@ function StepVitoria() {
       <div className="p-5 bg-gradient-to-br from-emerald-950/40 to-zinc-950/40 border-2 border-emerald-500/30 rounded-xl text-center">
         <Trophy className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
         <p className="text-emerald-300 font-mono font-bold text-lg tracking-wider mb-1">SEJA O ÚLTIMO VIVO</p>
-        <p className="text-zinc-300 text-sm">Elimine todos os 6 oponentes sobrevivendo à Roleta Russa e desmascarando blefes.</p>
+        <p className="text-zinc-300 text-sm">Elimine todos os oponentes sobrevivendo à Roleta Russa e desmascarando blefes. Pontos acumulam no ranking!</p>
       </div>
       <div className="space-y-2">
         <p className="text-zinc-500 text-xs font-mono tracking-wider">ESTRATÉGIAS:</p>
@@ -228,7 +228,7 @@ function StepVitoria() {
         ))}
       </div>
       <div className="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-lg">
-        <p className="text-xs text-cyan-400/80 font-mono">🌐 MODO ONLINE (em breve): Partidas com jogadores reais via internet serão suportadas em versões futuras.</p>
+        <p className="text-xs text-cyan-400/80 font-mono">🌐 MULTIPLAYER ONLINE: Crie ou entre em salas com código de 4 letras. Timer de 30s por turno, chat rápido, reações e ranking ao vivo!</p>
       </div>
     </div>
   );
@@ -239,15 +239,15 @@ function StepDiceConfiguracao() {
   return (
     <div className="space-y-4">
       <p className="text-zinc-300 leading-relaxed text-sm">
-        Cada jogador entra na mesa com <span className="text-emerald-400 font-bold font-mono">5 dados</span> escondidos
-        em um copo. Os valores só são visíveis pra você.
+        Cada jogador entra na mesa com <span className="text-emerald-400 font-bold font-mono">3 dados</span> escondidos
+        em um copo. Os valores só são visíveis pra você. Até <span className="text-cyan-400 font-bold font-mono">8 jogadores</span> por sala.
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {["J1","J2","J3","VOCÊ"].map((p, i) => (
           <div key={i} className={`flex flex-col items-center gap-1 p-3 rounded-lg border ${i === 3 ? 'border-emerald-500 bg-emerald-950/30 text-emerald-300' : 'border-zinc-700 bg-zinc-900/40 text-zinc-400'} font-mono text-xs`}>
             <span className="text-lg">{i === 3 ? '🫵' : '🎭'}</span>
             <span>{p}</span>
-            <span className="text-emerald-400/80 text-[10px]">🫙 5 dados</span>
+            <span className="text-emerald-400/80 text-[10px]">🫙 3 dados</span>
           </div>
         ))}
       </div>
@@ -358,7 +358,7 @@ function StepDiceVitoria() {
       <div className="space-y-2">
         <p className="text-zinc-500 text-xs font-mono tracking-wider">ESTRATÉGIAS:</p>
         {[
-          { icon: "🎲", tip: "PROBABILIDADE BASE", desc: "Cada dado tem 1/6 de chance de cada face. Em 5 jogadores com 5 dados = 25 dados na mesa, ~4 dados de cada face em média. Use isso pra calibrar apostas." },
+          { icon: "🎲", tip: "PROBABILIDADE BASE", desc: "Cada dado tem 1/6 de chance de cada face. Com 4 jogadores × 3 dados = 12 dados na mesa, ~2 de cada face em média. Use isso pra calibrar apostas." },
           { icon: "🎭", tip: "BLEFE CONTROLADO", desc: "Se a aposta tá baixa demais, suba alto pra forçar o oponente a duvidar (e perder)." },
           { icon: "📊", tip: "OBSERVE PADRÕES", desc: "Quando alguém sobe muito a quantidade, talvez tenha muitos dados daquela face. Pense duas vezes antes de duvidar." },
           { icon: "⏳", tip: "ESCASSEZ É FORÇA", desc: "Com poucos dados, sua aposta é mais difícil de prever. Use isso." },
