@@ -229,6 +229,28 @@ export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) 
           </motion.div>
         )}
 
+        {/* QR Code para entrar no jogo */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          className="mt-6 sm:mt-8 flex flex-col items-center gap-3"
+        >
+          <p className="text-lg sm:text-2xl tracking-[0.4em] text-cyan-300/70 uppercase font-mono">
+            ★ ENTRE NA MESA ★
+          </p>
+          <div className="p-3 sm:p-4 bg-white rounded-2xl shadow-[0_0_60px_rgba(6,182,212,0.3)]">
+            <img
+              src="/qr-code.jpeg"
+              alt="QR Code para entrar no jogo"
+              className="w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96"
+            />
+          </div>
+          <p className="text-sm sm:text-lg tracking-[0.3em] text-zinc-500 uppercase font-mono">
+            Escaneie para jogar
+          </p>
+        </motion.div>
+
         {/* Rodapé */}
         <motion.div
           animate={{ opacity: [0.3, 0.65, 0.3] }}
