@@ -189,14 +189,14 @@ export function DiceGameOnline({ onExit, engine }: DiceGameOnlineProps) {
 
   return (
     <div className={`size-full bg-black overflow-hidden flex flex-col relative ${globalShake ? 'animate-global-shake' : ''}`}>
-      {/* Imersão 8: Entrada dramática */}
-      {showIntro && (
+      {/* Imersão 8: Entrada dramática — desativada (causava tela preta se engine demora) */}
+      {/* {showIntro && (
         <GameIntro
           players={roomState?.players.map(p => ({ name: p.name, isBot: p.isBot })) ?? []}
           gameMode="dice"
           onComplete={() => setIntroComplete(true)}
         />
-      )}
+      )} */}
 
       <TurnTimerBar {...turnTimer} />
       <ReactionOverlay reactions={reactions} />

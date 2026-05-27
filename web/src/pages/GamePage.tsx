@@ -266,14 +266,14 @@ export function GamePage({ playerNames, onExit, engine }: GamePageProps) {
 
   return (
     <div className={`size-full bg-black overflow-hidden flex flex-col font-sans relative ${globalShake ? 'animate-global-shake' : ''}`}>
-      {/* Imersão 8: Entrada dramática */}
-      {showIntro && (
+      {/* Imersão 8: Entrada dramática — desativada (causava tela preta se engine demora) */}
+      {/* {showIntro && (
         <GameIntro
           players={roomState?.players.map(p => ({ name: p.name, isBot: p.isBot })) ?? []}
           gameMode={(roomState as unknown as { gameMode?: string })?.gameMode === "dice" ? "dice" : "logic"}
           onComplete={() => setIntroComplete(true)}
         />
-      )}
+      )} */}
 
       <TurnTimerBar {...turnTimer} />
       <ReactionOverlay reactions={reactions} />
