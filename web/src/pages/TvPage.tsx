@@ -108,104 +108,113 @@ export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) 
           </div>
         )}
 
-        {/* Layout: ranking + QR code lado a lado em tela grande */}
-        <div className="flex-1 flex gap-6 sm:gap-8 min-h-0">
+        {/* Layout principal: QR code à esquerda + ranking à direita */}
+        <div className="flex-1 flex flex-col lg:flex-row gap-6 sm:gap-8 min-h-0">
 
-        {/* Tabela grande */}
-        {display.length > 0 && (
-          <div className="flex-1 flex flex-col bg-zinc-950/85 border-4 border-yellow-500/40 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(234,179,8,0.25)]">
-            <div className="bg-gradient-to-r from-yellow-900/40 via-yellow-700/30 to-yellow-900/40 border-b-4 border-yellow-500/40 px-6 sm:px-10 py-4 grid grid-cols-[5rem_1fr_auto_6rem_6rem] sm:grid-cols-[7rem_1fr_auto_10rem_10rem] gap-4 sm:gap-8 text-base sm:text-2xl uppercase tracking-[0.3em] text-yellow-300/90" style={{ fontWeight: 700 }}>
-              <div>RNK</div>
-              <div>JOGADOR</div>
-              <div className="text-center hidden sm:block">MODOS</div>
-              <div className="text-right">PTS</div>
-              <div className="text-right">WINS</div>
+          {/* QR Code — esquerda */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+            className="flex flex-col items-center justify-center gap-4 shrink-0"
+          >
+            <p className="text-base sm:text-xl tracking-[0.3em] text-cyan-300/70 uppercase font-mono text-center">
+              ENTRE NA MESA
+            </p>
+            <div className="p-3 sm:p-4 bg-white rounded-2xl shadow-[0_0_60px_rgba(6,182,212,0.3)]">
+              <img src="/qr-code.jpeg" alt="QR Code" className="w-40 h-40 sm:w-56 sm:h-56 lg:w-64 lg:h-64 xl:w-80 xl:h-80" />
             </div>
+            <p className="text-xs sm:text-sm tracking-[0.3em] text-zinc-500 uppercase font-mono">
+              Escaneie para jogar
+            </p>
+          </motion.div>
 
-            <div className="flex-1 divide-y-2 divide-yellow-500/15 overflow-hidden">
-              {display.map((entry, idx) => {
-                const isPodium = idx < 3;
-                const rankColor = idx === 0 ? "text-yellow-300"
-                  : idx === 1 ? "text-zinc-200"
-                  : idx === 2 ? "text-orange-400"
-                  : "text-zinc-500";
-                return (
-                  <motion.div
-                    key={entry.name}
-                    initial={{ opacity: 0, x: -40 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.06, duration: 0.4 }}
-                    className={`grid grid-cols-[5rem_1fr_auto_6rem_6rem] sm:grid-cols-[7rem_1fr_auto_10rem_10rem] gap-4 sm:gap-8 px-6 sm:px-10 py-3 sm:py-5 items-center ${
-                      isPodium ? "bg-yellow-950/20" : ""
-                    }`}
-                  >
-                    <div className={`text-3xl sm:text-5xl ${rankColor}`} style={{ fontWeight: 900 }}>
-                      {isPodium ? RANK_BADGE[idx] : `#${idx + 1}`}
-                    </div>
-                    <div className="min-w-0 flex items-center gap-3">
-                      <span
-                        className={`truncate text-2xl sm:text-4xl uppercase tracking-wider ${
-                          isPodium ? "text-yellow-100" : "text-zinc-100"
+          {/* Tabela de ranking — direita */}
+          {display.length > 0 ? (
+            <div className="flex-1 flex flex-col bg-zinc-950/85 border-4 border-yellow-500/40 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(234,179,8,0.25)]">
+              <div className="bg-gradient-to-r from-yellow-900/40 via-yellow-700/30 to-yellow-900/40 border-b-4 border-yellow-500/40 px-4 sm:px-8 py-3 sm:py-4 grid grid-cols-[3rem_1fr_6rem] sm:grid-cols-[5rem_1fr_auto_8rem_8rem] gap-2 sm:gap-6 text-sm sm:text-xl uppercase tracking-[0.2em] text-yellow-300/90" style={{ fontWeight: 700 }}>
+                <div>RNK</div>
+                <div>JOGADOR</div>
+                <div className="hidden sm:block text-center">MODOS</div>
+                <div className="hidden sm:block text-right">PTS</div>
+                <div className="text-right">WINS</div>
+              </div>
+
+              <div className="flex-1 divide-y-2 divide-yellow-500/15 overflow-hidden">
+                {display.map((entry, idx) => {
+                  const isPodium = idx < 3;
+                  const rankColor = idx === 0 ? "text-yellow-300"
+                    : idx === 1 ? "text-zinc-200"
+                    : idx === 2 ? "text-orange-400"
+                    : "text-zinc-500";
+                  return (
+                    <motion.div
+                      key={entry.name}
+                      initial={{ opacity: 0, x: -40 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.06, duration: 0.4 }}
+                      className={`grid grid-cols-[3rem_1fr_6rem] sm:grid-cols-[5rem_1fr_auto_8rem_8rem] gap-2 sm:gap-6 px-4 sm:px-8 py-2 sm:py-4 items-center ${
+                        isPodium ? "bg-yellow-950/20" : ""
+                      }`}
+                    >
+                      <div className={`text-2xl sm:text-4xl ${rankColor}`} style={{ fontWeight: 900 }}>
+                        {isPodium ? RANK_BADGE[idx] : `#${idx + 1}`}
+                      </div>
+                      <div className="min-w-0 flex items-center gap-2">
+                        <span
+                          className={`truncate text-lg sm:text-3xl uppercase tracking-wider ${
+                            isPodium ? "text-yellow-100" : "text-zinc-100"
+                          }`}
+                          style={{ fontWeight: isPodium ? 900 : 700 }}
+                        >
+                          {entry.name}
+                        </span>
+                      </div>
+                      <div className="hidden sm:flex items-center gap-2 text-base text-zinc-300">
+                        {entry.modes?.logic > 0 && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 text-sm">
+                            <Brain className="w-4 h-4" /> {entry.modes.logic}
+                          </span>
+                        )}
+                        {entry.modes?.dice > 0 && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-sm">
+                            <Dices className="w-4 h-4" /> {entry.modes.dice}
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className={`hidden sm:block text-right text-2xl sm:text-4xl tabular-nums ${
+                          isPodium ? "text-cyan-200" : "text-cyan-400/85"
                         }`}
-                        style={{ fontWeight: isPodium ? 900 : 700 }}
+                        style={{ fontWeight: 900 }}
                       >
-                        {entry.name}
-                      </span>
-                    </div>
-                    <div className="hidden sm:flex items-center gap-3 text-lg sm:text-2xl text-zinc-300">
-                      {entry.modes?.logic > 0 && (
-                        <span className="flex items-center gap-2 px-3 py-1 rounded-md bg-cyan-950/70 border-2 border-cyan-500/40 text-cyan-300">
-                          <Brain className="w-5 h-5 sm:w-7 sm:h-7" /> {entry.modes.logic}
-                        </span>
-                      )}
-                      {entry.modes?.dice > 0 && (
-                        <span className="flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-950/70 border-2 border-emerald-500/40 text-emerald-300">
-                          <Dices className="w-5 h-5 sm:w-7 sm:h-7" /> {entry.modes.dice}
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      className={`text-right text-3xl sm:text-5xl tabular-nums ${
-                        isPodium ? "text-cyan-200" : "text-cyan-400/85"
-                      }`}
-                      style={{ fontWeight: 900 }}
-                    >
-                      {entry.points ?? 0}
-                    </div>
-                    <div
-                      className={`text-right text-2xl sm:text-4xl tabular-nums ${
-                        isPodium ? "text-yellow-200/70" : "text-yellow-400/50"
-                      }`}
-                      style={{ fontWeight: 700 }}
-                    >
-                      {String(entry.wins).padStart(3, "0")}
-                    </div>
-                  </motion.div>
-                );
-              })}
+                        {entry.points ?? 0}
+                      </div>
+                      <div
+                        className={`text-right text-xl sm:text-3xl tabular-nums ${
+                          isPodium ? "text-yellow-200/70" : "text-yellow-400/50"
+                        }`}
+                        style={{ fontWeight: 700 }}
+                      >
+                        {String(entry.wins).padStart(3, "0")}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          ) : wsStatus === "connected" ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4">
+              <div className="text-yellow-200 text-2xl sm:text-4xl uppercase tracking-[0.4em]">
+                MESA VAZIA
+              </div>
+              <div className="text-zinc-500 text-sm sm:text-xl uppercase tracking-[0.3em]">
+                Nenhuma vitoria registrada ainda
+              </div>
+            </div>
+          ) : null}
 
-        {/* QR Code — lado direito em desktop, abaixo em mobile */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
-          className="hidden lg:flex flex-col items-center justify-center gap-4 shrink-0"
-        >
-          <p className="text-base tracking-[0.3em] text-cyan-300/70 uppercase font-mono text-center">
-            ENTRE NA MESA
-          </p>
-          <div className="p-3 bg-white rounded-2xl shadow-[0_0_40px_rgba(6,182,212,0.3)]">
-            <img src="/qr-code.jpeg" alt="QR Code" className="w-48 h-48 xl:w-64 xl:h-64" />
-          </div>
-          <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase font-mono">
-            Escaneie para jogar
-          </p>
-        </motion.div>
-
-        </div>{/* Fim do layout ranking + QR */}
+        </div>{/* Fim do layout QR + ranking */}
 
         {/* Task 4.4: Painel de salas ativas */}
         {activeRooms.length > 0 && (
@@ -251,21 +260,6 @@ export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) 
             </div>
           </motion.div>
         )}
-
-        {/* QR Code — versão mobile/tablet (em desktop fica ao lado do ranking) */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
-          className="lg:hidden mt-4 sm:mt-6 flex flex-col items-center gap-2"
-        >
-          <p className="text-sm sm:text-lg tracking-[0.3em] text-cyan-300/70 uppercase font-mono">
-            ENTRE NA MESA
-          </p>
-          <div className="p-2 sm:p-3 bg-white rounded-xl shadow-[0_0_40px_rgba(6,182,212,0.3)]">
-            <img src="/qr-code.jpeg" alt="QR Code" className="w-32 h-32 sm:w-48 sm:h-48" />
-          </div>
-        </motion.div>
 
         {/* Rodapé */}
         <motion.div
