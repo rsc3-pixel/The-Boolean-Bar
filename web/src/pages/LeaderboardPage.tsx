@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, Trophy, Brain, Dices } from "lucide-react";
+import { ArrowLeft, Trophy, Brain, Dices, Tv } from "lucide-react";
 import type { LeaderboardEntry } from "../hooks/useGameEngine";
 
 interface LeaderboardPageProps {
@@ -172,6 +172,17 @@ export function LeaderboardPage({ entries, onBack, onLoad, wsStatus }: Leaderboa
             ↻ Atualizar
           </button>
         )}
+
+        {/* Link pra modo TV */}
+        <a
+          href="/tv"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-5 w-full flex items-center justify-center gap-2 py-2.5 border border-cyan-500/30 hover:border-cyan-400/60 hover:bg-cyan-950/20 rounded-md text-cyan-400/80 hover:text-cyan-200 font-mono text-xs uppercase tracking-widest transition-all"
+        >
+          <Tv className="w-4 h-4" />
+          Abrir Modo TV (tela cheia)
+        </a>
 
         {/* Footer flicker */}
         <motion.div
