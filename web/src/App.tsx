@@ -39,7 +39,7 @@ export default function App() {
    * - 'logic': Boolean Bar (lógica proposicional)
    * - 'dice': Liar's Dice (dados e blefe)
    */
-  const [gameMode, setGameMode] = useState<GameModeKind>("logic");
+  const [gameMode, setGameMode] = useState<GameModeKind>("dice"); // Logic desativado temporariamente
 
   /**
    * musicEnabled: Estado global que controla tanto a música de fundo quanto os efeitos sonoros.
