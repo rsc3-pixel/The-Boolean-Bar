@@ -108,6 +108,9 @@ export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) 
           </div>
         )}
 
+        {/* Layout: ranking + QR code lado a lado em tela grande */}
+        <div className="flex-1 flex gap-6 sm:gap-8 min-h-0">
+
         {/* Tabela grande */}
         {display.length > 0 && (
           <div className="flex-1 flex flex-col bg-zinc-950/85 border-4 border-yellow-500/40 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(234,179,8,0.25)]">
@@ -184,6 +187,26 @@ export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) 
           </div>
         )}
 
+        {/* QR Code — lado direito em desktop, abaixo em mobile */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          className="hidden lg:flex flex-col items-center justify-center gap-4 shrink-0"
+        >
+          <p className="text-base tracking-[0.3em] text-cyan-300/70 uppercase font-mono text-center">
+            ENTRE NA MESA
+          </p>
+          <div className="p-3 bg-white rounded-2xl shadow-[0_0_40px_rgba(6,182,212,0.3)]">
+            <img src="/qr-code.jpeg" alt="QR Code" className="w-48 h-48 xl:w-64 xl:h-64" />
+          </div>
+          <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase font-mono">
+            Escaneie para jogar
+          </p>
+        </motion.div>
+
+        </div>{/* Fim do layout ranking + QR */}
+
         {/* Task 4.4: Painel de salas ativas */}
         {activeRooms.length > 0 && (
           <motion.div
@@ -229,26 +252,19 @@ export function TvPage({ entries, activeRooms, onLoad, wsStatus }: TvPageProps) 
           </motion.div>
         )}
 
-        {/* QR Code para entrar no jogo */}
+        {/* QR Code — versão mobile/tablet (em desktop fica ao lado do ranking) */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5, duration: 0.6 }}
-          className="mt-6 sm:mt-8 flex flex-col items-center gap-3"
+          className="lg:hidden mt-4 sm:mt-6 flex flex-col items-center gap-2"
         >
-          <p className="text-lg sm:text-2xl tracking-[0.4em] text-cyan-300/70 uppercase font-mono">
-            ★ ENTRE NA MESA ★
+          <p className="text-sm sm:text-lg tracking-[0.3em] text-cyan-300/70 uppercase font-mono">
+            ENTRE NA MESA
           </p>
-          <div className="p-3 sm:p-4 bg-white rounded-2xl shadow-[0_0_60px_rgba(6,182,212,0.3)]">
-            <img
-              src="/qr-code.jpeg"
-              alt="QR Code para entrar no jogo"
-              className="w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96"
-            />
+          <div className="p-2 sm:p-3 bg-white rounded-xl shadow-[0_0_40px_rgba(6,182,212,0.3)]">
+            <img src="/qr-code.jpeg" alt="QR Code" className="w-32 h-32 sm:w-48 sm:h-48" />
           </div>
-          <p className="text-sm sm:text-lg tracking-[0.3em] text-zinc-500 uppercase font-mono">
-            Escaneie para jogar
-          </p>
         </motion.div>
 
         {/* Rodapé */}
