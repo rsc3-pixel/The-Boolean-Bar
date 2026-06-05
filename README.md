@@ -31,7 +31,7 @@
 
 **The Boolean Bar** é um ecossistema fullstack e simulador de mesa de apostas clandestina onde a moeda de troca é o raciocínio lógico. Desenvolvido com padrões de arquitetura de alto nível, o jogo desafia até 7 jogadores a validarem fórmulas de lógica proposicional sob pressão, onde um erro técnico leva diretamente à Roleta Russa.
 
-Concebido originalmente como um projeto de excelência para as cadeiras de **Programação Imperativa e Funcional (PIF)** e **Lógica para Computação** no CESAR School, a plataforma evoluiu para incluir uma interface web rica, modos de transmissão para TV e infraestrutura robusta online.
+Concebido originalmente como um **Projeto Integrador (PI)** de excelência, unindo os conhecimentos das cadeiras de **Programação Imperativa e Funcional (PIF)**, **Lógica para Computação**, **Fundamentos de Desenvolvimento de Software (FDS)** e **Interface Humano Computador (IHC)** no CESAR School. A plataforma evoluiu de um motor em C para um ecossistema fullstack completo.
 
 ---
 
