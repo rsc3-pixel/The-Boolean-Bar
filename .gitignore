@@ -46,3 +46,5 @@ dist/
 # Áudio bruto baixado em assets/ — só commitar a versão otimizada de
 # web/public/audio/ (que é a que o Vite serve em produção).
 /assets/*.mp3
+# Screencast hospedado externamente (luvaplay) — nao versionar o mp4 pesado
+/assets/Screencast.mp4

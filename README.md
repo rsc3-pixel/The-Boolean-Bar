@@ -15,15 +15,28 @@
   <img src="https://img.shields.io/badge/Status-In_Development-blueviolet?style=for-the-badge" alt="Status"/>
 </p>
 
+<p align="center">
+  <a href="https://rsc3-boolean.duckdns.org/" target="_blank">
+    <img src="./assets/cta_play_button.png" alt="JOGAR AGORA" width="280"/>
+  </a>
+</p>
+
+<p align="center">
+  🌐 <strong>Plataforma Web (Produção):</strong> <a href="https://rsc3-boolean.duckdns.org/" target="_blank">rsc3-boolean.duckdns.org</a><br/>
+  📺 <strong>Experiência de Transmissão (Modo TV):</strong> <a href="https://rsc3-boolean.duckdns.org/tv" target="_blank">rsc3-boolean.duckdns.org/tv</a>
+</p>
+
 ---
 
 ## 🎮 Gameplay (Screencast)
 
 <p align="center">
-  <video src="./assets/Screencast.mp4" controls width="800"></video>
+  <video src="https://luvaplay.com.br/game/Screencast.mp4" controls width="800"></video>
 </p>
 
-> **Nota:** Para ver a demonstração, certifique-se de que o arquivo `Screencast.mp4` está na pasta `assets/`.
+<p align="center">
+  ▶️ Se o vídeo não carregar inline, <strong><a href="https://luvaplay.com.br/game/Screencast.mp4" target="_blank">clique aqui para assistir ao screencast</a></strong>.
+</p>
 
 ---
 
@@ -35,21 +48,38 @@ Concebido originalmente como um **Projeto Integrador (PI)** de excelência, unin
 
 ---
 
-## 🔥 O Desafio Lógico
+## 🔥 Modos de Jogo & Dinâmica
 
-No bar, jogamos uma variação mortal de Liar's Dice (Dados Mentirosos). Em vez de números, as faces dos dados possuem proposições lógicas. O jogador rola os dados ocultos e deve afirmar a classificação da fórmula formada:
+O ecossistema suporta dois modos principais de jogo multiplayer online (com suporte a bots):
+
+### 1. 🥃 Modo Lógica (Boolean Bar)
+Neste modo, os jogadores utilizam **cartas** contendo fórmulas da lógica proposicional clássica (ex: `P ∧ ¬P`, `P ∨ Q`, `P → Q`). No seu turno, o jogador deve baixar uma carta e afirmar se a fórmula correspondente é uma **Tautologia**, **Contradição** ou **Contingência** (podendo mentir/blefar).
+
+* O oponente da vez decide se vai **Acreditar** ou **Duvidar** da afirmação.
+* Se duvidar, a fórmula é enviada à *Engine lógica em C* para avaliação automática via tabela-verdade.
+* Quem perder o confronto (por mentir ou por duvidar erroneamente) é punido na **Roleta Russa** da mesa, puxando o gatilho do revólver.
+* A roleta inicia com 1 bala em 6 câmaras. A cada clique seco (sobrevivência), mais uma bala é adicionada, aumentando exponencialmente o perigo. Perder todas as 3 vidas resulta em eliminação. O último jogador vivo vence.
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│ Dado Rolado: (P ∧ ¬P)                                       │
-│ Afirmação: "Isso é uma Tautologia!"                         │
+│ Carta Baixada: (P ∧ ¬P)                                     │
+│ Afirmação do Jogador: "Isso é uma Tautologia!"              │
 │                                                             │
 │ 🚨 OPONENTE DUVIDA!                                         │
 │                                                             │
-│ Resultado: (P ∧ ¬P) é uma CONTRADIÇÃO.                      │
-│ Ação: O mentiroso puxa o gatilho.                           │
+│ Verificação (Engine C): (P ∧ ¬P) é uma CONTRADIÇÃO.         │
+│ Consequência: Blefador puxa o gatilho da Roleta Russa.      │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### 🎲 2. Modo Dados (Liar's Dice)
+Uma implementação fiel do clássico jogo de apostas e blefes. Cada jogador começa com **3 dados** escondidos em seu copo individual. O jogador conhece apenas os seus próprios dados e deve fazer uma aposta sobre a quantidade total de dados com uma determinada face (de 1 a 6) que estão na mesa (somando os dados de todos os jogadores).
+
+* A aposta seguinte deve sempre **subir** a anterior: ou aumentando a quantidade de dados, ou mantendo a quantidade e aumentando a face do dado.
+* Um jogador pode escolher **Duvidar** da aposta anterior se achar que o total real de dados na mesa é inferior ao apostado.
+* Em caso de dúvida, todos os copos são abertos e as faces são reveladas.
+* Se a aposta for verdadeira (o total real for maior ou igual ao apostado), o duvidador perde 1 dado. Se a aposta for um blefe (o total real for menor), o apostador perde 1 dado.
+* Ficar com 0 dados elimina o jogador. Não há regra de curingas (o valor '1' é uma face normal). O último a restar com dados vence a partida.
 
 ---
 
@@ -64,9 +94,14 @@ As funcionalidades unem os requisitos rigorosos das linguagens base com necessid
 5.  **Operar Roleta**: Sorteio probabilístico para verificar fatalidade baseada nas câmaras da arma.
 6.  **Filtrar Sobreviventes**: Varredura via Ponteiros de Função no paradigma funcional (C).
 7.  **Sincronizar Estados (WebSockets)**: Orquestração de turnos em tempo real com baixa latência entre clientes distribuídos.
-8.  **Experiência de Transmissão (Modo TV)**: Interface visual dedicada em telas grandes com pareamento dinâmico via QR Code.
+8.  **Experiência de Transmissão (Modo TV)**: Interface visual dedicada em telas grandes com pareamento dinâmico via QR Code e ranking global dinâmico.
 9.  **Resiliência via Bot System**: Transição automática de jogadores desconectados para IAs lógicas (bots), evitando a queda da partida.
-10. **Persistência de Sessão e Reconexão**: Gerenciamento de tokens e estados isolados para que falhas de rede não interfiram no andamento do jogo.
+10. **Persistência de Sessão e Reconexão**: Gerenciamento de tokens e estados isolados para que falhas de rede de até 60s não interfiram no andamento do jogo.
+11. **Ambiente Sonoro Imersivo (Web Audio API)**: Música de cassino em loop em segundo plano e efeitos sonoros gerados por síntese de áudio via osciladores em tempo real (beeps de turno, tom de aposta, acordes de dúvida, ticks da roleta, cliques mecânicos e disparo sintetizado), sem arquivos externos, em conformidade com as regras de interação do browser.
+12. **Interface Neon & UX Avançada**: Animações de pulso neon (*heartbeat*) no menu, crossfade suave de 250ms nas transições entre páginas e indicadores de turno em flash (verde/cyan).
+13. **Chat de Mesa & Emojis**: Sistema de comunicação de baixa latência contendo emojis flutuantes dinâmicos e whitelist de falas curtas com controle inteligente de spam.
+14. **Modo Espectador**: Jogadores eliminados permanecem na sala em tempo real como espectadores e podem torcer/interagir enviando emojis e chat.
+15. **Sistema de Contadores (Streaks)**: Avisos visuais em tela ("STREAK x2!") para jogadas bem-sucedidas em sequência na mesa, promovendo competitividade.
 
 ---
 
