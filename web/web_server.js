@@ -294,6 +294,14 @@ function spawnEngineForRoom(room) {
   room.engine = engine;
   room.stdoutBuffer = '';
 
+  // Sem listener de 'error' no stdin, um EPIPE (engine morreu enquanto havia um
+  // write pendente — comum sob carga ou quando a sala fecha no meio de um turno)
+  // vira erro não-tratado e DERRUBA o server inteiro, levando junto TODAS as
+  // outras salas. Swallow aqui: o fim do engine já é tratado em engine.on('close').
+  engine.stdin.on('error', (err) => {
+    console.warn(`[Server/${room.roomId}] stdin do engine indisponível (${err.code}) — write pendente ignorado`);
+  });
+
   const names = room.isSoloMode
     ? room.legacyPlayerNames
     : Array.from(room.players.values()).map(p => p.name);
