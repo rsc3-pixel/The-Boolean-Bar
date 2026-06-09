@@ -11,7 +11,7 @@ Esse arquivo te orienta entre sessões. Lê primeiro antes de começar qualquer 
 1. **Boolean Bar (Lógica)** — jogador descarta uma carta com fórmula proposicional declarando se é Tautologia/Contradição/Contingência. Adversário pode duvidar. Quem mente ou duvida injustamente vai pra **Roleta Russa** (1-6 balas no tambor). Última pessoa viva vence.
 2. **Liar's Dice (Dados)** — cada jogador tem 5 dados em copo escondido. Apostas são sobre quantidade total de uma face na mesa. Quem duvida e errar perde 1 dado; quem fizer aposta inflada e for descoberto também perde 1. Zero dados = eliminado. Último com dados vence.
 
-Projeto da cadeira de **PIF + Lógica para Computação** no CESAR School. Squad 7. Tech Lead: Renato Chong (`rsc3-pixel`). Repo privado.
+Projeto integrado de 6 cadeiras no CESAR School: **Lógica para Computação**, **PIF**, **Projeto 2**, **IHC**, **Fundamentos de Desenvolvimento de Software** e **Gestão de Projetos**. Squad 7. Tech Lead: Renato Chong (`rsc3-pixel`). Repo privado.
 
 ---
 
@@ -44,7 +44,7 @@ The-Boolean-Bar/
 │   │   ├── dice_flow.c          # dice_game_start() — loop do modo Dados
 │   │   ├── deck_manager.c       # gera fórmulas aleatórias
 │   │   ├── logic_engine.c       # avalia fórmulas (tabela-verdade) — API do Matheus Sprint 1
-│   │   └── dice_engine.c        # DEAD CODE (não tá no Makefile SRCS)
+│   │   └── (dice_engine.c removido — era dead code fora do Makefile)
 │   ├── functional/predicates.c  # ponteiros de função (filtro de jogadores vivos)
 │   └── ui/terminal_art.c        # ASCII art + ANSI colors
 ├── web/
@@ -69,7 +69,8 @@ The-Boolean-Bar/
 │   │       ├── modals/SettingsInstructionsPanel.tsx  # manuais (toggle Dice/Logic) + toggle música
 │   │       ├── ui/DiceFace.tsx, OpponentDiceCard.tsx (componentes dice)
 │   │       └── ...
-│   └── test_rooms.js            # smoke test do server (rodar com `node test_rooms.js`)
+│   ├── test_rooms.js            # smoke test do server (`npm test`)
+│   └── stress_test.js           # teste de carga: 100+ sessões simultâneas (`npm run stress`)
 ├── docs/
 │   ├── DEPLOY.md                # ⭐ guia de atualização da VM (LER se for fazer deploy)
 │   └── ...
@@ -134,6 +135,7 @@ Adicionados no lobby pelo host (`add_bot` action). Têm `isBot: true`, `ws: null
 | **`strdup` na glibc precisa `_POSIX_C_SOURCE=200809L`** | Já tá no CFLAGS do Makefile. Sem ele, gcc trata strdup como int (32-bit) → trunca ponteiro 64-bit → SIGSEGV |
 | **`setvbuf(stdout, NULL, _IOLBF, 0)` no main.c** | Stdout em pipe é block-buffered por default. Sem isso, output some no crash. NÃO REMOVER |
 | **`spawn(... { windowsHide: true })`** (não shell:true) | shell:true faz `cmd.exe` ser o filho direto e `engine.kill()` mata só o cmd, deixando boolean_bar zumbi |
+| **`engine.stdin.on('error')` é obrigatório** | Sob carga (ou sala fechando mid-turno), um engine pode morrer com um `stdin.write()` pendente → EPIPE emitido no stream do stdin. SEM listener de error, vira exceção não-tratada e DERRUBA o server inteiro (todas as salas juntas). Achado pelo `stress_test.js`. NÃO REMOVER o handler em `spawnEngineForRoom` |
 | **JSON_DICE_STATE precisa filtragem per-client** | `allDice` vaza dados de todos. Server tem marker.perClient que substitui `allDice` por `myDice` (do destinatário) e remove o original. NÃO usar broadcast direto pra dice_state |
 | **Nginx + WebSocket** | Config em `/etc/nginx/sites-available/boolean-bar` na VM. Tem `proxy_set_header Upgrade $http_upgrade; Connection "upgrade"` — necessário pro WS funcionar |
 | **GamePage usa `zoom: 0.65/0.75/0.85`** | Hack pra caber em telas baixas. Mobile responsivo já feito mas zoom é dirty workaround. Pra refazer sério precisa abandonar layout fixo de 6 cartas em arco |

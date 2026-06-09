@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "test": "node test_rooms.js",
+    "stress": "node stress_test.js"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

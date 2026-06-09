@@ -4,6 +4,9 @@ build/
 *.o
 *.out
 
+# Dados de runtime (ranking persistido pelo server — não versionar; muda a cada partida)
+/leaderboard.json
+
 # Dependencies
 node_modules/
 .npm/

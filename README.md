@@ -29,7 +29,7 @@
 
 ## 🎯 Sobre o Projeto
 
-**The Boolean Bar** é um ecossistema fullstack e simulador de mesa de apostas clandestina onde a moeda de troca é o raciocínio lógico. Desenvolvido com padrões de arquitetura de alto nível, o jogo desafia até 7 jogadores a validarem fórmulas de lógica proposicional sob pressão, onde um erro técnico leva diretamente à Roleta Russa.
+**The Boolean Bar** é um ecossistema fullstack e simulador de mesa de apostas clandestina onde a moeda de troca é o raciocínio lógico. Desenvolvido com padrões de arquitetura de alto nível, o jogo desafia até 8 jogadores a validarem fórmulas de lógica proposicional sob pressão, onde um erro técnico leva diretamente à Roleta Russa.
 
 Concebido originalmente como um **Projeto Integrador (PI)** de excelência, unindo os conhecimentos das cadeiras de **Programação Imperativa e Funcional (PIF)**, **Lógica para Computação**, **Fundamentos de Desenvolvimento de Software (FDS)** e **Interface Humano Computador (IHC)** no CESAR School. A plataforma evoluiu de um motor em C para um ecossistema fullstack completo.
 
@@ -79,16 +79,21 @@ O projeto adota uma estrutura de **Monorepo**, segregando as responsabilidades d
 ```text
 The-Boolean-Bar/
 ├── engine/                      # 🧠 Game Engine Core (C11)
-│   ├── src/                     # Implementação imperativa/funcional (.c)
-│   ├── include/                 # Interface Pública com Namespacing (.h)
-│   └── Makefile                 # Build isolado da Engine
-├── web/                         # 🌐 Web Platform (React/Node)
+│   ├── main.c                   # Entry point (modo Lógica ou Dados)
+│   ├── core/                    # TADs (types.h), memória e input handler
+│   ├── modules/                 # game_flow, dice_flow, logic_engine, deck_manager
+│   ├── functional/              # predicates.c (Ponteiros de Função)
+│   └── ui/                      # terminal_art.c (ASCII Art + cores ANSI)
+├── web/                         # 🌐 Web Platform (React + Vite + Node)
 │   ├── src/                     # UI Rica, Hooks e Componentes (Tailwind)
-│   └── web_server.js            # Gateway de WebSockets e Lobby online
+│   ├── web_server.js            # Gateway de WebSockets e Lobby online
+│   ├── test_rooms.js            # Smoke test do servidor (npm test)
+│   └── stress_test.js           # Teste de carga, 100+ sessões (npm run stress)
 ├── docs/                        # 📄 Documentos de ADR, Lógica e Manuais
 ├── assets/                      # 🖼️ Assets estáticos e multimídia
 ├── scripts/                     # 🛠️ Automações (PS1) de pós-build
-├── Makefile                     # 🚀 Orquestrador Master
+├── build/                       # ⚙️ Binário compilado (gerado, fora do git)
+├── Makefile                     # 🚀 Orquestrador Master (cross-platform)
 └── README.md                    # Manifesto do Sistema
 ```
 
@@ -132,7 +137,7 @@ graph TB
     subgraph "Camada de Lógica de Negócio (Engine C11)"
         GF["🎮 modules/game_flow<br/>Motor de Turnos"]
         LE["🧠 modules/logic_engine<br/>Tabela-Verdade"]
-        DM["🎲 modules/dice_engine<br/>Motor de Dados Lógicos"]
+        DM["🎲 modules/dice_flow<br/>Motor de Dados (Liar's Dice)"]
     end
 
     subgraph "Camada Funcional (C11)"
@@ -162,7 +167,7 @@ graph TB
 
 ```mermaid
 erDiagram
-    Sala ||--o{ Jogador : "players (Max 7)"
+    Sala ||--o{ Jogador : "players (Max 8)"
     Sala ||--o| Mesa : "estado do jogo"
     Mesa ||--o| Dado : "current_dice"
     Dado }o--|| FormulaType : "type"
@@ -242,7 +247,7 @@ stateDiagram-v2
 graph LR
     A["main.c"] -->|"chama"| B["game_flow"]
     B -->|"aloca/libera"| C["core/memory"]
-    B -->|"rola dado"| D["dice_engine"]
+    B -->|"rola dado"| D["dice_flow"]
     B -->|"verifica"| E["logic_engine"]
     B -->|"filtra"| F["predicates"]
     B -->|"renderiza"| G["terminal_art"]
@@ -258,20 +263,30 @@ graph LR
 Para rodar todo o ecossistema localmente, siga estes dois passos:
 
 ### 1. Compilar a Engine Base (Motor Lógico)
-Necessita de GCC (Linux/Windows MSYS2) e Make instalados.
+Necessita de GCC (Linux/Windows MSYS2) e Make instalados. Na raiz do projeto:
 ```bash
-make engine
+make
 ```
-*Opcional: Testar diretamente no terminal rodando `./apps/engine/bin/boolean_bar_engine`.*
+Isso gera o binário em `build/boolean_bar` (Linux) ou `build\boolean_bar.exe` (Windows).
+*Opcional: testar direto no terminal com `make run` (escolhe o modo) ou `make run-logic` / `make run-dice`.*
 
 ### 2. Rodar a Plataforma Web e Servidor Online
 Em um novo terminal, abra a pasta da interface web:
 ```bash
 cd web
-pnpm install
-# Inicia o servidor de WebSockets e o Frontend do Vite simultaneamente:
+npm install
+# Inicia o servidor de WebSockets + o Frontend do Vite:
 node web_server.js
 ```
+*Atalho: na raiz, `make dev` compila a engine e sobe servidor + frontend de uma vez.*
+
+### 3. Rodar os testes
+```bash
+cd web
+npm test          # smoke test do servidor (salas, reconnect, host transfer)
+npm run stress    # teste de carga: 100+ sessões simultâneas
+```
+Detalhes em [docs/TESTING.md](docs/TESTING.md).
 
 ---
 
