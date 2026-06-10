@@ -16,6 +16,8 @@ Guia de como rodar os testes do projeto. Tudo roda contra o servidor WebSocket (
 
 > Os testes conectam em `ws://localhost:8080`. Pra mirar outra URL: `WS_URL=ws://host:porta node <teste>.js`.
 
+> Atalhos na raiz do projeto: `make test` (smoke) e `make stress` (carga; aceita `make stress N=200 C=40`). Equivalem aos comandos npm abaixo.
+
 ---
 
 ## 1. Smoke test — `web/test_rooms.js`

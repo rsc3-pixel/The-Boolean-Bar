@@ -321,7 +321,9 @@ cd web
 npm test          # smoke test do servidor (salas, reconnect, host transfer)
 npm run stress    # teste de carga: 100+ sessões simultâneas
 ```
-Detalhes em [docs/TESTING.md](docs/TESTING.md).
+Atalhos equivalentes na raiz: `make test` e `make stress` (aceita `make stress N=200 C=40`). Detalhes em [docs/TESTING.md](docs/TESTING.md).
+
+> 🤝 **Quer contribuir?** O passo a passo completo de setup do ambiente (do zero) e o fluxo de branch/PR estão no [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
