@@ -2,6 +2,23 @@
 
 Aqui estão as 10 Histórias de Usuário (UHs) reescritas para se alinharem perfeitamente à mecânica de **Liar's Dice (Dados D6)**, mantendo a atmosfera cyberpunk/bar e os requisitos técnicos em C.
 
+## Status da implementação (atualizado em 10/06/2026)
+
+As 10 UHs estão implementadas e em produção (https://rsc3-boolean.duckdns.org). Onde cada uma vive no código:
+
+| UH | Status | Evidência no código / commits |
+|---|---|---|
+| UH1 Setup de partida | ✅ | `engine/core/memory.c` (alocação dinâmica dos jogadores); sala de até 8 em `e7b6a8d4` |
+| UH2 Sorteio oculto de dados | ✅ | `engine/modules/dice_flow.c`; 3 dados iniciais em `798482a4`; servidor filtra `myDice` por cliente |
+| UH3 Aposta com escalada | ✅ | `dice_flow.c` (validação de escalada); face 1-6 apostável |
+| UH4 Duvido + contagem | ✅ | `dice_flow.c` (`JSON_DICE_REVEAL` com contagem real e perdedor automático) |
+| UH5 Roleta Russa | ✅ | Roleta no modo Lógica (`game_flow.c`); no modo Dados a punição é perder 1 dado, conforme regra oficial |
+| UH6 Interface imersiva | ✅ | `engine/ui/terminal_art.c` (ASCII + ANSI) e frontend React completo |
+| UH7 Filtro funcional de vivos | ✅ | `engine/functional/predicates.c` (ponteiros de função) |
+| UH8 Sanitização de input | ✅ | `engine/core/input_handler.c` (`get_safe_int`, `get_safe_string`) |
+| UH9 Risco progressivo | ✅ | Balas incrementais a cada clique seco no modo Lógica (`game_flow.c`) |
+| UH10 Vitória + cleanup | ✅ | `JSON_VICTORY` + `free()` de todos os ponteiros; ranking final com pontuação (`8e5ea22e`, `df8cb2a6`) |
+
 ---
 
 ### UH1: Entrada no Bar (Setup de Partida)

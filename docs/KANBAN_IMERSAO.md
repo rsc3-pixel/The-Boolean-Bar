@@ -2,6 +2,25 @@
 
 > Guia tecnico detalhado com codigo: [TASKS_IMERSAO.md](TASKS_IMERSAO.md)
 
+## Status da entrega (atualizado em 10/06/2026)
+
+Todas as 12 tasks foram implementadas e estao em producao. Rastreabilidade:
+
+| Task | Status | Commit(s) | Autor |
+|---|---|---|---|
+| 1. Countdown 30s | ✅ Done | `fbab39e5` | Matheus |
+| 2. Reacoes (emojis) | ✅ Done | `af69c580` | Matheus |
+| 3. Sons de roleta | ✅ Done | `2bb12eb1` | Matheus |
+| 4. Shake + vibracao | ✅ Done | `f3153e8c` | Matheus |
+| 5. Chat rapido | ✅ Done | `f2dbb992` | Renato |
+| 6. Dados 3D no reveal | ✅ Done | `f2dbb992` | Renato |
+| 7. Streak/combo | ✅ Done | `f2dbb992` | Renato |
+| 8. Entrada dramatica | ✅ Done | `f2dbb992` (desativada em `185401c5` por bug de tela preta; codigo mantido) | Renato |
+| 9. Narrador automatico | ✅ Done | `f2dbb992` | Renato |
+| 10. Pulsacao do card ativo | ✅ Done | `f2dbb992` | Renato |
+| 11. Confetti na vitoria | ✅ Done | `f2dbb992` | Renato |
+| 12. Sons por evento | ✅ Done | `f2dbb992` | Renato |
+
 ---
 
 ### [Imersao 1] Countdown timer de 30s por turno
