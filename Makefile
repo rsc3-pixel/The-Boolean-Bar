@@ -89,6 +89,20 @@ prod: all web-build
 	@echo "[Prod] Iniciando server único na porta $${PORT:-8080}..."
 	cd $(WEB_DIR) && NODE_ENV=production node web_server.js
 
+# ─── Testes ──────────────────────────────────────────────────────────────────
+# Teste de carga: dispara N sessões (até C simultâneas) contra o server WS.
+# PRÉ-REQUISITO: o server precisa estar de pé (rode `make dev` antes, noutra janela).
+# Uso:  make stress              → 100 sessões, 25 simultâneas (defaults do script)
+#       make stress N=200 C=40   → 200 sessões, 40 simultâneas
+stress:
+	@echo "[Teste] Carga: $(if $(N),$(N),100) sessões / $(if $(C),$(C),25) simultâneas (server precisa estar rodando)..."
+	cd $(WEB_DIR) && node stress_test.js $(N) $(C)
+
+# Smoke test do server (salas básicas). Também precisa do server de pé.
+test:
+	@echo "[Teste] Smoke test de salas (server precisa estar rodando)..."
+	cd $(WEB_DIR) && node test_rooms.js
+
 # ─── Modo terminal (sem web) ─────────────────────────────────────────────────
 # Roda o engine direto no terminal. O binário pergunta o modo (0=Logica, 1=Dados)
 # se chamado sem argumento.
@@ -134,4 +148,4 @@ kill:
 
 restart: kill dev
 
-.PHONY: all clean run run-logic run-dice dev prod web-build kill restart prepare
+.PHONY: all clean run run-logic run-dice dev prod web-build kill restart prepare stress test
