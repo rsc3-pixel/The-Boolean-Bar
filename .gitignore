@@ -48,3 +48,6 @@ dist/
 /assets/*.mp3
 # Screencast hospedado externamente (luvaplay) — nao versionar o mp4 pesado
 /assets/Screencast.mp4
+
+# Documentos locais e guias do squad (não versionar no Git)
+docs/
